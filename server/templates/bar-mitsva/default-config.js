@@ -13,22 +13,22 @@ module.exports = {
     bsd: true                  // affiche בס"ד
   },
   theme: {
-    preset: "gold-cream",
+    preset: "bleu-blanc",
     colors: {
-      cream:      "#f4ece0",
-      creamWarm:  "#f8efe1",
-      creamDeep:  "#ebe0cd",
-      paper:      "#faf3e7",
-      gold:       "#c9a87c",
-      goldBright: "#dabf94",
-      goldDeep:   "#a8865a",
-      bronze:     "#8a6a48",
-      ink:        "#2a2520",
-      inkSoft:    "#4a3f33"
+      cream:      "#f0f5ff",
+      creamWarm:  "#e8f0fe",
+      creamDeep:  "#dbeafe",
+      paper:      "#ffffff",
+      gold:       "#2563eb",
+      goldBright: "#3b82f6",
+      goldDeep:   "#1d4ed8",
+      bronze:     "#1e3a8a",
+      ink:        "#0d1f3c",
+      inkSoft:    "#475569"
     },
     fonts: {
-      heading: "Italiana",
-      body:    "Cormorant Garamond",
+      heading: "Montserrat",
+      body:    "Inter",
       ui:      "Inter",
       hebrew:  "Frank Ruhl Libre"
     }
