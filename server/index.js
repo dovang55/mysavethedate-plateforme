@@ -57,14 +57,9 @@ function getSubdomain(req) {
   return null;
 }
 
-// ─── Serve admin ─────────────────────────────────────────────────────────────
-app.get('/admin*', requireAdmin, (req,res) => {
-  // Strip auth from URL check — admin pages served directly
-});
-app.use('/admin', requireAdmin, express.static(path.join(__dirname,'..','admin')));
-
-// Admin fallback SPA
-app.get(['/admin','/admin/'], requireAdmin, (req,res) => {
+// ─── Serve admin (HTML public — auth gérée côté client JS) ──────────────────
+app.use('/admin', express.static(path.join(__dirname,'..','admin')));
+app.get(['/admin','/admin/'], (req,res) => {
   res.sendFile(path.join(__dirname,'..','admin','index.html'));
 });
 
@@ -244,8 +239,8 @@ app.delete('/api/admin/videos/:id', requireAdmin, async (req,res) => {
 app.get('*', async (req,res) => {
   const sub = getSubdomain(req);
 
-  // Admin direct access sans sous-domaine
-  if (!sub || sub === 'www') {
+  // Admin direct access ou sous-domaine "admin"
+  if (!sub || sub === 'www' || sub === 'admin') {
     return res.sendFile(path.join(__dirname,'..','admin','index.html'));
   }
 
