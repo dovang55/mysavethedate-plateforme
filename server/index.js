@@ -74,7 +74,7 @@ app.use('/assets', express.static(path.join(__dirname,'..','public','assets')));
 // ─── Upload pages (contextuelles au sous-domaine) ───────────────────────────
 app.get('/upload', async (req,res) => {
   const sub = getSubdomain(req);
-  const { data:site } = await supabase.from('sites').select('id,config').eq('subdomain', sub).single();
+  const { data:site } = await supabase.from('msd_sites').select('id,config').eq('subdomain', sub).single();
   if (!site) return res.status(404).send('Site not found');
   const cfg = mergeConfig(site.config);
   res.sendFile(path.join(__dirname,'..','public','upload.html'));
@@ -86,14 +86,14 @@ app.get('/upload', async (req,res) => {
 
 // List all sites
 app.get('/api/admin/sites', requireAdmin, async (req,res) => {
-  const { data,error } = await supabase.from('sites').select('id,subdomain,template,active,created_at,config').order('created_at',{ascending:false});
+  const { data,error } = await supabase.from('msd_sites').select('id,subdomain,template,active,created_at,config').order('created_at',{ascending:false});
   if(error) return res.status(500).json({error:error.message});
   res.json(data);
 });
 
 // Get single site
 app.get('/api/admin/sites/:id', requireAdmin, async (req,res) => {
-  const { data,error } = await supabase.from('sites').select('*').eq('id',req.params.id).single();
+  const { data,error } = await supabase.from('msd_sites').select('*').eq('id',req.params.id).single();
   if(error) return res.status(500).json({error:error.message});
   res.json(data);
 });
@@ -103,7 +103,7 @@ app.post('/api/admin/sites', requireAdmin, async (req,res) => {
   const { subdomain, template='bar-mitsva', config={} } = req.body;
   if(!subdomain) return res.status(400).json({error:'subdomain requis'});
   const fullConfig = mergeConfig(config);
-  const { data,error } = await supabase.from('sites').insert({ subdomain, template, config: fullConfig, active: true }).select().single();
+  const { data,error } = await supabase.from('msd_sites').insert({ subdomain, template, config: fullConfig, active: true }).select().single();
   if(error) return res.status(500).json({error:error.message});
   res.json(data);
 });
@@ -115,14 +115,14 @@ app.put('/api/admin/sites/:id', requireAdmin, async (req,res) => {
   if(config!==undefined) updates.config = config;
   if(active!==undefined) updates.active = active;
   if(subdomain!==undefined) updates.subdomain = subdomain;
-  const { data,error } = await supabase.from('sites').update(updates).eq('id',req.params.id).select().single();
+  const { data,error } = await supabase.from('msd_sites').update(updates).eq('id',req.params.id).select().single();
   if(error) return res.status(500).json({error:error.message});
   res.json(data);
 });
 
 // Delete site
 app.delete('/api/admin/sites/:id', requireAdmin, async (req,res) => {
-  const { error } = await supabase.from('sites').delete().eq('id',req.params.id);
+  const { error } = await supabase.from('msd_sites').delete().eq('id',req.params.id);
   if(error) return res.status(500).json({error:error.message});
   res.json({success:true});
 });
@@ -155,7 +155,7 @@ app.post('/api/admin/upload-media', requireAdmin, upload.single('file'), async (
 app.post('/api/rsvp', async (req,res) => {
   const sub = getSubdomain(req);
   try {
-    const { data:site } = await supabase.from('sites').select('id,config').eq('subdomain',sub).single();
+    const { data:site } = await supabase.from('msd_sites').select('id,config').eq('subdomain',sub).single();
     if(!site) return res.status(404).json({error:'Site introuvable'});
 
     const body = req.body;
@@ -177,7 +177,7 @@ app.post('/api/rsvp', async (req,res) => {
       };
     });
 
-    const { error } = await supabase.from('rsvp_submissions').insert(row);
+    const { error } = await supabase.from('msd_rsvp').insert(row);
     if(error) throw error;
     res.json({success:true});
   } catch(err) {
@@ -187,13 +187,13 @@ app.post('/api/rsvp', async (req,res) => {
 
 // Get RSVP for a site (admin)
 app.get('/api/admin/sites/:id/rsvp', requireAdmin, async (req,res) => {
-  const { data,error } = await supabase.from('rsvp_submissions').select('*').eq('site_id',req.params.id).order('created_at',{ascending:false});
+  const { data,error } = await supabase.from('msd_rsvp').select('*').eq('site_id',req.params.id).order('created_at',{ascending:false});
   if(error) return res.status(500).json({error:error.message});
   res.json(data);
 });
 
 app.delete('/api/admin/rsvp/:id', requireAdmin, async (req,res) => {
-  const { error } = await supabase.from('rsvp_submissions').delete().eq('id',req.params.id);
+  const { error } = await supabase.from('msd_rsvp').delete().eq('id',req.params.id);
   if(error) return res.status(500).json({error:error.message});
   res.json({success:true});
 });
@@ -205,7 +205,7 @@ app.post('/api/upload', upload.single('video'), async (req,res) => {
   const tmpPath = req.file?.path;
   const sub = getSubdomain(req);
   try {
-    const { data:site } = await supabase.from('sites').select('id').eq('subdomain',sub).single();
+    const { data:site } = await supabase.from('msd_sites').select('id').eq('subdomain',sub).single();
     if(!site) return res.status(404).json({error:'Site introuvable'});
     if(!req.file) return res.status(400).json({error:'Aucun fichier'});
     const { name='Anonyme', message='' } = req.body;
@@ -215,7 +215,7 @@ app.post('/api/upload', upload.single('video'), async (req,res) => {
     const { error:upErr } = await supabase.storage.from(BUCKET_VIDEO).upload(fileName, buffer, { contentType: req.file.mimetype, upsert: false });
     if(upErr) throw upErr;
     const { data:urlData } = supabase.storage.from(BUCKET_VIDEO).getPublicUrl(fileName);
-    await supabase.from('video_submissions').insert({ site_id:site.id, name, message, video_url:urlData.publicUrl, file_name:fileName });
+    await supabase.from('msd_videos').insert({ site_id:site.id, name, message, video_url:urlData.publicUrl, file_name:fileName });
     res.json({success:true, url:urlData.publicUrl});
   } catch(err) {
     res.status(500).json({error:err.message});
@@ -225,15 +225,15 @@ app.post('/api/upload', upload.single('video'), async (req,res) => {
 });
 
 app.get('/api/admin/sites/:id/videos', requireAdmin, async (req,res) => {
-  const { data,error } = await supabase.from('video_submissions').select('*').eq('site_id',req.params.id).order('created_at',{ascending:false});
+  const { data,error } = await supabase.from('msd_videos').select('*').eq('site_id',req.params.id).order('created_at',{ascending:false});
   if(error) return res.status(500).json({error:error.message});
   res.json(data);
 });
 
 app.delete('/api/admin/videos/:id', requireAdmin, async (req,res) => {
-  const { data:row } = await supabase.from('video_submissions').select('file_name').eq('id',req.params.id).single();
+  const { data:row } = await supabase.from('msd_videos').select('file_name').eq('id',req.params.id).single();
   if(row?.file_name) await supabase.storage.from(BUCKET_VIDEO).remove([row.file_name]);
-  const { error } = await supabase.from('video_submissions').delete().eq('id',req.params.id);
+  const { error } = await supabase.from('msd_videos').delete().eq('id',req.params.id);
   if(error) return res.status(500).json({error:error.message});
   res.json({success:true});
 });
@@ -250,7 +250,7 @@ app.get('*', async (req,res) => {
   }
 
   try {
-    const { data:site, error } = await supabase.from('sites').select('*').eq('subdomain',sub).eq('active',true).single();
+    const { data:site, error } = await supabase.from('msd_sites').select('*').eq('subdomain',sub).eq('active',true).single();
     if(error||!site) return res.status(404).send('<h1>Site introuvable</h1><p>Ce faire-part n\'existe pas ou a été désactivé.</p>');
     const cfg = mergeConfig(site.config);
     const html = renderBarMitsva(cfg, site.id);
