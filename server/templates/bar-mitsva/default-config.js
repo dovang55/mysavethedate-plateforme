@@ -1,0 +1,117 @@
+module.exports = {
+  meta: {
+    title: "Bar Mitzvah · Prénom Nom",
+    lang: "fr",
+    favicon: ""
+  },
+  identity: {
+    firstName: "Prénom",
+    lastName: "Nom",
+    hebrewName: "",
+    eventType: "bar-mitsva",   // bar-mitsva | bat-mitsva | mariage | anniversaire
+    logo: "",
+    bsd: true                  // affiche בס"ד
+  },
+  theme: {
+    preset: "gold-cream",
+    colors: {
+      cream:      "#f4ece0",
+      creamWarm:  "#f8efe1",
+      creamDeep:  "#ebe0cd",
+      paper:      "#faf3e7",
+      gold:       "#c9a87c",
+      goldBright: "#dabf94",
+      goldDeep:   "#a8865a",
+      bronze:     "#8a6a48",
+      ink:        "#2a2520",
+      inkSoft:    "#4a3f33"
+    },
+    fonts: {
+      heading: "Italiana",
+      body:    "Cormorant Garamond",
+      ui:      "Inter",
+      hebrew:  "Frank Ruhl Libre"
+    }
+  },
+  sections: {
+    hero: {
+      enabled:       true,
+      eyebrow:       "Bar Mitsva",
+      showCountdown: true,
+      ctaText:       "Voir le faire-part"
+    },
+    fairepart: {
+      enabled:       true,
+      blessing:      "Avec la protection divine sur le Am Israël, amen…",
+      blessingHe:    "",
+      ceremonyTag:   "Cérémonie",
+      ceremonyName:  "Mise des Téfilines",
+      ceremonyHe:    "הוֹדוּ לַה' כִּי-טוֹב, כִּי לְעוֹלָם חַסְדּוֹ",
+      familyLine:    "Les parents ont le plaisir de vous convier",
+      inviteHe:      "",
+      inviteSub:     "Entouré de sa famille et de ses amis, nous serons heureux de célébrer avec vous cette étape importante.",
+      photo:         "",
+      events: [
+        { label: "Date",  value: "Le Jeudi 05 novembre 2026", valueHe: "25 Hechvan 5787" },
+        { label: "Heure", value: "L'office débutera à 8h30" },
+        { label: "Lieu",  value: "Nom du lieu", address: "Adresse complète", wazeUrl: "" }
+      ],
+      followup:      "L'office sera suivi d'une réception"
+    },
+    hommage: {
+      enabled: true,
+      title:   "Dans les pas de nos Patriarches",
+      text:    "Nos Sages nous enseignent que nos Patriarches ne nous ont jamais quittés, car nous, leurs descendants, perpétuent leur héritage chaque jour.",
+      photo:   ""
+    },
+    shabbat: {
+      enabled:    true,
+      tag:        "Shabbat Bar Mitsva",
+      parasha:    "Hayé Sarah",
+      parashaHe:  "חַיֵּי שָׂרָה",
+      intro:      "Nous avons la joie de vous inviter à nous rejoindre pour la lecture de la Parasha.",
+      photo:      "",
+      events: [
+        { label: "Date", value: "Le Samedi", valueItalic: "" },
+        { label: "Lieu", value: "Synagogue", address: "", wazeUrl: "" }
+      ],
+      followup:   "L'office sera suivi d'un Kiddouch et d'une séouda"
+    },
+    infos: {
+      enabled:  true,
+      title:    "Informations complémentaires",
+      subtitle: "Demande de VISA",
+      body:     "Depuis le 1er Août 2024, il est obligatoire pour les touristes souhaitant se rendre en Israel de remplir le formulaire ETA suivant :",
+      ctaText:  "Faire une demande de visa — Site officiel",
+      ctaUrl:   "https://israel-eta.piba.gov.il/"
+    },
+    video: {
+      enabled: true,
+      title:   "Une vidéo pour",
+      text:    "Laissez un souvenir mémorable.\nEnvoyez-nous une vidéo surprise !\nDiffusion planifiée pendant la réception."
+    },
+    rsvp: {
+      enabled:  true,
+      deadline: "1er octobre 2026",
+      events: [
+        { id: "mishte",  name: "Mise des Téfilines & Réception", date: "Jeudi 05 novembre 2026 · 8h30" },
+        { id: "shabbat", name: "Shabbat Bar Mitsva",            date: "Samedi 10 octobre 2026" }
+      ]
+    },
+    footer: {
+      credit: "Bar Mitzvah · MMXXVI",
+      createdBy: "Dovan Guez",
+      createdByUrl: "https://guezdovan.com"
+    }
+  },
+  music: [
+    { url: "", startAt: 0, loopFrom: 0, pages: [0,1,4,5,6,7], label: "Piste principale" },
+    { url: "", startAt: 0, loopFrom: 0, pages: [2],            label: "Hommage" },
+    { url: "", startAt: 0, loopFrom: 0, pages: [3],            label: "Shabbat" }
+  ],
+  target: {
+    date:     "2026-11-05",
+    time:     "08:30",
+    timezone: "+02:00"
+  }
+};
