@@ -19,6 +19,17 @@ const BUCKET_VIDEO = 'msd-videos';
 if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
 
 const app = express();
+
+// Redirection .fr → .com (301 permanent)
+app.use((req, res, next) => {
+  const host = req.hostname || '';
+  if (host.endsWith('.fr')) {
+    const target = `https://${host.replace(/\.fr$/, '.com')}${req.originalUrl}`;
+    return res.redirect(301, target);
+  }
+  next();
+});
+
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 
