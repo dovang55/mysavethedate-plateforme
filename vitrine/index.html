@@ -63,10 +63,42 @@ button{font-family:inherit;cursor:pointer}
 .iphone-btn-vol{position:absolute;left:-3px;top:120px;width:3px;height:36px;background:#3a3a3c;border-radius:2px 0 0 2px}
 .iphone-btn-vol2{position:absolute;left:-3px;top:168px;width:3px;height:36px;background:#3a3a3c;border-radius:2px 0 0 2px}
 .iphone-btn-pow{position:absolute;right:-3px;top:148px;width:3px;height:56px;background:#3a3a3c;border-radius:0 2px 2px 0}
-.iphone-screen{width:100%;height:100%;border-radius:42px;overflow:hidden;background:#1c1c1e;position:relative}
+.iphone-screen{width:100%;height:100%;border-radius:42px;overflow:hidden;background:#f5e8cc;position:relative}
 .iphone-island{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:120px;height:34px;background:#1c1c1e;border-radius:20px;z-index:10}
-.iphone-screen iframe{width:390px;height:870px;border:none;transform:scale(0.615);transform-origin:top left;display:block}
-.iphone-home{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);width:100px;height:5px;background:rgba(255,255,255,.35);border-radius:3px;z-index:10}
+/* Faire-part vitrine statique */
+.fp-preview{width:390px;transform:scale(0.615);transform-origin:top left;background:linear-gradient(170deg,#fdf8f0 0%,#f5e6c8 60%,#ede0c0 100%);animation:fp-scroll 9s ease-in-out 2s infinite alternate;position:relative}
+@keyframes fp-scroll{from{transform:scale(0.615) translateY(0)}to{transform:scale(0.615) translateY(-340px)}}
+.fp-overlay{position:absolute;inset:0;z-index:30;cursor:default}
+.fp-s1{min-height:868px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 40px 60px;text-align:center;position:relative}
+.fp-s1::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 40%,rgba(201,169,110,.18),transparent 70%);pointer-events:none}
+.fp-mono{width:90px;height:90px;border:1.5px solid rgba(180,140,80,.5);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 32px;position:relative}
+.fp-mono::before{content:'';position:absolute;inset:-6px;border:1px solid rgba(180,140,80,.2);border-radius:50%}
+.fp-mono-text{font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:600;color:#8a6830;letter-spacing:-.02em}
+.fp-eyebrow{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.35em;text-transform:uppercase;color:rgba(138,104,48,.6);margin-bottom:16px}
+.fp-firstname{font-family:'Cormorant Garamond',serif;font-size:58px;font-weight:300;color:#2a1f0e;line-height:1;letter-spacing:-.02em}
+.fp-lastname{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:600;color:#8a6830;line-height:1.2;letter-spacing:.04em;text-transform:uppercase;margin-bottom:28px}
+.fp-divider{width:40px;height:1px;background:rgba(138,104,48,.4);margin:0 auto 28px}
+.fp-date-label{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;letter-spacing:.25em;text-transform:uppercase;color:rgba(42,31,14,.45);margin-bottom:8px}
+.fp-date-val{font-family:'Cormorant Garamond',serif;font-size:20px;font-style:italic;color:#2a1f0e;margin-bottom:36px}
+.fp-cd{display:flex;gap:20px;justify-content:center;margin-bottom:40px}
+.fp-cd-item{display:flex;flex-direction:column;align-items:center;gap:4px}
+.fp-cd-num{font-family:'Cormorant Garamond',serif;font-size:40px;font-weight:300;color:#2a1f0e;line-height:1}
+.fp-cd-sep{font-family:'Cormorant Garamond',serif;font-size:30px;color:rgba(138,104,48,.4);line-height:1;margin-top:-4px}
+.fp-cd-label{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(42,31,14,.4)}
+.fp-cta{display:inline-block;padding:14px 36px;border:1px solid rgba(138,104,48,.5);font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:#8a6830;margin-bottom:48px}
+.fp-dots{display:flex;gap:8px;justify-content:center}
+.fp-dot{width:6px;height:6px;border-radius:50%;background:rgba(138,104,48,.25)}
+.fp-dot.active{background:#8a6830;width:20px;border-radius:3px}
+/* Section 2 — Programme */
+.fp-s2{padding:70px 40px;background:linear-gradient(170deg,#ede0c0,#e8d5aa);min-height:500px}
+.fp-s2-title{font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:300;color:#2a1f0e;margin-bottom:8px;text-align:center}
+.fp-s2-sub{font-family:'Montserrat',sans-serif;font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(138,104,48,.6);text-align:center;margin-bottom:40px}
+.fp-prog{display:flex;flex-direction:column;gap:20px}
+.fp-prog-item{display:flex;align-items:flex-start;gap:20px;padding:20px;background:rgba(255,255,255,.35);border-left:2px solid rgba(138,104,48,.4)}
+.fp-prog-time{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:#8a6830;min-width:56px;line-height:1}
+.fp-prog-info-h{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;letter-spacing:.05em;color:#2a1f0e;margin-bottom:4px}
+.fp-prog-info-p{font-family:'Inter',sans-serif;font-size:11px;color:rgba(42,31,14,.55);line-height:1.5}
+.iphone-home{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);width:100px;height:5px;background:rgba(255,255,255,.35);border-radius:3px;z-index:40}
 .hero-scroll{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:7px;color:rgba(13,31,60,.22);font-family:'Montserrat',sans-serif;font-size:7px;font-weight:700;letter-spacing:.5em;text-transform:uppercase;animation:bob 2s ease-in-out infinite;z-index:2}
 .hero-scroll svg{width:18px;height:18px}
 @keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(7px)}}
@@ -306,7 +338,55 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
         <div class="iphone-btn-pow"></div>
         <div class="iphone-screen">
           <div class="iphone-island"></div>
-          <iframe src="https://ethan-haziza.mysavethedate.com" loading="lazy" scrolling="yes" title="Faire-part Ethan Haziza" allow="autoplay 'none'" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+          <!-- Faire-part vitrine — statique, auto-scroll, zéro son -->
+          <div class="fp-preview">
+            <!-- Section 1 : Hero -->
+            <div class="fp-s1">
+              <div class="fp-mono"><span class="fp-mono-text">EH</span></div>
+              <div class="fp-eyebrow">Bar Mitsva</div>
+              <div class="fp-firstname">Ethan</div>
+              <div class="fp-lastname">Haziza</div>
+              <div class="fp-divider"></div>
+              <div class="fp-date-label">Le grand jour</div>
+              <div class="fp-date-val">Samedi 14 Septembre 2024</div>
+              <div class="fp-cd">
+                <div class="fp-cd-item"><div class="fp-cd-num">04</div><div class="fp-cd-label">Jours</div></div>
+                <div class="fp-cd-sep">·</div>
+                <div class="fp-cd-item"><div class="fp-cd-num">08</div><div class="fp-cd-label">Heures</div></div>
+                <div class="fp-cd-sep">·</div>
+                <div class="fp-cd-item"><div class="fp-cd-num">27</div><div class="fp-cd-label">Min</div></div>
+                <div class="fp-cd-sep">·</div>
+                <div class="fp-cd-item"><div class="fp-cd-num">15</div><div class="fp-cd-label">Sec</div></div>
+              </div>
+              <div class="fp-cta">Voir le faire-part</div>
+              <div class="fp-dots">
+                <div class="fp-dot active"></div>
+                <div class="fp-dot"></div>
+                <div class="fp-dot"></div>
+              </div>
+            </div>
+            <!-- Section 2 : Programme -->
+            <div class="fp-s2">
+              <div class="fp-s2-title">Programme</div>
+              <div class="fp-s2-sub">La journée d'Ethan</div>
+              <div class="fp-prog">
+                <div class="fp-prog-item">
+                  <div class="fp-prog-time">10h30</div>
+                  <div><div class="fp-prog-info-h">Cérémonie à la Synagogue</div><div class="fp-prog-info-p">Grande Synagogue de la Victoire, Paris 9e</div></div>
+                </div>
+                <div class="fp-prog-item">
+                  <div class="fp-prog-time">13h00</div>
+                  <div><div class="fp-prog-info-h">Déjeuner & Cocktail</div><div class="fp-prog-info-p">Domaine de Valmours, Neuilly-sur-Seine</div></div>
+                </div>
+                <div class="fp-prog-item">
+                  <div class="fp-prog-time">20h00</div>
+                  <div><div class="fp-prog-info-h">Soirée & Animation</div><div class="fp-prog-info-p">Le Pavillon Cambon, Paris 1er</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Overlay bloque tous les clics -->
+          <div class="fp-overlay"></div>
           <div class="iphone-home"></div>
         </div>
       </div>
