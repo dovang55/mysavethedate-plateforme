@@ -543,7 +543,7 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
         <div class="q-inner">
           <div class="q-eye">Étape 4 · Vos envies</div>
           <h2 class="q-h">Quel style<br>vous correspond ?</h2>
-          <p class="q-sub">Choisissez l'ambiance, puis votre fourchette de budget.</p>
+          <p class="q-sub">Choisissez l'ambiance qui vous ressemble — on s'occupe du reste.</p>
           <div class="style-grid" id="styleGrid">
             <div class="style-card" data-val="Élégant & Classique" onclick="pickStyle(this)">
               <h4>Élégant & Classique</h4>
@@ -557,13 +557,6 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
               <h4>Festif & Coloré</h4>
               <p>Vibrant, joyeux, avec animations et photos — pour une ambiance vraiment unique.</p>
             </div>
-          </div>
-          <div class="q-lbl" style="display:block;margin:24px 0 12px">Budget approximatif</div>
-          <div class="budget-grid" id="budgetGrid">
-            <div class="budget-card" data-val="Moins de 500€" onclick="pickBudget(this)"><div class="budget-amt">< 500€</div><div class="budget-lbl">Essentiel</div></div>
-            <div class="budget-card" data-val="500 – 1 000€" onclick="pickBudget(this)"><div class="budget-amt">500–1k€</div><div class="budget-lbl">Standard</div></div>
-            <div class="budget-card" data-val="1 000 – 2 000€" onclick="pickBudget(this)"><div class="budget-amt">1–2k€</div><div class="budget-lbl">Premium</div></div>
-            <div class="budget-card" data-val="Plus de 2 000€" onclick="pickBudget(this)"><div class="budget-amt">> 2k€</div><div class="budget-lbl">Sur-mesure</div></div>
           </div>
           <div class="q-nav">
             <button class="btn-qprev" onclick="prev()">← Précédent</button>
@@ -701,11 +694,7 @@ function pickStyle(el){
   document.querySelectorAll('#styleGrid .style-card').forEach(c=>c.classList.remove('sel'));
   el.classList.add('sel'); S.style = el.dataset.val; chk4();
 }
-function pickBudget(el){
-  document.querySelectorAll('#budgetGrid .budget-card').forEach(c=>c.classList.remove('sel'));
-  el.classList.add('sel'); S.budget = el.dataset.val; chk4();
-}
-function chk4(){ document.getElementById('s4next').disabled = !(S.style && S.budget); }
+function chk4(){ document.getElementById('s4next').disabled = !S.style; }
 
 /* ══ STEP 5 – Contact ══ */
 function chk5(){
