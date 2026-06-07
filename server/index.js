@@ -57,6 +57,14 @@ function getSubdomain(req) {
   return null;
 }
 
+// ─── Serve vitrine (site vitrine — page d'accueil publique) ─────────────────
+app.use('/vitrine', express.static(path.join(__dirname,'..','vitrine')));
+app.get(['/','/?'], (req,res) => {
+  const sub = getSubdomain(req);
+  if (!sub || sub === 'www') res.sendFile(path.join(__dirname,'..','vitrine','index.html'));
+  else res.status(404).end(); // handled by catch-all below
+});
+
 // ─── Serve admin (HTML public — auth gérée côté client JS) ──────────────────
 app.use('/admin', express.static(path.join(__dirname,'..','admin')));
 app.get(['/admin','/admin/'], (req,res) => {
@@ -231,6 +239,30 @@ app.delete('/api/admin/videos/:id', requireAdmin, async (req,res) => {
   const { error } = await supabase.from('msd_videos').delete().eq('id',req.params.id);
   if(error) return res.status(500).json({error:error.message});
   res.json({success:true});
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PUBLIC API — Lead / prise de contact vitrine
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/api/lead', async (req,res) => {
+  const lead = req.body;
+  const ts   = new Date().toLocaleString('fr-FR', { timeZone:'Europe/Paris' });
+  console.log(`\n📋 NOUVEAU PROSPECT [${ts}]`);
+  console.log(`   Événement : ${lead.eventType} — ${lead.date} à ${lead.location}`);
+  console.log(`   Contact   : ${lead.firstName} ${lead.lastName} | ${lead.email} | ${lead.phone}`);
+  console.log(`   Invités   : ${lead.guests} | Style : ${lead.style} | Budget : ${lead.budget}`);
+  console.log(`   RDV       : ${lead.rdvFormatted}\n`);
+  try {
+    // Sauvegarde optionnelle en base si la table msd_leads existe
+    await supabase.from('msd_leads').insert({
+      event_type: lead.eventType, event_date: lead.date, event_location: lead.location,
+      guests: parseInt(lead.guests)||0, style: lead.style, budget: lead.budget,
+      first_name: lead.firstName, last_name: lead.lastName,
+      email: lead.email, phone: lead.phone,
+      rdv_date: lead.rdvDay, rdv_time: lead.rdvTime, rdv_formatted: lead.rdvFormatted
+    });
+  } catch(_){ /* Table inexistante — log suffit */ }
+  res.json({ success:true });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

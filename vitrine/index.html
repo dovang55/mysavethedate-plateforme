@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MySaveTheDate — Faire-parts interactifs pour vos événements</title>
+<meta name="description" content="Créez un faire-part en ligne inoubliable pour votre Bar/Bat Mitsva, mariage ou anniversaire. Compte à rebours, RSVP, musique et galerie photos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;0,800;0,900;1,800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── RESET ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:'Inter',sans-serif;color:#0d1f3c;background:#fff;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+button{font-family:inherit;cursor:pointer}
+
+:root{
+  --navy:#0d1f3c;--navy2:#152848;
+  --blue:#2563eb;--blue2:#1d4ed8;
+  --sky:#93c5fd;
+  --light:#f0f5ff;--light2:#e8f0fe;
+  --white:#ffffff;--grey:#475569;
+  --border:rgba(37,99,235,.14);
+}
+
+/* ══ NAV ══ */
+.nav{position:fixed;top:0;left:0;right:0;z-index:200;padding:0 48px;height:70px;display:flex;align-items:center;justify-content:space-between;background:rgba(13,31,60,.96);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);transition:background .3s}
+.nav-logo{font-family:'Montserrat',sans-serif;font-weight:800;font-size:17px;letter-spacing:.06em;text-transform:uppercase;color:#fff}
+.nav-logo em{color:var(--sky);font-style:normal;font-weight:400}
+.nav-links{display:flex;align-items:center;gap:36px}
+.nav-links a{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.4em;text-transform:uppercase;color:rgba(255,255,255,.55);transition:color .2s}
+.nav-links a:hover{color:#fff}
+.btn-nav{padding:10px 24px;background:var(--blue);color:#fff;border:none;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.35em;text-transform:uppercase;transition:background .2s}
+.btn-nav:hover{background:var(--blue2)}
+
+/* ══ HERO ══ */
+.hero{min-height:100vh;background:var(--navy);display:flex;align-items:center;overflow:hidden;position:relative;padding:110px 48px 80px}
+.hero-bg{position:absolute;inset:0;pointer-events:none}
+.hero-blob{position:absolute;border-radius:50%;filter:blur(120px);opacity:.18}
+.hero-blob-1{width:700px;height:700px;background:var(--blue);top:-200px;right:-100px}
+.hero-blob-2{width:500px;height:500px;background:#3b82f6;bottom:-100px;left:-100px}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:72px 72px}
+.hero-content{position:relative;z-index:2;max-width:720px}
+.hero-pill{display:inline-flex;align-items:center;gap:10px;padding:7px 16px;border:1px solid rgba(147,197,253,.3);border-radius:100px;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.4em;text-transform:uppercase;color:var(--sky);margin-bottom:36px}
+.hero-pill::before{content:'';width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0;box-shadow:0 0 6px #22c55e}
+.hero-h1{font-family:'Montserrat',sans-serif;font-weight:900;font-size:clamp(44px,6.5vw,88px);line-height:.93;letter-spacing:-.03em;color:#fff;margin-bottom:28px}
+.hero-h1 em{color:var(--sky);font-style:normal}
+.hero-sub{font-family:'Inter',sans-serif;font-size:clamp(15px,1.8vw,19px);color:rgba(255,255,255,.58);line-height:1.65;font-weight:300;max-width:500px;margin-bottom:48px}
+.hero-ctas{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.btn-hero{display:inline-flex;align-items:center;gap:12px;padding:18px 40px;background:var(--blue);color:#fff;border:none;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.4em;text-transform:uppercase;transition:all .3s}
+.btn-hero:hover{background:var(--blue2);transform:translateY(-2px);box-shadow:0 12px 40px rgba(37,99,235,.4)}
+.btn-ghost{display:inline-flex;align-items:center;gap:10px;padding:18px 32px;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.4em;text-transform:uppercase;background:transparent;transition:all .3s}
+.btn-ghost:hover{border-color:#fff;color:#fff}
+
+/* Hero mockup */
+.hero-mockup{position:absolute;right:5%;top:50%;transform:translateY(-50%);width:min(340px,30vw);z-index:2}
+.mockup-frame{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:20px;overflow:hidden;box-shadow:0 60px 120px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.06),inset 0 1px 0 rgba(255,255,255,.08)}
+.mockup-bar{display:flex;align-items:center;gap:6px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.06)}
+.mockup-dot{width:9px;height:9px;border-radius:50%}
+.mockup-body{padding:28px 20px;text-align:center}
+.mockup-tag{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.5em;text-transform:uppercase;color:var(--sky);margin-bottom:16px}
+.mockup-name{font-family:'Montserrat',sans-serif;font-weight:900;font-size:30px;letter-spacing:-.02em;text-transform:uppercase;color:#fff;margin-bottom:4px;line-height:1}
+.mockup-family{font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.4);margin-bottom:24px}
+.mockup-cd{display:flex;justify-content:center;gap:14px;margin-bottom:20px}
+.mockup-cd-unit{text-align:center}
+.mockup-cd-num{font-family:'Montserrat',sans-serif;font-weight:800;font-size:28px;color:#fff;line-height:1}
+.mockup-cd-lbl{font-family:'Montserrat',sans-serif;font-size:6px;font-weight:700;letter-spacing:.4em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-top:3px}
+.mockup-sep{font-family:'Montserrat',sans-serif;font-weight:800;font-size:24px;color:var(--blue);padding-top:2px}
+.mockup-btn{background:var(--blue);color:#fff;padding:12px;font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.4em;text-transform:uppercase;border-radius:4px;text-align:center}
+.hero-scroll{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:7px;color:rgba(255,255,255,.25);font-family:'Montserrat',sans-serif;font-size:7px;font-weight:700;letter-spacing:.5em;text-transform:uppercase;animation:bob 2s ease-in-out infinite;z-index:2}
+.hero-scroll svg{width:18px;height:18px}
+@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(7px)}}
+
+/* ══ FEATURES ══ */
+.features{padding:120px 48px;background:#fff}
+.section-eyebrow{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.55em;text-transform:uppercase;color:var(--blue);margin-bottom:16px;display:flex;align-items:center;gap:12px}
+.section-eyebrow::before{content:'';display:block;width:24px;height:2px;background:var(--blue)}
+.section-h2{font-family:'Montserrat',sans-serif;font-weight:900;font-size:clamp(30px,4.5vw,56px);color:var(--navy);letter-spacing:-.025em;text-transform:uppercase;line-height:.96;margin-bottom:20px}
+.section-sub{font-family:'Inter',sans-serif;font-size:17px;color:var(--grey);line-height:1.65;font-weight:300;max-width:540px;margin-bottom:64px}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1140px}
+.feat{padding:40px 32px;border:1px solid var(--border);background:var(--light);position:relative;overflow:hidden;transition:all .3s}
+.feat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--blue);transform:scaleX(0);transform-origin:left;transition:transform .35s}
+.feat:hover{box-shadow:0 20px 60px rgba(13,31,60,.07);transform:translateY(-4px)}
+.feat:hover::after{transform:scaleX(1)}
+.feat-icon{width:48px;height:48px;background:rgba(37,99,235,.1);border-radius:10px;display:grid;place-items:center;color:var(--blue);margin-bottom:22px}
+.feat-icon svg{width:24px;height:24px}
+.feat-h{font-family:'Montserrat',sans-serif;font-weight:800;font-size:16px;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:-.005em}
+.feat-p{font-family:'Inter',sans-serif;font-size:13px;color:var(--grey);line-height:1.65}
+
+/* ══ HOW IT WORKS ══ */
+.how{padding:120px 48px;background:var(--navy);position:relative;overflow:hidden}
+.how::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 80% 50%,rgba(37,99,235,.15),transparent 70%);pointer-events:none}
+.how .section-eyebrow{color:var(--sky)}
+.how .section-eyebrow::before{background:var(--sky)}
+.how .section-h2{color:#fff}
+.how .section-sub{color:rgba(255,255,255,.45)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:56px;position:relative;z-index:2}
+.step{padding:52px 40px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07)}
+.step-n{font-family:'Montserrat',sans-serif;font-weight:900;font-size:88px;color:rgba(37,99,235,.18);line-height:1;letter-spacing:-.04em;margin-bottom:24px}
+.step-h{font-family:'Montserrat',sans-serif;font-weight:800;font-size:18px;color:#fff;text-transform:uppercase;letter-spacing:-.01em;margin-bottom:12px}
+.step-p{font-family:'Inter',sans-serif;font-size:14px;color:rgba(255,255,255,.5);line-height:1.65}
+
+/* ══ EXAMPLES ══ */
+.examples{padding:120px 48px;background:var(--light)}
+.examples-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1140px;margin-top:60px}
+.example-card{background:#fff;border:1px solid var(--border);overflow:hidden;transition:all .3s}
+.example-card:hover{transform:translateY(-4px);box-shadow:0 20px 60px rgba(13,31,60,.08)}
+.example-visual{height:180px;display:grid;place-items:center;position:relative;overflow:hidden}
+.example-mini-name{font-family:'Montserrat',sans-serif;font-weight:900;font-size:26px;color:#fff;text-transform:uppercase;letter-spacing:-.02em;z-index:2;position:relative;text-align:center;line-height:1.1}
+.example-type{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.5em;color:rgba(255,255,255,.5);text-transform:uppercase;z-index:2;position:relative;margin-bottom:6px}
+.example-info{padding:22px 24px}
+.example-tag{display:inline-block;padding:4px 10px;background:var(--light2);font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--blue);margin-bottom:10px}
+.example-desc{font-family:'Inter',sans-serif;font-size:13px;color:var(--grey);line-height:1.55}
+
+/* ══ CTA ══ */
+.cta{padding:110px 48px;background:var(--blue);text-align:center;position:relative;overflow:hidden}
+.cta::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 60% at 50% 50%,rgba(255,255,255,.08),transparent 70%)}
+.cta h2{font-family:'Montserrat',sans-serif;font-weight:900;font-size:clamp(30px,5vw,60px);color:#fff;letter-spacing:-.025em;text-transform:uppercase;margin-bottom:16px;position:relative}
+.cta p{font-family:'Inter',sans-serif;font-size:18px;color:rgba(255,255,255,.7);margin-bottom:48px;font-weight:300;position:relative}
+.btn-cta{display:inline-flex;align-items:center;gap:12px;padding:22px 56px;background:#fff;color:var(--blue);border:none;font-family:'Montserrat',sans-serif;font-size:11px;font-weight:800;letter-spacing:.4em;text-transform:uppercase;transition:all .3s;position:relative}
+.btn-cta:hover{background:var(--navy);color:#fff;transform:translateY(-2px)}
+
+/* ══ FOOTER ══ */
+.footer{padding:60px 48px;background:var(--navy);border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px}
+.footer-logo{font-family:'Montserrat',sans-serif;font-weight:800;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:#fff}
+.footer-logo em{color:var(--sky);font-style:normal;font-weight:400}
+.footer-links{display:flex;gap:28px}
+.footer-links a{font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,.35);transition:color .2s}
+.footer-links a:hover{color:rgba(255,255,255,.7)}
+.footer-copy{font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.25)}
+
+/* ══════════════════════════════════════════
+   QUESTIONNAIRE OVERLAY
+══════════════════════════════════════════ */
+.q-overlay{position:fixed;inset:0;z-index:500;display:none;flex-direction:column;background:var(--navy)}
+.q-overlay.open{display:flex;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* Q Top bar */
+.q-topbar{flex-shrink:0;height:70px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;padding:0 40px;gap:32px}
+.q-topbar-logo{font-family:'Montserrat',sans-serif;font-weight:800;font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:#fff;flex-shrink:0}
+.q-topbar-logo em{color:var(--sky);font-style:normal;font-weight:400}
+.q-bar-progress{flex:1;max-width:480px}
+.q-bar-meta{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.q-bar-step{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.4em;text-transform:uppercase;color:rgba(255,255,255,.35)}
+.q-bar-pct{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:800;color:var(--blue)}
+.q-bar-track{height:3px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden}
+.q-bar-fill{height:100%;background:var(--blue);border-radius:3px;transition:width .6s cubic-bezier(.76,0,.24,1)}
+.q-close{margin-left:auto;width:38px;height:38px;border:1px solid rgba(255,255,255,.18);background:transparent;color:rgba(255,255,255,.5);border-radius:50%;display:grid;place-items:center;transition:all .2s;flex-shrink:0}
+.q-close:hover{border-color:#fff;color:#fff}
+.q-close svg{width:15px;height:15px}
+
+/* Q Scroll area */
+.q-body{flex:1;overflow:hidden;position:relative}
+.q-slider-rail{position:absolute;inset:0;display:flex;transition:transform .55s cubic-bezier(.76,0,.24,1)}
+.q-step{flex:0 0 100%;width:100%;height:100%;overflow-y:auto;display:flex;align-items:center;justify-content:center;padding:40px 24px}
+.q-inner{max-width:680px;width:100%}
+
+/* Step header */
+.q-eye{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.5em;text-transform:uppercase;color:var(--sky);margin-bottom:14px}
+.q-h{font-family:'Montserrat',sans-serif;font-weight:900;font-size:clamp(30px,5vw,52px);color:#fff;letter-spacing:-.025em;line-height:1.0;margin-bottom:10px;text-transform:uppercase}
+.q-sub{font-family:'Inter',sans-serif;font-size:15px;color:rgba(255,255,255,.45);margin-bottom:40px;font-weight:300;line-height:1.55}
+
+/* Event type selector */
+.ev-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:44px}
+.ev-card{padding:28px 16px;border:2px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02);cursor:pointer;text-align:center;transition:all .22s;border-radius:6px}
+.ev-card:hover{border-color:rgba(37,99,235,.5);background:rgba(37,99,235,.07)}
+.ev-card.sel{border-color:var(--blue);background:rgba(37,99,235,.16)}
+.ev-emoji{font-size:34px;display:block;margin-bottom:12px}
+.ev-lbl{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#fff}
+
+/* Fields */
+.q-field{margin-bottom:24px}
+.q-lbl{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.45em;text-transform:uppercase;color:rgba(255,255,255,.38);margin-bottom:10px;display:block}
+.q-inp{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-bottom:2px solid rgba(255,255,255,.18);padding:14px 16px;font-family:'Inter',sans-serif;font-size:15px;font-weight:500;color:#fff;outline:none;transition:border-color .2s;border-radius:4px 4px 0 0}
+.q-inp:focus{border-bottom-color:var(--blue)}
+.q-inp::placeholder{color:rgba(255,255,255,.2)}
+.q-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* Slider */
+.q-slider-box{margin-bottom:44px}
+.q-slider-big{font-family:'Montserrat',sans-serif;font-weight:900;font-size:clamp(52px,9vw,80px);color:#fff;letter-spacing:-.04em;line-height:1;margin-bottom:20px}
+.q-slider-big small{font-size:.35em;font-weight:400;color:rgba(255,255,255,.3);letter-spacing:0}
+input[type=range].q-range{-webkit-appearance:none;width:100%;height:4px;background:rgba(255,255,255,.12);border-radius:2px;outline:none;cursor:pointer}
+input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:var(--blue);border:3px solid #fff;box-shadow:0 4px 16px rgba(37,99,235,.5)}
+.q-range-ends{display:flex;justify-content:space-between;margin-top:10px;font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,.25)}
+
+/* Style cards */
+.style-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:32px}
+.style-card{padding:24px 20px;border:2px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02);cursor:pointer;transition:all .22s;border-radius:6px}
+.style-card:hover{border-color:rgba(37,99,235,.5)}
+.style-card.sel{border-color:var(--blue);background:rgba(37,99,235,.16)}
+.style-card h4{font-family:'Montserrat',sans-serif;font-size:12px;font-weight:800;color:#fff;text-transform:uppercase;margin-bottom:7px}
+.style-card p{font-family:'Inter',sans-serif;font-size:12px;color:rgba(255,255,255,.45);line-height:1.45}
+
+/* Budget */
+.budget-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:44px}
+.budget-card{padding:22px 12px;border:2px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02);cursor:pointer;text-align:center;transition:all .22s;border-radius:6px}
+.budget-card:hover{border-color:rgba(37,99,235,.5)}
+.budget-card.sel{border-color:var(--blue);background:rgba(37,99,235,.16)}
+.budget-amt{font-family:'Montserrat',sans-serif;font-size:14px;font-weight:800;color:#fff;margin-bottom:4px}
+.budget-lbl{font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.35)}
+
+/* RDV */
+.rdv-section{margin-bottom:28px}
+.rdv-days{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;margin-top:14px}
+.rdv-days::-webkit-scrollbar{height:3px}
+.rdv-days::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
+.rdv-day{flex:0 0 auto;min-width:88px;padding:16px 12px;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.02);cursor:pointer;text-align:center;transition:all .22s;border-radius:6px}
+.rdv-day:hover{border-color:rgba(37,99,235,.5)}
+.rdv-day.sel{border-color:var(--blue);background:rgba(37,99,235,.16)}
+.rdv-day-dow{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:5px}
+.rdv-day-d{font-family:'Montserrat',sans-serif;font-weight:900;font-size:24px;color:#fff;line-height:1}
+.rdv-day-m{font-family:'Inter',sans-serif;font-size:10px;color:rgba(255,255,255,.35);margin-top:3px}
+.rdv-times{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}
+.rdv-time{padding:18px 8px;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.02);cursor:pointer;text-align:center;transition:all .22s;border-radius:6px}
+.rdv-time:hover{border-color:rgba(37,99,235,.5)}
+.rdv-time.sel{border-color:var(--blue);background:rgba(37,99,235,.16)}
+.rdv-time span{font-family:'Montserrat',sans-serif;font-weight:800;font-size:15px;color:#fff}
+
+/* Q Nav bar */
+.q-nav{display:flex;align-items:center;justify-content:space-between;margin-top:40px;padding-top:28px;border-top:1px solid rgba(255,255,255,.07)}
+.q-nav-count{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.3em;color:rgba(255,255,255,.25)}
+.btn-qprev{padding:14px 28px;border:1px solid rgba(255,255,255,.18);background:transparent;color:rgba(255,255,255,.55);font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.35em;text-transform:uppercase;transition:all .2s;display:flex;align-items:center;gap:8px}
+.btn-qprev:hover{border-color:rgba(255,255,255,.6);color:#fff}
+.btn-qnext{padding:16px 36px;background:var(--blue);border:none;color:#fff;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.35em;text-transform:uppercase;transition:all .2s;display:flex;align-items:center;gap:8px}
+.btn-qnext:hover{background:var(--blue2)}
+.btn-qnext:disabled{opacity:.35;cursor:not-allowed}
+.btn-confirm{padding:18px 44px;background:#22c55e;border:none;color:#fff;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.4em;text-transform:uppercase;transition:all .2s;display:flex;align-items:center;gap:10px}
+.btn-confirm:hover{background:#16a34a}
+.btn-confirm:disabled{opacity:.35;cursor:not-allowed}
+
+/* Success */
+.success-wrap{text-align:center;max-width:600px;margin:0 auto}
+.success-icon{width:76px;height:76px;background:rgba(34,197,94,.12);border:2px solid #22c55e;border-radius:50%;display:grid;place-items:center;margin:0 auto 32px;animation:popIn .5s .1s both cubic-bezier(.34,1.56,.64,1)}
+.success-icon svg{width:34px;height:34px;color:#22c55e}
+@keyframes popIn{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+.success-h{font-family:'Montserrat',sans-serif;font-weight:900;font-size:clamp(28px,5vw,48px);color:#fff;letter-spacing:-.025em;text-transform:uppercase;margin-bottom:14px}
+.success-p{font-family:'Inter',sans-serif;font-size:16px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:36px;font-weight:300}
+.rdv-box{background:rgba(37,99,235,.15);border:1px solid var(--blue);padding:24px 28px;border-radius:6px;margin-bottom:28px}
+.rdv-box-lbl{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.5em;text-transform:uppercase;color:var(--sky);margin-bottom:8px}
+.rdv-box-val{font-family:'Montserrat',sans-serif;font-weight:800;font-size:22px;color:#fff}
+.summary-block{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:28px;border-radius:6px;margin-bottom:32px;text-align:left}
+.summary-title{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.5em;text-transform:uppercase;color:var(--sky);margin-bottom:20px}
+.summary-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.summary-row:last-child{border-bottom:none}
+.summary-k{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.35);flex-shrink:0}
+.summary-v{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:#fff;text-align:right}
+
+/* ── RESPONSIVE ── */
+@media(max-width:960px){
+  .nav{padding:0 24px}.hero{padding:100px 24px 70px}.hero-mockup{display:none}
+  .features,.how,.examples,.cta{padding:80px 24px}
+  .footer{padding:48px 24px}
+  .features-grid,.steps,.examples-grid{grid-template-columns:1fr}
+  .ev-grid{grid-template-columns:1fr 1fr}
+  .style-grid{grid-template-columns:1fr}
+  .budget-grid{grid-template-columns:1fr 1fr}
+  .q-topbar{padding:0 20px;gap:20px}
+  .q-step{padding:28px 20px}
+  .rdv-times{grid-template-columns:repeat(3,1fr)}
+  .q-row{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+  .nav-links a:not(.btn-nav){display:none}
+  .ev-grid{grid-template-columns:1fr 1fr}
+  .budget-grid{grid-template-columns:1fr 1fr}
+  .rdv-times{grid-template-columns:1fr 1fr}
+  .hero-h1{font-size:clamp(38px,10vw,60px)}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ NAVBAR ══ -->
+<nav class="nav" id="mainNav">
+  <div class="nav-logo">MySaveThe<em>Date</em></div>
+  <div class="nav-links">
+    <a href="#features">Nos services</a>
+    <a href="#how">Comment ça marche</a>
+    <button class="btn-nav" onclick="openQ()">Commencer →</button>
+  </div>
+</nav>
+
+<!-- ══ HERO ══ -->
+<section class="hero" id="top">
+  <div class="hero-bg">
+    <div class="hero-blob hero-blob-1"></div>
+    <div class="hero-blob hero-blob-2"></div>
+    <div class="hero-grid"></div>
+  </div>
+  <div class="hero-content">
+    <div class="hero-pill">Faire-parts en ligne · Nouveau</div>
+    <h1 class="hero-h1">Faites de votre<br>événement une<br>invitation <em>inoubliable.</em></h1>
+    <p class="hero-sub">Faire-parts interactifs, compte à rebours en temps réel, RSVP en ligne et musique d'ambiance. Tout en un, livré en quelques jours.</p>
+    <div class="hero-ctas">
+      <button class="btn-hero" onclick="openQ()">Créer mon faire-part <span>→</span></button>
+      <a href="#how" class="btn-ghost">Comment ça marche</a>
+    </div>
+  </div>
+  <!-- Mockup phone -->
+  <div class="hero-mockup">
+    <div class="mockup-frame">
+      <div class="mockup-bar">
+        <div class="mockup-dot" style="background:#ff5f57"></div>
+        <div class="mockup-dot" style="background:#febc2e"></div>
+        <div class="mockup-dot" style="background:#28c840"></div>
+      </div>
+      <div class="mockup-body">
+        <div class="mockup-tag">Bar Mitsva</div>
+        <div class="mockup-name">ETHAN<br>HAZIZA</div>
+        <div class="mockup-family" style="margin-top:4px">5 Novembre 2026 · Paris</div>
+        <div class="mockup-cd">
+          <div class="mockup-cd-unit"><div class="mockup-cd-num" id="dD">—</div><div class="mockup-cd-lbl">Jours</div></div>
+          <div class="mockup-sep">:</div>
+          <div class="mockup-cd-unit"><div class="mockup-cd-num" id="dH">—</div><div class="mockup-cd-lbl">Heures</div></div>
+          <div class="mockup-sep">:</div>
+          <div class="mockup-cd-unit"><div class="mockup-cd-num" id="dM">—</div><div class="mockup-cd-lbl">Min</div></div>
+        </div>
+        <div class="mockup-btn">Voir le faire-part →</div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-scroll">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+    Découvrir
+  </div>
+</section>
+
+<!-- ══ FEATURES ══ -->
+<section class="features" id="features">
+  <div style="max-width:1140px;margin:0 auto">
+    <div class="section-eyebrow">Ce qu'on crée</div>
+    <h2 class="section-h2">Tout pour<br>impressionner.</h2>
+    <p class="section-sub">Un faire-part en ligne bien conçu, c'est une expérience que vos invités ne sont pas prêts d'oublier.</p>
+    <div class="features-grid">
+      <div class="feat">
+        <div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+        <div class="feat-h">Faire-part interactif</div>
+        <div class="feat-p">Une page web élégante avec toutes les informations : lieu, horaires, programme complet, itinéraire Waze intégré.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+        <div class="feat-h">Compte à rebours</div>
+        <div class="feat-p">Un timer en temps réel jusqu'au grand jour. Vos invités ne pourront pas oublier la date.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+        <div class="feat-h">RSVP en ligne</div>
+        <div class="feat-p">Fini les tableaux Excel. Vos invités répondent en 30 secondes et vous recevez tout en temps réel depuis votre tableau de bord.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+        <div class="feat-h">Musique d'ambiance</div>
+        <div class="feat-p">Jusqu'à 3 pistes audio avec fondu enchaîné. La bande-son parfaite pour chaque page du faire-part.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M21 15l-5-5-6 6-3-3-4 4"/><circle cx="9" cy="11" r="2"/></svg></div>
+        <div class="feat-h">Photos & Hommage</div>
+        <div class="feat-p">Galerie photo intégrée, section hommage aux proches et vidéo surprise que vos invités peuvent vous envoyer.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div class="feat-h">Design sur-mesure</div>
+        <div class="feat-p">Couleurs, typographie, photos — chaque faire-part est unique et reflète votre famille et votre événement.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ HOW IT WORKS ══ -->
+<section class="how" id="how">
+  <div style="max-width:1140px;margin:0 auto;position:relative;z-index:2">
+    <div class="section-eyebrow">Le processus</div>
+    <h2 class="section-h2" style="color:#fff">Simple.<br>Rapide. Beau.</h2>
+    <p class="section-sub">De notre premier échange à la mise en ligne, tout se passe en quelques jours.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-n">01</div>
+        <div class="step-h">On se rencontre</div>
+        <div class="step-p">Vous répondez à 6 questions rapides, on fixe un rendez-vous de 30 min pour parler de votre vision et de votre événement.</div>
+      </div>
+      <div class="step">
+        <div class="step-n">02</div>
+        <div class="step-h">On crée</div>
+        <div class="step-p">On design et développe votre faire-part sur-mesure. Photos, musique, couleurs — tout personnalisé. Délai : 3 à 7 jours.</div>
+      </div>
+      <div class="step">
+        <div class="step-n">03</div>
+        <div class="step-h">Vous partagez</div>
+        <div class="step-p">Votre lien unique est prêt. Partagez-le sur WhatsApp, email ou SMS. Suivez les RSVP en temps réel depuis votre espace.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ EXEMPLES ══ -->
+<section class="examples" id="examples">
+  <div style="max-width:1140px;margin:0 auto">
+    <div class="section-eyebrow">Quelques exemples</div>
+    <h2 class="section-h2">Chaque faire-part<br>est unique.</h2>
+    <p class="section-sub">Des designs adaptés à tous les événements et à toutes les familles.</p>
+    <div class="examples-grid">
+      <div class="example-card">
+        <div class="example-visual" style="background:linear-gradient(135deg,#0d1f3c,#1d4ed8)">
+          <div style="position:relative;z-index:2;text-align:center">
+            <div class="example-type">Bar Mitsva</div>
+            <div class="example-mini-name">ETHAN<br>HAZIZA</div>
+          </div>
+        </div>
+        <div class="example-info">
+          <div class="example-tag">Moderne & Épuré</div>
+          <div class="example-desc">Typographie bold sur fond marine, musique classique, compte à rebours et RSVP complet.</div>
+        </div>
+      </div>
+      <div class="example-card">
+        <div class="example-visual" style="background:linear-gradient(135deg,#4a0e2b,#c2185b)">
+          <div style="position:relative;z-index:2;text-align:center">
+            <div class="example-type">Mariage</div>
+            <div class="example-mini-name">SARAH &<br>DAVID</div>
+          </div>
+        </div>
+        <div class="example-info">
+          <div class="example-tag">Élégant & Classique</div>
+          <div class="example-desc">Palette rose et or, typographie italique, galerie photo et programme complet de la journée.</div>
+        </div>
+      </div>
+      <div class="example-card">
+        <div class="example-visual" style="background:linear-gradient(135deg,#064e3b,#059669)">
+          <div style="position:relative;z-index:2;text-align:center">
+            <div class="example-type">Bat Mitsva</div>
+            <div class="example-mini-name">MAYA<br>COHEN</div>
+          </div>
+        </div>
+        <div class="example-info">
+          <div class="example-tag">Festif & Coloré</div>
+          <div class="example-desc">Ambiance festive avec animations, playlist personnalisée, vidéo surprise et section hommage.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA BAND ══ -->
+<section class="cta">
+  <h2>Prêt à commencer ?</h2>
+  <p>6 questions · Un rendez-vous · Votre faire-part livré en quelques jours.</p>
+  <button class="btn-cta" onclick="openQ()">Démarrer mon projet →</button>
+</section>
+
+<!-- ══ FOOTER ══ -->
+<footer class="footer">
+  <div class="footer-logo">MySaveThe<em>Date</em></div>
+  <div class="footer-links">
+    <a href="#features">Services</a>
+    <a href="#how">Processus</a>
+    <a href="mailto:contact@mysavethedate.fr">Contact</a>
+  </div>
+  <div class="footer-copy">© 2026 MySaveTheDate</div>
+</footer>
+
+<!-- ══════════════════════════════════════════
+     QUESTIONNAIRE OVERLAY
+══════════════════════════════════════════ -->
+<div class="q-overlay" id="qOverlay">
+
+  <!-- Top bar -->
+  <div class="q-topbar">
+    <div class="q-topbar-logo">MySaveThe<em>Date</em></div>
+    <div class="q-bar-progress">
+      <div class="q-bar-meta">
+        <span class="q-bar-step" id="qStepLabel">Étape 1 sur 6</span>
+        <span class="q-bar-pct" id="qBarPct">17%</span>
+      </div>
+      <div class="q-bar-track"><div class="q-bar-fill" id="qBarFill" style="width:17%"></div></div>
+    </div>
+    <button class="q-close" onclick="closeQ()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <!-- Steps rail -->
+  <div class="q-body">
+    <div class="q-slider-rail" id="qRail">
+
+      <!-- ── STEP 1 : Événement ── -->
+      <div class="q-step">
+        <div class="q-inner">
+          <div class="q-eye">Étape 1 · Votre célébration</div>
+          <h2 class="q-h">C'est pour<br>quel événement ?</h2>
+          <p class="q-sub">Sélectionnez le type de célébration pour personnaliser votre faire-part.</p>
+          <div class="ev-grid" id="evGrid">
+            <div class="ev-card" data-val="Bar Mitsva" onclick="pickEv(this)"><span class="ev-emoji">🕍</span><div class="ev-lbl">Bar Mitsva</div></div>
+            <div class="ev-card" data-val="Bat Mitsva" onclick="pickEv(this)"><span class="ev-emoji">✡️</span><div class="ev-lbl">Bat Mitsva</div></div>
+            <div class="ev-card" data-val="Mariage" onclick="pickEv(this)"><span class="ev-emoji">💍</span><div class="ev-lbl">Mariage</div></div>
+            <div class="ev-card" data-val="Anniversaire" onclick="pickEv(this)"><span class="ev-emoji">🎂</span><div class="ev-lbl">Anniversaire</div></div>
+            <div class="ev-card" data-val="Brit Mila" onclick="pickEv(this)"><span class="ev-emoji">👶</span><div class="ev-lbl">Brit Mila</div></div>
+            <div class="ev-card" data-val="Autre" onclick="pickEv(this)"><span class="ev-emoji">🎉</span><div class="ev-lbl">Autre</div></div>
+          </div>
+          <div class="q-nav">
+            <span class="q-nav-count">1 / 6</span>
+            <button class="btn-qnext" id="s1next" onclick="next()" disabled>Suivant →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 2 : Date & Lieu ── -->
+      <div class="q-step">
+        <div class="q-inner">
+          <div class="q-eye">Étape 2 · La date et le lieu</div>
+          <h2 class="q-h">Quand et où ?</h2>
+          <p class="q-sub">La date approximative et la ville — cela nous aide à tout planifier avec vous.</p>
+          <div class="q-row" style="margin-bottom:20px">
+            <div class="q-field">
+              <label class="q-lbl">Date approximative</label>
+              <input type="date" class="q-inp" id="fDate" onchange="chk2()">
+            </div>
+            <div class="q-field">
+              <label class="q-lbl">Ville / Pays</label>
+              <input type="text" class="q-inp" id="fLoc" placeholder="Ex : Paris, Tel Aviv…" oninput="chk2()">
+            </div>
+          </div>
+          <div class="q-nav">
+            <button class="btn-qprev" onclick="prev()">← Précédent</button>
+            <button class="btn-qnext" id="s2next" onclick="next()" disabled>Suivant →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 3 : Convives ── -->
+      <div class="q-step">
+        <div class="q-inner">
+          <div class="q-eye">Étape 3 · Vos invités</div>
+          <h2 class="q-h">Combien de<br>convives attendez-vous ?</h2>
+          <p class="q-sub">Une estimation suffit amplement.</p>
+          <div class="q-slider-box">
+            <div class="q-slider-big"><span id="sVal">150</span> <small>invités</small></div>
+            <input type="range" class="q-range" id="gSlider" min="20" max="600" value="150" step="10"
+              oninput="document.getElementById('sVal').textContent=this.value">
+            <div class="q-range-ends"><span>20</span><span>600+</span></div>
+          </div>
+          <div class="q-nav">
+            <button class="btn-qprev" onclick="prev()">← Précédent</button>
+            <button class="btn-qnext" onclick="next()">Suivant →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 4 : Style & Budget ── -->
+      <div class="q-step">
+        <div class="q-inner">
+          <div class="q-eye">Étape 4 · Vos envies</div>
+          <h2 class="q-h">Quel style<br>vous correspond ?</h2>
+          <p class="q-sub">Choisissez l'ambiance, puis votre fourchette de budget.</p>
+          <div class="style-grid" id="styleGrid">
+            <div class="style-card" data-val="Élégant & Classique" onclick="pickStyle(this)">
+              <h4>Élégant & Classique</h4>
+              <p>Typographie fine, couleurs douces — parfait pour un mariage ou Bar Mitsva traditionnel.</p>
+            </div>
+            <div class="style-card" data-val="Moderne & Épuré" onclick="pickStyle(this)">
+              <h4>Moderne & Épuré</h4>
+              <p>Design minimaliste, typographie bold — une ambiance contemporaine et impactante.</p>
+            </div>
+            <div class="style-card" data-val="Festif & Coloré" onclick="pickStyle(this)">
+              <h4>Festif & Coloré</h4>
+              <p>Vibrant, joyeux, avec animations et photos — pour une ambiance vraiment unique.</p>
+            </div>
+          </div>
+          <div class="q-lbl" style="display:block;margin:24px 0 12px">Budget approximatif</div>
+          <div class="budget-grid" id="budgetGrid">
+            <div class="budget-card" data-val="Moins de 500€" onclick="pickBudget(this)"><div class="budget-amt">< 500€</div><div class="budget-lbl">Essentiel</div></div>
+            <div class="budget-card" data-val="500 – 1 000€" onclick="pickBudget(this)"><div class="budget-amt">500–1k€</div><div class="budget-lbl">Standard</div></div>
+            <div class="budget-card" data-val="1 000 – 2 000€" onclick="pickBudget(this)"><div class="budget-amt">1–2k€</div><div class="budget-lbl">Premium</div></div>
+            <div class="budget-card" data-val="Plus de 2 000€" onclick="pickBudget(this)"><div class="budget-amt">> 2k€</div><div class="budget-lbl">Sur-mesure</div></div>
+          </div>
+          <div class="q-nav">
+            <button class="btn-qprev" onclick="prev()">← Précédent</button>
+            <button class="btn-qnext" id="s4next" onclick="next()" disabled>Suivant →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 5 : Coordonnées ── -->
+      <div class="q-step">
+        <div class="q-inner">
+          <div class="q-eye">Étape 5 · Vos coordonnées</div>
+          <h2 class="q-h">Comment vous<br>contacter ?</h2>
+          <p class="q-sub">Vos informations sont confidentielles et ne sont jamais partagées.</p>
+          <div class="q-row">
+            <div class="q-field">
+              <label class="q-lbl">Prénom</label>
+              <input type="text" class="q-inp" id="fFirst" placeholder="Votre prénom" oninput="chk5()">
+            </div>
+            <div class="q-field">
+              <label class="q-lbl">Nom</label>
+              <input type="text" class="q-inp" id="fLast" placeholder="Votre nom" oninput="chk5()">
+            </div>
+          </div>
+          <div class="q-field">
+            <label class="q-lbl">Adresse e-mail</label>
+            <input type="email" class="q-inp" id="fEmail" placeholder="vous@exemple.com" oninput="chk5()">
+          </div>
+          <div class="q-field">
+            <label class="q-lbl">Téléphone (WhatsApp de préférence)</label>
+            <input type="tel" class="q-inp" id="fPhone" placeholder="+33 6 12 34 56 78" oninput="chk5()">
+          </div>
+          <div class="q-nav">
+            <button class="btn-qprev" onclick="prev()">← Précédent</button>
+            <button class="btn-qnext" id="s5next" onclick="next()" disabled>Suivant →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 6 : RDV ── -->
+      <div class="q-step">
+        <div class="q-inner">
+          <div class="q-eye">Étape 6 · Votre rendez-vous</div>
+          <h2 class="q-h">Choisissez<br>votre créneau.</h2>
+          <p class="q-sub">Un appel de 30 minutes pour tout aligner avant de démarrer la création de votre faire-part.</p>
+          <div class="rdv-section">
+            <div class="q-lbl">Choisissez un jour</div>
+            <div class="rdv-days" id="rdvDays"></div>
+          </div>
+          <div class="rdv-section">
+            <div class="q-lbl">Choisissez un horaire</div>
+            <div class="rdv-times" id="rdvTimes">
+              <div class="rdv-time" data-val="09:00" onclick="pickTime(this)"><span>9h00</span></div>
+              <div class="rdv-time" data-val="11:00" onclick="pickTime(this)"><span>11h00</span></div>
+              <div class="rdv-time" data-val="14:00" onclick="pickTime(this)"><span>14h00</span></div>
+              <div class="rdv-time" data-val="16:00" onclick="pickTime(this)"><span>16h00</span></div>
+              <div class="rdv-time" data-val="18:00" onclick="pickTime(this)"><span>18h00</span></div>
+            </div>
+          </div>
+          <div class="q-nav">
+            <button class="btn-qprev" onclick="prev()">← Précédent</button>
+            <button class="btn-confirm" id="s6confirm" onclick="submit()" disabled>Confirmer mon RDV ✓</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 7 : Success ── -->
+      <div class="q-step">
+        <div class="q-inner success-wrap">
+          <div class="success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <h2 class="success-h">C'est confirmé !</h2>
+          <p class="success-p">Merci <strong id="cName" style="color:#fff;font-weight:600"></strong> ! Votre rendez-vous est enregistré. Vous allez recevoir une confirmation par e-mail très bientôt.</p>
+          <div class="rdv-box">
+            <div class="rdv-box-lbl">📅 Votre rendez-vous</div>
+            <div class="rdv-box-val" id="cRdv">—</div>
+          </div>
+          <div class="summary-block">
+            <div class="summary-title">Récapitulatif de votre projet</div>
+            <div class="summary-row"><span class="summary-k">Événement</span><span class="summary-v" id="sEvt">—</span></div>
+            <div class="summary-row"><span class="summary-k">Date</span><span class="summary-v" id="sDte">—</span></div>
+            <div class="summary-row"><span class="summary-k">Lieu</span><span class="summary-v" id="sLoc">—</span></div>
+            <div class="summary-row"><span class="summary-k">Convives</span><span class="summary-v" id="sGuests">—</span></div>
+            <div class="summary-row"><span class="summary-k">Style</span><span class="summary-v" id="sStyle">—</span></div>
+            <div class="summary-row"><span class="summary-k">Budget</span><span class="summary-v" id="sBudget">—</span></div>
+          </div>
+          <button class="btn-qnext" style="margin:0 auto" onclick="closeQ()">Fermer ✕</button>
+        </div>
+      </div>
+
+    </div><!-- /q-slider-rail -->
+  </div><!-- /q-body -->
+</div><!-- /q-overlay -->
+
+<script>
+/* ══ STATE ══ */
+let step = 0;
+const STEPS = 7;
+const S = { eventType:'', date:'', location:'', guests:150, style:'', budget:'', firstName:'', lastName:'', email:'', phone:'', rdvDay:'', rdvTime:'' };
+
+/* ══ OVERLAY ══ */
+function openQ(){ document.getElementById('qOverlay').classList.add('open'); document.body.style.overflow='hidden'; buildRdvDays(); }
+function closeQ(){ document.getElementById('qOverlay').classList.remove('open'); document.body.style.overflow=''; }
+
+/* ══ PROGRESS ══ */
+function setStep(n){
+  step = n;
+  document.getElementById('qRail').style.transform = `translateX(-${n/STEPS*100}%)`;
+  const display = Math.min(n+1, STEPS);
+  const pct = Math.round((n/STEPS)*100);
+  document.getElementById('qStepLabel').textContent = `Étape ${Math.min(display,6)} sur 6`;
+  document.getElementById('qBarPct').textContent = pct + '%';
+  document.getElementById('qBarFill').style.width = pct + '%';
+}
+function next(){ if(step < STEPS-1) setStep(step+1); }
+function prev(){ if(step > 0) setStep(step-1); }
+
+/* ══ STEP 1 – Event type ══ */
+function pickEv(el){
+  document.querySelectorAll('#evGrid .ev-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel'); S.eventType = el.dataset.val;
+  document.getElementById('s1next').disabled = false;
+}
+
+/* ══ STEP 2 – Date & Lieu ══ */
+function chk2(){
+  S.date = document.getElementById('fDate').value;
+  S.location = document.getElementById('fLoc').value.trim();
+  document.getElementById('s2next').disabled = !(S.date && S.location);
+}
+
+/* ══ STEP 4 – Style & Budget ══ */
+function pickStyle(el){
+  document.querySelectorAll('#styleGrid .style-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel'); S.style = el.dataset.val; chk4();
+}
+function pickBudget(el){
+  document.querySelectorAll('#budgetGrid .budget-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel'); S.budget = el.dataset.val; chk4();
+}
+function chk4(){ document.getElementById('s4next').disabled = !(S.style && S.budget); }
+
+/* ══ STEP 5 – Contact ══ */
+function chk5(){
+  S.firstName = document.getElementById('fFirst').value.trim();
+  S.lastName  = document.getElementById('fLast').value.trim();
+  S.email     = document.getElementById('fEmail').value.trim();
+  S.phone     = document.getElementById('fPhone').value.trim();
+  const ok = S.firstName && S.lastName && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(S.email) && S.phone.length >= 8;
+  document.getElementById('s5next').disabled = !ok;
+}
+
+/* ══ STEP 6 – RDV ══ */
+const MOIS = ['jan.','fév.','mar.','avr.','mai','juin','juil.','août','sep.','oct.','nov.','déc.'];
+const JOURS = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+function buildRdvDays(){
+  const wrap = document.getElementById('rdvDays'); wrap.innerHTML = '';
+  let d = new Date(); d.setDate(d.getDate()+1);
+  let count = 0;
+  while(count < 12){
+    if(d.getDay()!==0 && d.getDay()!==6){
+      const el = document.createElement('div'); el.className='rdv-day';
+      const iso = d.toISOString().split('T')[0]; el.dataset.val = iso;
+      el.innerHTML = `<div class="rdv-day-dow">${JOURS[d.getDay()]}</div><div class="rdv-day-d">${d.getDate()}</div><div class="rdv-day-m">${MOIS[d.getMonth()]}</div>`;
+      el.onclick = ()=>pickDay(el);
+      wrap.appendChild(el); count++;
+    }
+    d.setDate(d.getDate()+1);
+  }
+}
+function pickDay(el){
+  document.querySelectorAll('.rdv-day').forEach(d=>d.classList.remove('sel'));
+  el.classList.add('sel'); S.rdvDay = el.dataset.val; chk6();
+}
+function pickTime(el){
+  document.querySelectorAll('.rdv-time').forEach(t=>t.classList.remove('sel'));
+  el.classList.add('sel'); S.rdvTime = el.dataset.val; chk6();
+}
+function chk6(){ document.getElementById('s6confirm').disabled = !(S.rdvDay && S.rdvTime); }
+
+/* ══ SUBMIT ══ */
+async function submit(){
+  S.guests = document.getElementById('gSlider').value;
+
+  const rdvDate = new Date(S.rdvDay + 'T12:00:00');
+  const rdvFmt = `${JOURS[rdvDate.getDay()]} ${rdvDate.getDate()} ${MOIS[rdvDate.getMonth()]} à ${S.rdvTime}`;
+
+  // Populate success screen
+  document.getElementById('cName').textContent = S.firstName;
+  document.getElementById('cRdv').textContent = rdvFmt;
+  const dateFmt = S.date ? new Date(S.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}) : '—';
+  document.getElementById('sEvt').textContent    = S.eventType;
+  document.getElementById('sDte').textContent    = dateFmt;
+  document.getElementById('sLoc').textContent    = S.location;
+  document.getElementById('sGuests').textContent = S.guests + ' personnes';
+  document.getElementById('sStyle').textContent  = S.style;
+  document.getElementById('sBudget').textContent = S.budget;
+
+  next(); // Go to success screen
+
+  // Send data to server (non-blocking)
+  try {
+    await fetch('/api/lead', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ ...S, rdvFormatted: rdvFmt })
+    });
+  } catch(e){ /* ignore — the UX is not blocked */ }
+}
+
+/* ══ MOCKUP COUNTDOWN ══ */
+(function(){
+  const target = new Date('2026-11-05T08:30:00+02:00').getTime();
+  function tick(){
+    let diff = Math.max(0, target - Date.now());
+    const d = Math.floor(diff/86400000); diff -= d*86400000;
+    const h = Math.floor(diff/3600000); diff -= h*3600000;
+    const m = Math.floor(diff/60000);
+    const dEl=document.getElementById('dD'), hEl=document.getElementById('dH'), mEl=document.getElementById('dM');
+    if(dEl) dEl.textContent=d;
+    if(hEl) hEl.textContent=String(h).padStart(2,'0');
+    if(mEl) mEl.textContent=String(m).padStart(2,'0');
+  }
+  tick(); setInterval(tick,1000);
+})();
+
+/* ══ NAVBAR scroll effect ══ */
+window.addEventListener('scroll', ()=>{
+  document.getElementById('mainNav').style.background = window.scrollY > 40 ? 'rgba(13,31,60,.98)' : 'rgba(13,31,60,.96)';
+}, {passive:true});
+</script>
+</body>
+</html>
