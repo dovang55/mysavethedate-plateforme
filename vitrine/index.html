@@ -704,13 +704,12 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
             <div class="rdv-box-val" id="cRdv">—</div>
           </div>
           <div class="summary-block">
-            <div class="summary-title">Récapitulatif de votre projet</div>
+            <div class="summary-title">Récapitulatif de votre faire-part</div>
             <div class="summary-row"><span class="summary-k">Événement</span><span class="summary-v" id="sEvt">—</span></div>
             <div class="summary-row"><span class="summary-k">Date</span><span class="summary-v" id="sDte">—</span></div>
             <div class="summary-row"><span class="summary-k">Lieu</span><span class="summary-v" id="sLoc">—</span></div>
             <div class="summary-row"><span class="summary-k">Convives</span><span class="summary-v" id="sGuests">—</span></div>
             <div class="summary-row"><span class="summary-k">Style</span><span class="summary-v" id="sStyle">—</span></div>
-            <div class="summary-row"><span class="summary-k">Budget</span><span class="summary-v" id="sBudget">—</span></div>
           </div>
           <button class="btn-qnext" style="margin:0 auto" onclick="closeQ()">Fermer ✕</button>
         </div>
@@ -818,7 +817,6 @@ async function submit(){
   document.getElementById('sLoc').textContent    = S.location;
   document.getElementById('sGuests').textContent = S.guests + ' personnes';
   document.getElementById('sStyle').textContent  = S.style;
-  document.getElementById('sBudget').textContent = S.budget;
 
   next(); // Go to success screen
 
