@@ -672,7 +672,7 @@ function closeQ(){ document.getElementById('qOverlay').classList.remove('open');
 /* ══ PROGRESS ══ */
 function setStep(n){
   step = n;
-  document.getElementById('qRail').style.transform = `translateX(-${n/STEPS*100}%)`;
+  document.getElementById('qRail').style.transform = `translateX(-${n * 100}%)`;
   const display = Math.min(n+1, STEPS);
   const pct = Math.round((n/STEPS)*100);
   document.getElementById('qStepLabel').textContent = `Étape ${Math.min(display,6)} sur 6`;
