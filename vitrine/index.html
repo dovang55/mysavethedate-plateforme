@@ -720,6 +720,7 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
             <div class="summary-row"><span class="summary-k">Convives</span><span class="summary-v" id="sGuests">—</span></div>
             <div class="summary-row"><span class="summary-k">Style</span><span class="summary-v" id="sStyle">—</span></div>
           </div>
+          <a class="btn-qnext" id="btnAccesEspace" href="#" style="display:none;margin:0 auto 14px;text-decoration:none">Personnaliser mon faire-part →</a>
           <button class="btn-qnext" style="margin:0 auto" onclick="closeQ()">Fermer ✕</button>
         </div>
       </div>
@@ -831,11 +832,17 @@ async function submit(){
 
   // Send data to server (non-blocking)
   try {
-    await fetch('/api/lead', {
+    const r = await fetch('/api/lead', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ ...S, rdvFormatted: rdvFmt })
     });
+    const data = await r.json();
+    if (data.accessLink) {
+      const btn = document.getElementById('btnAccesEspace');
+      btn.href = data.accessLink;
+      btn.style.display = 'flex';
+    }
   } catch(e){ /* ignore — the UX is not blocked */ }
 }
 

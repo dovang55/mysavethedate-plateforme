@@ -5,8 +5,13 @@ module.exports = function renderSite(cfg, siteId) {
   const s = c.sections;
   const id = c.identity;
 
-  // Pages actives (pour l'ordre du deck et la musique)
-  const pageDefs = ['hero','fairepart','hommage','shabbat','infos','video','rsvp','footer'];
+  // Pages actives (pour l'ordre du deck et la musique). L'ordre des pages du
+  // milieu peut être personnalisé par le client (config.pageOrder) ; hero et
+  // footer restent toujours en premier/dernier.
+  const SECTIONS_CONNUES = ['fairepart','hommage','shabbat','infos','video','rsvp'];
+  let ordreMilieu = Array.isArray(c.pageOrder) ? c.pageOrder.filter(k => SECTIONS_CONNUES.includes(k)) : [];
+  SECTIONS_CONNUES.forEach(k => { if (!ordreMilieu.includes(k)) ordreMilieu.push(k); });
+  const pageDefs = ['hero', ...ordreMilieu, 'footer'];
   const activePages = pageDefs.filter(k => {
     if (k === 'hero' || k === 'footer') return true;
     return s[k]?.enabled !== false;
@@ -49,6 +54,147 @@ module.exports = function renderSite(cfg, siteId) {
 
   const musicTracks = (c.music||[]).filter(m => m.url);
   const hasTracks = musicTracks.length > 0;
+
+  // Chaque section du milieu (entre le hero et le footer), indexée par nom,
+  // pour pouvoir les réassembler dans l'ordre choisi par le client
+  // (ordreMilieu, calculé plus haut à partir de c.pageOrder).
+  const sectionsHTML = {
+
+    fairepart: s.fairepart?.enabled === false ? '' : `
+<!-- FAIRE-PART -->
+<section class="parchment" id="faire-part">
+  <div class="parchment-card fade-in">
+    <span class="corner-tr"></span><span class="corner-bl"></span>
+    <p class="blessing">${s.fairepart.blessing}</p>
+    <div class="seudat-block">
+      <div class="seudat-tag">${s.fairepart.ceremonyTag}</div>
+      <h2 class="seudat-name">${s.fairepart.ceremonyName}</h2>
+      ${s.fairepart.ceremonyHe ? `<div class="seudat-he">${s.fairepart.ceremonyHe}</div>` : ''}
+    </div>
+    <div class="ornament"><span class="line"></span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14 10L22 12L14 14L12 22L10 14L2 12L10 10Z"/></svg><span class="line"></span></div>
+    <p class="invite-lead"><strong>${s.fairepart.familyLine}</strong></p>
+    ${s.fairepart.inviteHe ? `<div class="invite-he">${s.fairepart.inviteHe}</div>` : ''}
+    <p class="invite-sub">${s.fairepart.inviteSub}</p>
+    ${photoSlot(s.fairepart.photo, 'Photo de '+id.firstName)}
+    <div class="event-details">${evRows(s.fairepart.events)}</div>
+    <p class="followup">— ${s.fairepart.followup} —</p>
+  </div>
+</section>`,
+
+    hommage: s.hommage?.enabled === false ? '' : `
+<!-- HOMMAGE -->
+<section class="hommage">
+  <div class="container">
+    <div class="hommage-card fade-in">
+      <div class="hommage-tag">Hommage</div>
+      <h2 class="hommage-title">${s.hommage.title}</h2>
+      ${photoSlot(s.hommage.photo, 'Photo', 'max-width:420px')}
+      <p class="hommage-text">${s.hommage.text.replace(/\n/g,'<br>')}</p>
+      <p class="hommage-amen">— Amen —</p>
+    </div>
+  </div>
+</section>`,
+
+    shabbat: s.shabbat?.enabled === false ? '' : `
+<!-- SHABBAT -->
+<section class="shabbat" id="shabbat" data-theme="dark">
+  <div class="container">
+    <div class="fade-in">
+      <div class="shabbat-tag">${s.shabbat.tag}</div>
+      <h2 class="shabbat-title">Parasha <em>${s.shabbat.parasha}</em></h2>
+      ${s.shabbat.parashaHe ? `<div class="shabbat-he">${s.shabbat.parashaHe}</div>` : ''}
+      <p class="shabbat-intro">${s.shabbat.intro}</p>
+      <div class="torah-illus">
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="10" y="14" width="4" height="36" rx="1" fill="currentColor"/>
+          <rect x="50" y="14" width="4" height="36" rx="1" fill="currentColor"/>
+          <path d="M22 26L42 26 M22 32L42 32 M22 38L42 38"/>
+          <circle cx="12" cy="14" r="3" fill="currentColor"/><circle cx="52" cy="14" r="3" fill="currentColor"/>
+          <circle cx="12" cy="50" r="3" fill="currentColor"/><circle cx="52" cy="50" r="3" fill="currentColor"/>
+        </svg>
+      </div>
+      ${s.shabbat.photo ? `<img src="${s.shabbat.photo}" alt="" style="max-width:520px;margin:0 auto 48px;aspect-ratio:4/3;object-fit:cover;border:1px solid rgba(201,168,124,.25)">` : ''}
+      <div class="shabbat-details">${evRows(s.shabbat.events, true)}</div>
+      <p class="shabbat-followup">— ${s.shabbat.followup} —</p>
+    </div>
+  </div>
+</section>`,
+
+    infos: s.infos?.enabled === false ? '' : `
+<!-- INFOS -->
+<section id="infos">
+  <div class="container">
+    <div class="info-card fade-in">
+      <span class="corner-tl"></span><span class="corner-br"></span>
+      <div class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M3 9h18"/></svg></div>
+      <h3 class="info-title">${s.infos.title}</h3>
+      <p class="info-subtitle">${s.infos.subtitle}</p>
+      <p class="info-body">${s.infos.body}</p>
+      <a class="info-cta" href="${s.infos.ctaUrl}" target="_blank"><span>${s.infos.ctaText}</span><span style="font-size:14px">→</span></a>
+    </div>
+  </div>
+</section>`,
+
+    video: s.video?.enabled === false ? '' : `
+<!-- VIDEO -->
+<section id="video" style="background:linear-gradient(180deg,transparent,rgba(201,168,124,.06))">
+  <div class="container">
+    <div class="video-card fade-in">
+      <div class="video-illus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M21 7l-4 3 4 3z" fill="currentColor"/></svg></div>
+      <h3 class="video-title">${s.video.title} <em>${id.firstName}</em> !</h3>
+      <p class="video-text">${s.video.text.replace(/\n/g,'<br>')}</p>
+      <a class="video-cta" href="/upload">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4v16M4 12h16"/></svg>
+        <span>Envoyer ma vidéo</span>
+      </a>
+    </div>
+  </div>
+</section>`,
+
+    rsvp: s.rsvp?.enabled === false ? '' : `
+<!-- RSVP -->
+<section class="rsvp-section" id="rsvp">
+  <div class="container">
+    <div class="rsvp-head fade-in">
+      <div class="rsvp-tag">Formulaire de réponse</div>
+      <h2 class="rsvp-title">Merci de <em>répondre</em></h2>
+      <p class="rsvp-sub">avant le ${s.rsvp.deadline}</p>
+    </div>
+    <form class="rsvp-form fade-in" id="rsvpForm" onsubmit="return submitRsvp(event)">
+      <div class="rsvp-fields">
+        <div class="field-row">
+          <div class="field"><label>Nom <span class="req">*</span></label><input type="text" id="rNom" required></div>
+          <div class="field"><label>Prénom <span class="req">*</span></label><input type="text" id="rPrenom" required></div>
+        </div>
+        ${(s.rsvp.events||[]).map((ev,i) => `
+        <div class="form-divider"></div>
+        <h3 class="form-sub-title">${ev.name.replace(' & ','&amp;&nbsp;')}</h3>
+        <p class="form-sub-date">${ev.date}</p>
+        <div class="field"><label>Votre présence</label>
+          <div class="pres-group">
+            <label><input type="radio" name="pres-${ev.id}" value="oui" ${i===0?'required':''}><span class="check"></span>Je serai présent(e)</label>
+            <label><input type="radio" name="pres-${ev.id}" value="non"><span class="check"></span>Je ne serai pas présent(e)</label>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Adultes</label><div class="stepper" data-stepper><button type="button" data-step="-1">−</button><input type="number" min="0" max="20" value="${i===0?1:0}" name="adults-${ev.id}"><button type="button" data-step="+1">+</button></div></div>
+          <div class="field"><label>Enfants</label><div class="stepper" data-stepper><button type="button" data-step="-1">−</button><input type="number" min="0" max="20" value="0" name="children-${ev.id}"><button type="button" data-step="+1">+</button></div></div>
+        </div>`).join('')}
+        <div class="form-divider"></div>
+        <div class="field"><label>Un petit message</label><textarea placeholder="Ex. Mazal Tov…" id="rMsg"></textarea></div>
+        <button type="submit" class="submit-btn"><span>Envoyer ma réponse</span><span>→</span></button>
+      </div>
+      <div class="rsvp-success">
+        <h3>Merci infiniment</h3>
+        <p>Votre réponse a bien été enregistrée.<br>${id.firstName} a hâte de vous y voir.</p>
+      </div>
+    </form>
+  </div>
+</section>`,
+
+  };
+
+  const sectionsMilieuHTML = ordreMilieu.map(k => sectionsHTML[k]||'').join('');
 
   return `<!doctype html>
 <html lang="${c.meta?.lang||'fr'}">
@@ -328,137 +474,7 @@ ${id.bsd ? '<div class="bsd">בס"ד</div>' : ''}
   </div>
 </section>
 
-${s.fairepart?.enabled !== false ? `
-<!-- FAIRE-PART -->
-<section class="parchment" id="faire-part">
-  <div class="parchment-card fade-in">
-    <span class="corner-tr"></span><span class="corner-bl"></span>
-    <p class="blessing">${s.fairepart.blessing}</p>
-    <div class="seudat-block">
-      <div class="seudat-tag">${s.fairepart.ceremonyTag}</div>
-      <h2 class="seudat-name">${s.fairepart.ceremonyName}</h2>
-      ${s.fairepart.ceremonyHe ? `<div class="seudat-he">${s.fairepart.ceremonyHe}</div>` : ''}
-    </div>
-    <div class="ornament"><span class="line"></span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14 10L22 12L14 14L12 22L10 14L2 12L10 10Z"/></svg><span class="line"></span></div>
-    <p class="invite-lead"><strong>${s.fairepart.familyLine}</strong></p>
-    ${s.fairepart.inviteHe ? `<div class="invite-he">${s.fairepart.inviteHe}</div>` : ''}
-    <p class="invite-sub">${s.fairepart.inviteSub}</p>
-    ${photoSlot(s.fairepart.photo, 'Photo de '+id.firstName)}
-    <div class="event-details">${evRows(s.fairepart.events)}</div>
-    <p class="followup">— ${s.fairepart.followup} —</p>
-  </div>
-</section>` : ''}
-
-${s.hommage?.enabled !== false ? `
-<!-- HOMMAGE -->
-<section class="hommage">
-  <div class="container">
-    <div class="hommage-card fade-in">
-      <div class="hommage-tag">Hommage</div>
-      <h2 class="hommage-title">${s.hommage.title}</h2>
-      ${photoSlot(s.hommage.photo, 'Photo', 'max-width:420px')}
-      <p class="hommage-text">${s.hommage.text.replace(/\n/g,'<br>')}</p>
-      <p class="hommage-amen">— Amen —</p>
-    </div>
-  </div>
-</section>` : ''}
-
-${s.shabbat?.enabled !== false ? `
-<!-- SHABBAT -->
-<section class="shabbat" id="shabbat" data-theme="dark">
-  <div class="container">
-    <div class="fade-in">
-      <div class="shabbat-tag">${s.shabbat.tag}</div>
-      <h2 class="shabbat-title">Parasha <em>${s.shabbat.parasha}</em></h2>
-      ${s.shabbat.parashaHe ? `<div class="shabbat-he">${s.shabbat.parashaHe}</div>` : ''}
-      <p class="shabbat-intro">${s.shabbat.intro}</p>
-      <div class="torah-illus">
-        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="10" y="14" width="4" height="36" rx="1" fill="currentColor"/>
-          <rect x="50" y="14" width="4" height="36" rx="1" fill="currentColor"/>
-          <path d="M22 26L42 26 M22 32L42 32 M22 38L42 38"/>
-          <circle cx="12" cy="14" r="3" fill="currentColor"/><circle cx="52" cy="14" r="3" fill="currentColor"/>
-          <circle cx="12" cy="50" r="3" fill="currentColor"/><circle cx="52" cy="50" r="3" fill="currentColor"/>
-        </svg>
-      </div>
-      ${s.shabbat.photo ? `<img src="${s.shabbat.photo}" alt="" style="max-width:520px;margin:0 auto 48px;aspect-ratio:4/3;object-fit:cover;border:1px solid rgba(201,168,124,.25)">` : ''}
-      <div class="shabbat-details">${evRows(s.shabbat.events, true)}</div>
-      <p class="shabbat-followup">— ${s.shabbat.followup} —</p>
-    </div>
-  </div>
-</section>` : ''}
-
-${s.infos?.enabled !== false ? `
-<!-- INFOS -->
-<section id="infos">
-  <div class="container">
-    <div class="info-card fade-in">
-      <span class="corner-tl"></span><span class="corner-br"></span>
-      <div class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M3 9h18"/></svg></div>
-      <h3 class="info-title">${s.infos.title}</h3>
-      <p class="info-subtitle">${s.infos.subtitle}</p>
-      <p class="info-body">${s.infos.body}</p>
-      <a class="info-cta" href="${s.infos.ctaUrl}" target="_blank"><span>${s.infos.ctaText}</span><span style="font-size:14px">→</span></a>
-    </div>
-  </div>
-</section>` : ''}
-
-${s.video?.enabled !== false ? `
-<!-- VIDEO -->
-<section id="video" style="background:linear-gradient(180deg,transparent,rgba(201,168,124,.06))">
-  <div class="container">
-    <div class="video-card fade-in">
-      <div class="video-illus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M21 7l-4 3 4 3z" fill="currentColor"/></svg></div>
-      <h3 class="video-title">${s.video.title} <em>${id.firstName}</em> !</h3>
-      <p class="video-text">${s.video.text.replace(/\n/g,'<br>')}</p>
-      <a class="video-cta" href="/upload">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4v16M4 12h16"/></svg>
-        <span>Envoyer ma vidéo</span>
-      </a>
-    </div>
-  </div>
-</section>` : ''}
-
-${s.rsvp?.enabled !== false ? `
-<!-- RSVP -->
-<section class="rsvp-section" id="rsvp">
-  <div class="container">
-    <div class="rsvp-head fade-in">
-      <div class="rsvp-tag">Formulaire de réponse</div>
-      <h2 class="rsvp-title">Merci de <em>répondre</em></h2>
-      <p class="rsvp-sub">avant le ${s.rsvp.deadline}</p>
-    </div>
-    <form class="rsvp-form fade-in" id="rsvpForm" onsubmit="return submitRsvp(event)">
-      <div class="rsvp-fields">
-        <div class="field-row">
-          <div class="field"><label>Nom <span class="req">*</span></label><input type="text" id="rNom" required></div>
-          <div class="field"><label>Prénom <span class="req">*</span></label><input type="text" id="rPrenom" required></div>
-        </div>
-        ${(s.rsvp.events||[]).map((ev,i) => `
-        <div class="form-divider"></div>
-        <h3 class="form-sub-title">${ev.name.replace(' & ','&amp;&nbsp;')}</h3>
-        <p class="form-sub-date">${ev.date}</p>
-        <div class="field"><label>Votre présence</label>
-          <div class="pres-group">
-            <label><input type="radio" name="pres-${ev.id}" value="oui" ${i===0?'required':''}><span class="check"></span>Je serai présent(e)</label>
-            <label><input type="radio" name="pres-${ev.id}" value="non"><span class="check"></span>Je ne serai pas présent(e)</label>
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label>Adultes</label><div class="stepper" data-stepper><button type="button" data-step="-1">−</button><input type="number" min="0" max="20" value="${i===0?1:0}" name="adults-${ev.id}"><button type="button" data-step="+1">+</button></div></div>
-          <div class="field"><label>Enfants</label><div class="stepper" data-stepper><button type="button" data-step="-1">−</button><input type="number" min="0" max="20" value="0" name="children-${ev.id}"><button type="button" data-step="+1">+</button></div></div>
-        </div>`).join('')}
-        <div class="form-divider"></div>
-        <div class="field"><label>Un petit message</label><textarea placeholder="Ex. Mazal Tov…" id="rMsg"></textarea></div>
-        <button type="submit" class="submit-btn"><span>Envoyer ma réponse</span><span>→</span></button>
-      </div>
-      <div class="rsvp-success">
-        <h3>Merci infiniment</h3>
-        <p>Votre réponse a bien été enregistrée.<br>${id.firstName} a hâte de vous y voir.</p>
-      </div>
-    </form>
-  </div>
-</section>` : ''}
+${sectionsMilieuHTML}
 
 <!-- FOOTER -->
 <footer>

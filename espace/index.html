@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Mon espace — MySaveTheDate</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f0f5ff;--paper:#ffffff;--border:rgba(30,64,175,.15);
+  --gold:#2563eb;--gold-l:#3b82f6;--ink:#0d1f3c;--ink-s:#1e3a8a;
+  --cream:#e8f0fe;--sidebar:210px;--topbar:56px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--ink);background:var(--bg);min-height:100vh;display:flex;flex-direction:column}
+a{color:inherit;text-decoration:none}
+
+/* AUTH SCREENS */
+.auth-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px}
+.auth-box{background:var(--paper);border:none;padding:52px 44px;width:420px;max-width:100%;text-align:center;position:relative;box-shadow:0 20px 60px rgba(13,31,60,.12);border-top:4px solid var(--gold)}
+.auth-logo{font-family:'Montserrat',sans-serif;font-size:22px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);margin-bottom:6px}
+.auth-sub{font-family:'Inter',sans-serif;font-size:13px;font-weight:400;color:var(--ink-s);margin-bottom:32px}
+.auth-box input{width:100%;border:1px solid var(--border);padding:12px 14px;font-family:'Inter',sans-serif;font-size:15px;font-weight:500;background:var(--paper);outline:none;color:var(--ink);margin-bottom:16px;border-radius:4px}
+.auth-box input:focus{border-color:var(--gold)}
+.btn-dark{background:var(--ink);color:#fff;border:none;padding:14px 28px;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.35em;text-transform:uppercase;cursor:pointer;transition:background .2s;width:100%;border-radius:4px}
+.btn-dark:hover{background:var(--gold)}
+.btn-dark:disabled{opacity:.5;cursor:not-allowed}
+.auth-link{display:block;margin-top:18px;font-size:13px;color:var(--ink-s);cursor:pointer}
+.auth-link:hover{color:var(--gold)}
+.auth-msg{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;margin-top:14px;display:none;padding:10px 14px;border-radius:4px}
+.auth-msg.show{display:block}
+.auth-msg.err{background:#fee2e2;color:#dc2626}
+.auth-msg.ok{background:#dcfce7;color:#15803d}
+
+/* TOPBAR */
+.topbar{height:var(--topbar);background:var(--ink);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
+.topbar-title{font-family:'Montserrat',sans-serif;font-size:15px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;flex:1;color:#fff}
+.topbar-title span{color:#93c5fd;font-family:'Montserrat',sans-serif;font-weight:400}
+.btn-sm{padding:7px 16px;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;border:2px solid var(--border);background:transparent;cursor:pointer;transition:all .2s;color:var(--ink-s);border-radius:3px}
+.btn-sm:hover{border-color:var(--gold);color:var(--gold)}
+.btn-sm.primary{background:var(--gold);color:#fff;border-color:var(--gold)}
+.btn-sm.primary:hover{background:#1d4ed8;border-color:#1d4ed8}
+.topbar .btn-sm{border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.75);background:transparent}
+.topbar .btn-sm:hover{border-color:#fff;color:#fff}
+.topbar .btn-sm.primary{background:var(--gold);color:#fff;border-color:var(--gold)}
+
+/* LAYOUT */
+.app-body{display:flex;flex:1;overflow:hidden}
+
+/* DASHBOARD */
+#view-dashboard{padding:40px;max-width:640px;margin:0 auto;width:100%}
+.dash-card{background:var(--paper);border:1px solid var(--border);border-left:4px solid var(--gold);padding:32px;margin-top:24px}
+.dash-sub{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.dash-name{font-family:'Montserrat',sans-serif;font-weight:800;font-size:26px;color:var(--ink);margin-bottom:4px}
+.dash-status{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-s);margin-bottom:20px}
+.dash-status-dot{width:8px;height:8px;border-radius:50%;background:#22c55e}
+.dash-status-dot.inactive{background:#ef4444}
+.dash-actions{display:flex;gap:10px;flex-wrap:wrap}
+.dash-empty{font-family:'Inter',sans-serif;font-style:italic;color:var(--ink-s);margin-top:20px}
+
+/* EDITOR */
+#view-editor{flex-direction:row;overflow:hidden;flex:1}
+.editor-sidebar{width:200px;border-right:1px solid var(--border);background:var(--paper);overflow-y:auto;flex-shrink:0}
+.editor-nav-item{padding:12px 18px;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;cursor:pointer;border-left:3px solid transparent;transition:all .15s;color:var(--ink-s)}
+.editor-nav-item:hover{color:var(--ink);background:rgba(37,99,235,.05)}
+.editor-nav-item.active{color:var(--gold);border-left-color:var(--gold);background:rgba(37,99,235,.07)}
+.editor-main{flex:1;overflow-y:auto;padding:28px 32px;max-width:700px}
+.editor-preview{width:380px;border-left:1px solid var(--border);background:#060f1e;display:flex;flex-direction:column;flex-shrink:0}
+.preview-bar{height:38px;background:#030811;display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0}
+.preview-dot{width:10px;height:10px;border-radius:50%}
+.preview-iframe-wrap{flex:1;overflow:hidden;position:relative}
+.preview-iframe-wrap iframe{width:200%;height:200%;transform:scale(.5);transform-origin:top left;border:none;pointer-events:none}
+.preview-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-family:'Inter',sans-serif;font-size:12px;font-weight:500}
+
+.ed-section{display:none}
+.ed-section.active{display:block}
+.ed-title{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;color:var(--ink)}
+.ed-sub{font-family:'Inter',sans-serif;font-size:13px;font-weight:400;color:var(--ink-s);margin-bottom:28px}
+.field-group{margin-bottom:28px}
+.field-group > label,.field-label{display:block;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-s);margin-bottom:8px}
+.field-group input[type=text],.field-group input[type=url],.field-group input[type=number],
+.field-group input[type=date],.field-group input[type=time],.field-group select,.field-group textarea{
+  width:100%;border:1px solid var(--border);background:var(--paper);padding:10px 12px;font-family:'Inter',sans-serif;
+  font-size:14px;font-weight:500;color:var(--ink);outline:none;transition:border-color .2s;border-radius:4px}
+.field-group input:focus,.field-group select:focus,.field-group textarea:focus{border-color:var(--gold)}
+.field-group textarea{resize:vertical;min-height:80px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.toggle-label{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--ink-s)}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#cbd5e1;border-radius:24px;cursor:pointer;transition:.3s}
+.toggle-slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle input:checked + .toggle-slider{background:var(--gold)}
+.toggle input:checked + .toggle-slider::before{transform:translateX(20px)}
+
+.palette-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.preset-btn{padding:10px;border:2px solid transparent;cursor:pointer;text-align:center;border-radius:6px;transition:border-color .2s}
+.preset-btn:hover{border-color:var(--gold)}
+.preset-swatch{height:32px;border-radius:4px;margin-bottom:6px}
+.preset-name{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--ink-s)}
+.color-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.color-field{display:flex;align-items:center;gap:10px}
+.color-field input[type=color]{width:40px;height:36px;border:1px solid var(--border);padding:2px;background:var(--paper);cursor:pointer;border-radius:4px}
+.color-field input[type=text]{flex:1;border:1px solid var(--border);padding:8px 10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;background:var(--paper);outline:none;border-radius:4px}
+.color-field-label{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--ink-s);margin-bottom:4px}
+
+.music-track{background:var(--cream);border:1px solid var(--border);padding:16px;margin-bottom:12px;border-radius:6px}
+.music-track-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.music-track-label{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--gold)}
+
+.event-item{background:var(--cream);border:1px solid var(--border);padding:16px;margin-bottom:10px;border-radius:6px}
+.event-item-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.event-item-title{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-s)}
+
+.upload-zone{border:2px dashed var(--border);padding:24px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative;background:var(--paper);border-radius:6px}
+.upload-zone:hover{border-color:var(--gold)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-zone-text{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--ink-s)}
+.upload-preview{max-width:100%;max-height:120px;margin:10px auto 0;display:block}
+
+.rsvp-event-item{background:var(--cream);border:1px solid var(--border);padding:14px 16px;margin-bottom:10px;border-radius:6px}
+
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:24px}
+.stat-box{background:var(--paper);border:1px solid var(--border);padding:18px;text-align:center;border-radius:6px}
+.stat-num{font-family:'Montserrat',sans-serif;font-size:34px;font-weight:800;color:var(--gold);line-height:1}
+.stat-lbl{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-s);margin-top:4px}
+
+.data-table{width:100%;border-collapse:collapse;background:var(--paper);border:1px solid var(--border)}
+.data-table th{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-s);padding:12px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+.data-table td{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;padding:10px 14px;border-bottom:1px solid rgba(30,64,175,.08);vertical-align:top}
+.badge{padding:2px 8px;font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;border-radius:3px}
+.badge.oui{background:rgba(34,197,94,.12);color:#15803d}
+.badge.non{background:rgba(13,31,60,.06);color:var(--ink-s)}
+
+/* PAGES (réordonnancement) */
+.page-row{display:flex;align-items:center;gap:12px;background:var(--cream);border:1px solid var(--border);padding:12px 16px;margin-bottom:8px;border-radius:6px}
+.page-row-name{flex:1;font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:var(--ink)}
+.page-row-btns{display:flex;gap:4px}
+.page-row-btns button{width:28px;height:28px;border:1px solid var(--border);background:var(--paper);cursor:pointer;border-radius:4px;font-size:12px;color:var(--ink-s)}
+.page-row-btns button:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
+.page-row-btns button:disabled{opacity:.3;cursor:not-allowed}
+
+.toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--ink);color:#fff;padding:14px 22px;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.35em;text-transform:uppercase;opacity:0;transition:opacity .3s,transform .3s;transform:translateY(8px);pointer-events:none;border-radius:4px}
+.toast.show{opacity:1;transform:translateY(0)}
+.divider{height:1px;background:var(--border);margin:24px 0}
+.section-title{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
+.help-text{font-family:'Inter',sans-serif;font-size:12px;font-weight:400;color:var(--ink-s);margin-top:6px}
+
+@media(max-width:760px){
+  #view-editor{flex-direction:column}
+  .editor-sidebar{width:100%;display:flex;overflow-x:auto;flex-direction:row;flex-shrink:0}
+  .editor-nav-item{border-left:none;border-bottom:3px solid transparent;white-space:nowrap}
+  .editor-nav-item.active{border-left:none;border-bottom-color:var(--gold)}
+  .editor-preview{display:none}
+  .editor-main{max-width:none}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="auth-screen" id="screenLogin">
+  <div class="auth-box">
+    <div class="auth-logo">MySaveTheDate</div>
+    <div class="auth-sub">Mon espace personnel</div>
+    <input type="email" id="loginEmail" placeholder="Votre email" autocomplete="username">
+    <input type="password" id="loginPassword" placeholder="Votre mot de passe" autocomplete="current-password">
+    <button class="btn-dark" id="btnLogin">Se connecter</button>
+    <span class="auth-link" id="btnGoForgot">Mot de passe oublié ?</span>
+    <div class="auth-msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- MOT DE PASSE OUBLIÉ -->
+<div class="auth-screen" id="screenForgot" style="display:none">
+  <div class="auth-box">
+    <div class="auth-logo">MySaveTheDate</div>
+    <div class="auth-sub">Recevoir un lien de connexion</div>
+    <input type="email" id="forgotEmail" placeholder="Votre email" autocomplete="username">
+    <button class="btn-dark" id="btnSendForgot">Recevoir le lien</button>
+    <span class="auth-link" id="btnBackLogin">← Retour à la connexion</span>
+    <div class="auth-msg" id="forgotMsg"></div>
+  </div>
+</div>
+
+<!-- DÉFINIR / RÉINITIALISER LE MOT DE PASSE -->
+<div class="auth-screen" id="screenRecovery" style="display:none">
+  <div class="auth-box">
+    <div class="auth-logo">MySaveTheDate</div>
+    <div class="auth-sub">Choisissez votre mot de passe</div>
+    <input type="password" id="recoveryPassword" placeholder="Nouveau mot de passe (6 caractères min.)" autocomplete="new-password">
+    <input type="password" id="recoveryPassword2" placeholder="Confirmez le mot de passe" autocomplete="new-password">
+    <button class="btn-dark" id="btnSetPassword">Valider et accéder à mon espace</button>
+    <div class="auth-msg" id="recoveryMsg"></div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar" id="topbar" style="display:none">
+  <div class="topbar-title">MySaveThe<span>Date</span></div>
+  <div id="editorActions" style="display:none;gap:8px">
+    <button class="btn-sm primary" id="btnSave">Sauvegarder</button>
+  </div>
+  <button class="btn-sm" id="btnBackDash" style="display:none">← Tableau de bord</button>
+  <button class="btn-sm" id="logoutBtn">Déconnexion</button>
+</div>
+
+<!-- APP BODY -->
+<div class="app-body" id="appBody" style="display:none">
+
+  <!-- DASHBOARD -->
+  <div id="view-dashboard" style="display:none">
+    <h2 style="font-family:'Montserrat',sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--ink)">Mon faire-part</h2>
+    <div id="dashContent"><p class="dash-empty">Chargement…</p></div>
+  </div>
+
+  <!-- EDITOR -->
+  <div id="view-editor" style="display:none">
+    <div class="editor-sidebar">
+      <div style="padding:16px 18px;border-bottom:1px solid var(--border);font-family:'Inter',sans-serif;font-style:italic;font-size:13px;color:var(--ink-s)" id="edSiteName">—</div>
+      <div class="editor-nav-item active" data-ed="identite">Identité</div>
+      <div class="editor-nav-item" data-ed="design">Design &amp; Couleurs</div>
+      <div class="editor-nav-item" data-ed="pages">Pages</div>
+      <div class="editor-nav-item" data-ed="hero">Hero</div>
+      <div class="editor-nav-item" data-ed="fairepart">Faire-part</div>
+      <div class="editor-nav-item" data-ed="hommage">Hommage</div>
+      <div class="editor-nav-item" data-ed="shabbat">Shabbat</div>
+      <div class="editor-nav-item" data-ed="infos">Informations</div>
+      <div class="editor-nav-item" data-ed="video">Vidéo</div>
+      <div class="editor-nav-item" data-ed="rsvp">RSVP</div>
+      <div class="editor-nav-item" data-ed="musique">Musique</div>
+      <div class="editor-nav-item" data-ed="stats">Réponses</div>
+      <div class="editor-nav-item" data-ed="parametres">Paramètres</div>
+    </div>
+
+    <div class="editor-main" id="editorMain">
+
+      <div class="ed-section active" data-ed="identite">
+        <div class="ed-title">Identité</div>
+        <div class="ed-sub">Informations principales du faire-part</div>
+        <div class="field-row">
+          <div class="field-group"><label>Prénom</label><input type="text" data-path="identity.firstName"></div>
+          <div class="field-group"><label>Nom</label><input type="text" data-path="identity.lastName"></div>
+        </div>
+        <div class="field-group"><label>Nom hébreu (optionnel)</label><input type="text" data-path="identity.hebrewName"></div>
+        <div class="field-group"><label>Type d'événement</label>
+          <select data-path="identity.eventType">
+            <option value="bar-mitsva">Bar Mitsva</option>
+            <option value="bat-mitsva">Bat Mitsva</option>
+            <option value="mariage">Mariage</option>
+            <option value="anniversaire">Anniversaire</option>
+          </select>
+        </div>
+        <div class="field-group"><label>Titre de la page (onglet navigateur)</label><input type="text" data-path="meta.title"></div>
+        <div class="field-group"><label>Logo (optionnel)</label>
+          <div class="upload-zone" id="logoZone">
+            <input type="file" accept="image/*" id="logoFile">
+            <div class="upload-zone-text">Glisser le logo ici ou cliquer</div>
+            <img id="logoPreview" class="upload-preview" style="display:none">
+          </div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Afficher בס"ד en haut à droite</span>
+          <label class="toggle"><input type="checkbox" data-path="identity.bsd"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <div class="ed-section" data-ed="design">
+        <div class="ed-title">Design &amp; Couleurs</div>
+        <div class="ed-sub">Personnalisez la palette de couleurs et les polices</div>
+        <div class="section-title">Modèles de couleurs</div>
+        <div class="palette-presets" id="palettePresets"></div>
+        <div class="divider"></div>
+        <div class="section-title">Couleurs personnalisées</div>
+        <div class="color-grid" id="colorGrid"></div>
+        <div class="divider"></div>
+        <div class="section-title">Typographie</div>
+        <div class="field-row">
+          <div class="field-group"><label>Police des titres</label>
+            <select data-path="theme.fonts.heading">
+              <option value="Montserrat">Montserrat (défaut)</option>
+              <option value="Playfair Display">Playfair Display</option>
+              <option value="Cormorant Garamond">Cormorant Garamond</option>
+              <option value="Cinzel">Cinzel</option>
+            </select>
+          </div>
+          <div class="field-group"><label>Police du texte</label>
+            <select data-path="theme.fonts.body">
+              <option value="Inter">Inter (défaut)</option>
+              <option value="Cormorant Garamond">Cormorant Garamond</option>
+              <option value="Lora">Lora</option>
+              <option value="EB Garamond">EB Garamond</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="ed-section" data-ed="pages">
+        <div class="ed-title">Pages</div>
+        <div class="ed-sub">Activez, désactivez et réordonnez les pages de votre faire-part (le Hero et le pied de page restent toujours en premier et en dernier)</div>
+        <div id="pagesList"></div>
+      </div>
+
+      <div class="ed-section" data-ed="hero">
+        <div class="ed-title">Page Hero</div>
+        <div class="ed-sub">La première page, avec le compte à rebours</div>
+        <div class="field-group"><label>Texte au-dessus du nom</label><input type="text" data-path="sections.hero.eyebrow"></div>
+        <div class="toggle-row">
+          <span class="toggle-label">Afficher le compte à rebours</span>
+          <label class="toggle"><input type="checkbox" data-path="sections.hero.showCountdown"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="field-group" style="margin-top:16px"><label>Texte du bouton</label><input type="text" data-path="sections.hero.ctaText"></div>
+        <div class="divider"></div>
+        <div class="section-title">Date cible du compte à rebours</div>
+        <div class="field-row">
+          <div class="field-group"><label>Date</label><input type="date" data-path="target.date"></div>
+          <div class="field-group"><label>Heure</label><input type="time" data-path="target.time"></div>
+        </div>
+      </div>
+
+      <div class="ed-section" data-ed="fairepart">
+        <div class="ed-title">Faire-part</div>
+        <div class="ed-sub">La carte d'invitation principale</div>
+        <div class="toggle-row"><span class="toggle-label">Page activée</span><label class="toggle"><input type="checkbox" data-path="sections.fairepart.enabled"><span class="toggle-slider"></span></label></div>
+        <div style="margin-top:16px">
+          <div class="field-group"><label>Texte d'ouverture</label><textarea data-path="sections.fairepart.blessing" rows="2"></textarea></div>
+          <div class="field-row">
+            <div class="field-group"><label>Tag</label><input type="text" data-path="sections.fairepart.ceremonyTag"></div>
+            <div class="field-group"><label>Titre principal</label><input type="text" data-path="sections.fairepart.ceremonyName"></div>
+          </div>
+          <div class="field-group"><label>Ligne famille / invitation</label><textarea data-path="sections.fairepart.familyLine" rows="2"></textarea></div>
+          <div class="field-group"><label>Texte de présentation</label><textarea data-path="sections.fairepart.inviteSub" rows="2"></textarea></div>
+          <div class="field-group"><label>Photo</label>
+            <div class="upload-zone"><input type="file" accept="image/*" data-upload-to="sections.fairepart.photo"><div class="upload-zone-text">Photo principale</div></div>
+          </div>
+          <div class="divider"></div>
+          <div class="section-title">Détails de l'événement</div>
+          <div id="fairepart-events"></div>
+          <button class="btn-sm" id="addFairePartEvent" style="margin-top:8px">+ Ajouter une ligne</button>
+          <div class="divider"></div>
+          <div class="field-group"><label>Texte de clôture</label><input type="text" data-path="sections.fairepart.followup"></div>
+        </div>
+      </div>
+
+      <div class="ed-section" data-ed="hommage">
+        <div class="ed-title">Hommage</div>
+        <div class="ed-sub">Section dédiée à un hommage</div>
+        <div class="toggle-row"><span class="toggle-label">Page activée</span><label class="toggle"><input type="checkbox" data-path="sections.hommage.enabled"><span class="toggle-slider"></span></label></div>
+        <div style="margin-top:16px">
+          <div class="field-group"><label>Titre</label><input type="text" data-path="sections.hommage.title"></div>
+          <div class="field-group"><label>Texte</label><textarea data-path="sections.hommage.text" rows="6"></textarea></div>
+          <div class="field-group"><label>Photo</label><div class="upload-zone"><input type="file" accept="image/*" data-upload-to="sections.hommage.photo"><div class="upload-zone-text">Photo</div></div></div>
+        </div>
+      </div>
+
+      <div class="ed-section" data-ed="shabbat">
+        <div class="ed-title">Shabbat</div>
+        <div class="ed-sub">Section fond sombre pour la Parasha</div>
+        <div class="toggle-row"><span class="toggle-label">Page activée</span><label class="toggle"><input type="checkbox" data-path="sections.shabbat.enabled"><span class="toggle-slider"></span></label></div>
+        <div style="margin-top:16px">
+          <div class="field-row">
+            <div class="field-group"><label>Tag</label><input type="text" data-path="sections.shabbat.tag"></div>
+            <div class="field-group"><label>Parasha</label><input type="text" data-path="sections.shabbat.parasha"></div>
+          </div>
+          <div class="field-group"><label>Introduction</label><textarea data-path="sections.shabbat.intro" rows="3"></textarea></div>
+          <div class="field-group"><label>Photo</label><div class="upload-zone"><input type="file" accept="image/*" data-upload-to="sections.shabbat.photo"><div class="upload-zone-text">Photo</div></div></div>
+          <div class="divider"></div>
+          <div class="section-title">Détails</div>
+          <div id="shabbat-events"></div>
+          <button class="btn-sm" id="addShabbatEvent" style="margin-top:8px">+ Ajouter une ligne</button>
+          <div class="divider"></div>
+          <div class="field-group"><label>Texte de clôture</label><input type="text" data-path="sections.shabbat.followup"></div>
+        </div>
+      </div>
+
+      <div class="ed-section" data-ed="infos">
+        <div class="ed-title">Informations</div>
+        <div class="ed-sub">Bloc d'informations pratiques</div>
+        <div class="toggle-row"><span class="toggle-label">Page activée</span><label class="toggle"><input type="checkbox" data-path="sections.infos.enabled"><span class="toggle-slider"></span></label></div>
+        <div style="margin-top:16px">
+          <div class="field-group"><label>Titre</label><input type="text" data-path="sections.infos.title"></div>
+          <div class="field-group"><label>Sous-titre</label><input type="text" data-path="sections.infos.subtitle"></div>
+          <div class="field-group"><label>Texte</label><textarea data-path="sections.infos.body" rows="4"></textarea></div>
+          <div class="field-group"><label>Texte du bouton</label><input type="text" data-path="sections.infos.ctaText"></div>
+          <div class="field-group"><label>Lien du bouton</label><input type="url" data-path="sections.infos.ctaUrl"></div>
+        </div>
+      </div>
+
+      <div class="ed-section" data-ed="video">
+        <div class="ed-title">Vidéo</div>
+        <div class="ed-sub">Invitation à envoyer une vidéo (livre d'or vidéo)</div>
+        <div class="toggle-row"><span class="toggle-label">Page activée</span><label class="toggle"><input type="checkbox" data-path="sections.video.enabled"><span class="toggle-slider"></span></label></div>
+        <div style="margin-top:16px">
+          <div class="field-group"><label>Titre (sans le prénom)</label><input type="text" data-path="sections.video.title"></div>
+          <div class="field-group"><label>Texte</label><textarea data-path="sections.video.text" rows="4"></textarea></div>
+        </div>
+      </div>
+
+      <div class="ed-section" data-ed="rsvp">
+        <div class="ed-title">RSVP</div>
+        <div class="ed-sub">Configuration du formulaire de réponse</div>
+        <div class="toggle-row"><span class="toggle-label">Page activée</span><label class="toggle"><input type="checkbox" data-path="sections.rsvp.enabled"><span class="toggle-slider"></span></label></div>
+        <div style="margin-top:16px">
+          <div class="field-group"><label>Date limite de réponse</label><input type="text" data-path="sections.rsvp.deadline"></div>
+          <div class="divider"></div>
+          <div class="section-title">Événements du formulaire</div>
+          <div id="rsvp-events"></div>
+          <button class="btn-sm" id="addRsvpEvent" style="margin-top:8px">+ Ajouter un événement</button>
+        </div>
+      </div>
+
+      <div class="ed-section" data-ed="musique">
+        <div class="ed-title">Musique</div>
+        <div class="ed-sub">Jusqu'à 3 pistes audio, avec fondu enchaîné entre les pages</div>
+        <div id="musicTracks"></div>
+      </div>
+
+      <div class="ed-section" data-ed="stats">
+        <div class="ed-title">Réponses</div>
+        <div class="ed-sub">RSVP et vidéos reçues</div>
+        <div class="stats-row" id="statsRow"></div>
+        <button class="btn-sm" id="exportRsvpBtn" style="margin-bottom:16px">⬇ Exporter en CSV</button>
+        <div style="overflow-x:auto" id="rsvpTableWrap"></div>
+        <div class="divider"></div>
+        <div class="section-title">Vidéos reçues</div>
+        <div id="videosWrap"></div>
+      </div>
+
+      <div class="ed-section" data-ed="parametres">
+        <div class="ed-title">Paramètres</div>
+        <div class="ed-sub">Configuration générale du site</div>
+        <div class="field-group"><label>Sous-domaine</label><input type="text" id="paramSubdomain"><div class="help-text" id="paramSubdomainHelp"></div></div>
+        <div class="field-group"><label>Crédit en pied de page</label><input type="text" data-path="sections.footer.credit"></div>
+        <div class="toggle-row">
+          <span class="toggle-label">Site en ligne (visible par vos invités)</span>
+          <label class="toggle"><input type="checkbox" id="paramActive"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="editor-preview">
+      <div class="preview-bar">
+        <div class="preview-dot" style="background:#ff5f57"></div>
+        <div class="preview-dot" style="background:#febc2e"></div>
+        <div class="preview-dot" style="background:#28c840"></div>
+        <span style="font-family:'Inter',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,236,224,.4);margin-left:8px">Aperçu</span>
+        <a id="previewLink" href="#" target="_blank" style="margin-left:auto;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,236,224,.4)">Ouvrir ↗</a>
+      </div>
+      <div class="preview-iframe-wrap">
+        <div class="preview-loading" id="previewLoading">Sauvegardez pour voir l'aperçu</div>
+        <iframe id="previewFrame" style="display:none"></iframe>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/espace/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const supa = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+let currentSite = null;
+let currentConfig = null;
+
+const NOMS_SECTIONS = { fairepart:'Faire-part', hommage:'Hommage', shabbat:'Shabbat', infos:'Informations', video:'Vidéo', rsvp:'RSVP' };
+const SECTIONS_REORDONNABLES = ['fairepart','hommage','shabbat','infos','video','rsvp'];
+
+const PRESETS = {
+  'bleu-blanc': { label:'Bleu & Blanc', cream:'#f0f5ff',creamWarm:'#e8f0fe',creamDeep:'#dbeafe',paper:'#ffffff',gold:'#2563eb',goldBright:'#3b82f6',goldDeep:'#1d4ed8',bronze:'#1e3a8a',ink:'#0d1f3c',inkSoft:'#475569' },
+  'bleu-marine':{ label:'Marine Foncé', cream:'#e8eaf6',creamWarm:'#eef0fa',creamDeep:'#c5cae9',paper:'#f5f6fe',gold:'#3f51b5',goldBright:'#5c6bc0',goldDeep:'#283593',bronze:'#1a237e',ink:'#0d0d2b',inkSoft:'#303f9f' },
+  'noir-blanc': { label:'Noir & Blanc', cream:'#f5f5f5',creamWarm:'#fafafa',creamDeep:'#e8e8e8',paper:'#ffffff',gold:'#1a1a1a',goldBright:'#333333',goldDeep:'#0d0d0d',bronze:'#555555',ink:'#111111',inkSoft:'#444444' },
+  'bleu-or':    { label:'Bleu & Or', cream:'#f0f5ff',creamWarm:'#e8f0fe',creamDeep:'#dbeafe',paper:'#ffffff',gold:'#d97706',goldBright:'#f59e0b',goldDeep:'#b45309',bronze:'#1e3a8a',ink:'#0d1f3c',inkSoft:'#475569' },
+};
+const COLOR_LABELS = { cream:'Crème', creamWarm:'Crème chaud', creamDeep:'Crème profond', paper:'Papier', gold:'Or', goldBright:'Or clair', goldDeep:'Or profond', bronze:'Bronze', ink:'Encre', inkSoft:'Encre douce' };
+
+// ─────────────────────────────────────────────────────────────────────────
+// AUTHENTIFICATION
+// ─────────────────────────────────────────────────────────────────────────
+
+function afficherEcran(id){
+  ['screenLogin','screenForgot','screenRecovery'].forEach(s => {
+    document.getElementById(s).style.display = (s===id) ? 'flex' : 'none';
+  });
+}
+
+supa.auth.onAuthStateChange((event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    afficherEcran('screenRecovery');
+  } else if (event === 'SIGNED_IN' && session) {
+    demarrerApplication();
+  } else if (event === 'SIGNED_OUT') {
+    ['screenLogin','screenForgot','screenRecovery'].forEach(s=>document.getElementById(s).style.display='none');
+    afficherEcran('screenLogin');
+    document.getElementById('topbar').style.display='none';
+    document.getElementById('appBody').style.display='none';
+  }
+});
+
+// Au chargement : si une session existe déjà (retour d'un visiteur), on
+// saute directement à l'application. Sinon, écran de connexion.
+(async () => {
+  const { data } = await supa.auth.getSession();
+  if (data.session) demarrerApplication();
+  else afficherEcran('screenLogin');
+})();
+
+function afficherMessage(id, texte, ok){
+  const el = document.getElementById(id);
+  el.textContent = texte;
+  el.className = 'auth-msg show ' + (ok?'ok':'err');
+}
+
+document.getElementById('btnLogin').addEventListener('click', async () => {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) { afficherMessage('loginMsg','Merci de remplir email et mot de passe.'); return; }
+  document.getElementById('btnLogin').disabled = true;
+  const { error } = await supa.auth.signInWithPassword({ email, password });
+  document.getElementById('btnLogin').disabled = false;
+  if (error) afficherMessage('loginMsg', 'Email ou mot de passe incorrect.');
+});
+
+document.getElementById('btnGoForgot').addEventListener('click', () => afficherEcran('screenForgot'));
+document.getElementById('btnBackLogin').addEventListener('click', () => afficherEcran('screenLogin'));
+
+document.getElementById('btnSendForgot').addEventListener('click', async () => {
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email) { afficherMessage('forgotMsg','Merci de saisir votre email.'); return; }
+  document.getElementById('btnSendForgot').disabled = true;
+  const { error } = await supa.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/espace/' });
+  document.getElementById('btnSendForgot').disabled = false;
+  if (error) afficherMessage('forgotMsg', "Erreur : " + error.message);
+  else afficherMessage('forgotMsg', 'Un lien de connexion vous a été envoyé par email.', true);
+});
+
+document.getElementById('btnSetPassword').addEventListener('click', async () => {
+  const p1 = document.getElementById('recoveryPassword').value;
+  const p2 = document.getElementById('recoveryPassword2').value;
+  if (p1.length < 6) { afficherMessage('recoveryMsg','Le mot de passe doit contenir au moins 6 caractères.'); return; }
+  if (p1 !== p2) { afficherMessage('recoveryMsg','Les deux mots de passe ne correspondent pas.'); return; }
+  document.getElementById('btnSetPassword').disabled = true;
+  const { error } = await supa.auth.updateUser({ password: p1 });
+  document.getElementById('btnSetPassword').disabled = false;
+  if (error) { afficherMessage('recoveryMsg', 'Erreur : ' + error.message); return; }
+  afficherMessage('recoveryMsg', 'Mot de passe défini !', true);
+  setTimeout(demarrerApplication, 600);
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => { await supa.auth.signOut(); });
+
+// ─────────────────────────────────────────────────────────────────────────
+// APPLICATION
+// ─────────────────────────────────────────────────────────────────────────
+
+async function demarrerApplication(){
+  ['screenLogin','screenForgot','screenRecovery'].forEach(s=>document.getElementById(s).style.display='none');
+  document.getElementById('topbar').style.display='flex';
+  document.getElementById('appBody').style.display='flex';
+  await ouvrirTableauDeBord();
+}
+
+async function ouvrirTableauDeBord(){
+  document.getElementById('view-dashboard').style.display='block';
+  document.getElementById('view-editor').style.display='none';
+  document.getElementById('btnBackDash').style.display='none';
+  document.getElementById('editorActions').style.display='none';
+
+  const r = await apiFetch('/api/mon-compte/site');
+  if (r.status === 404) {
+    document.getElementById('dashContent').innerHTML = '<p class="dash-empty">Aucun faire-part associé à ce compte pour l\'instant. Contactez-nous si ce n\'est pas normal.</p>';
+    return;
+  }
+  const site = await r.json();
+  if (site.error) { document.getElementById('dashContent').innerHTML = '<p class="dash-empty">Erreur : '+site.error+'</p>'; return; }
+  currentSite = site;
+
+  document.getElementById('dashContent').innerHTML = `
+    <div class="dash-card">
+      <div class="dash-sub">${site.subdomain}.mysavethedate.com</div>
+      <div class="dash-name">${site.config?.identity?.firstName||''} ${site.config?.identity?.lastName||''}</div>
+      <div class="dash-status"><span class="dash-status-dot ${site.active?'':'inactive'}"></span>${site.active?'En ligne':'Hors ligne'}</div>
+      <div class="dash-actions">
+        <button class="btn-sm primary" id="btnOuvrirEditeur">Personnaliser mon faire-part</button>
+        <a class="btn-sm" href="//${site.subdomain}.mysavethedate.com" target="_blank">Voir mon site ↗</a>
+      </div>
+    </div>`;
+  document.getElementById('btnOuvrirEditeur').addEventListener('click', ouvrirEditeur);
+}
+
+document.getElementById('btnBackDash').addEventListener('click', ouvrirTableauDeBord);
+
+async function ouvrirEditeur(){
+  currentConfig = JSON.parse(JSON.stringify(currentSite.config));
+
+  document.getElementById('view-dashboard').style.display='none';
+  document.getElementById('view-editor').style.display='flex';
+  document.getElementById('btnBackDash').style.display='';
+  document.getElementById('editorActions').style.display='flex';
+  document.getElementById('edSiteName').textContent = `${currentConfig.identity?.firstName||''} ${currentConfig.identity?.lastName||''}`;
+
+  populateFields();
+  buildColorGrid();
+  buildPalettePresets();
+  buildPagesList();
+  buildMusicTracks();
+  buildEventsList('fairepart');
+  buildEventsList('shabbat');
+  buildRsvpEvents();
+
+  document.getElementById('previewLink').href = '//' + currentSite.subdomain + '.mysavethedate.com';
+  setActiveEdNav('identite');
+}
+
+document.querySelectorAll('.editor-nav-item').forEach(el => el.addEventListener('click', () => setActiveEdNav(el.dataset.ed)));
+function setActiveEdNav(key){
+  document.querySelectorAll('.editor-nav-item').forEach(e=>e.classList.toggle('active',e.dataset.ed===key));
+  document.querySelectorAll('.ed-section').forEach(e=>e.classList.toggle('active',e.dataset.ed===key));
+  if (key==='stats') loadStats();
+}
+
+function populateFields(){
+  document.querySelectorAll('[data-path]').forEach(el => {
+    const val = getPath(currentConfig, el.dataset.path);
+    if (val===undefined||val===null) return;
+    if (el.type==='checkbox') el.checked = !!val;
+    else el.value = val;
+  });
+  document.getElementById('paramSubdomain').value = currentSite.subdomain||'';
+  document.getElementById('paramSubdomainHelp').textContent = 'URL finale : ' + (currentSite.subdomain||'…') + '.mysavethedate.com';
+  document.getElementById('paramActive').checked = currentSite.active !== false;
+  if (currentConfig.identity?.logo) { document.getElementById('logoPreview').src = currentConfig.identity.logo; document.getElementById('logoPreview').style.display='block'; }
+}
+
+document.querySelectorAll('[data-path]').forEach(el => {
+  const maj = () => setPath(currentConfig, el.dataset.path, el.type==='checkbox'?el.checked:el.value);
+  el.addEventListener('input', maj);
+  el.addEventListener('change', maj);
+});
+
+// ── Pages (activation + ordre) ──────────────────────────────────────────
+function buildPagesList(){
+  if (!currentConfig.pageOrder) currentConfig.pageOrder = [...SECTIONS_REORDONNABLES];
+  const wrap = document.getElementById('pagesList');
+  wrap.innerHTML = '';
+  currentConfig.pageOrder.forEach((cle, i) => {
+    const active = currentConfig.sections?.[cle]?.enabled !== false;
+    const div = document.createElement('div');
+    div.className = 'page-row';
+    div.innerHTML = `
+      <label class="toggle"><input type="checkbox" ${active?'checked':''} data-page-toggle="${cle}"><span class="toggle-slider"></span></label>
+      <span class="page-row-name">${NOMS_SECTIONS[cle]||cle}</span>
+      <div class="page-row-btns">
+        <button type="button" data-move-up ${i===0?'disabled':''}>↑</button>
+        <button type="button" data-move-down ${i===currentConfig.pageOrder.length-1?'disabled':''}>↓</button>
+      </div>`;
+    wrap.appendChild(div);
+    div.querySelector('[data-page-toggle]').addEventListener('change', e => {
+      if (!currentConfig.sections[cle]) currentConfig.sections[cle] = {};
+      currentConfig.sections[cle].enabled = e.target.checked;
+      // Garde les toggles de l'onglet dédié à cette section synchronisés
+      const jumeau = document.querySelector(`[data-path="sections.${cle}.enabled"]`);
+      if (jumeau) jumeau.checked = e.target.checked;
+    });
+    const btnUp = div.querySelector('[data-move-up]');
+    const btnDown = div.querySelector('[data-move-down]');
+    if (btnUp) btnUp.addEventListener('click', () => { deplacerPage(i, i-1); });
+    if (btnDown) btnDown.addEventListener('click', () => { deplacerPage(i, i+1); });
+  });
+}
+function deplacerPage(depuis, vers){
+  const arr = currentConfig.pageOrder;
+  if (vers < 0 || vers >= arr.length) return;
+  [arr[depuis], arr[vers]] = [arr[vers], arr[depuis]];
+  buildPagesList();
+}
+
+// ── Couleurs ──────────────────────────────────────────────────────────────
+function buildColorGrid(){
+  const grid = document.getElementById('colorGrid');
+  grid.innerHTML = '';
+  Object.entries(COLOR_LABELS).forEach(([key,label]) => {
+    const val = currentConfig.theme?.colors?.[key] || '#000000';
+    const div = document.createElement('div');
+    div.innerHTML = `<div class="color-field-label">${label}</div><div class="color-field"><input type="color" value="${val}" data-color="${key}"><input type="text" value="${val}" data-color-text="${key}"></div>`;
+    grid.appendChild(div);
+  });
+  grid.querySelectorAll('[data-color]').forEach(el => el.addEventListener('input', () => {
+    const k = el.dataset.color, v = el.value;
+    if (!currentConfig.theme) currentConfig.theme = {colors:{}};
+    if (!currentConfig.theme.colors) currentConfig.theme.colors = {};
+    currentConfig.theme.colors[k] = v;
+    grid.querySelector(`[data-color-text="${k}"]`).value = v;
+  }));
+  grid.querySelectorAll('[data-color-text]').forEach(el => el.addEventListener('input', () => {
+    const k = el.dataset.colorText, v = el.value;
+    currentConfig.theme.colors[k] = v;
+    grid.querySelector(`[data-color="${k}"]`).value = v;
+  }));
+}
+function buildPalettePresets(){
+  const wrap = document.getElementById('palettePresets');
+  wrap.innerHTML = '';
+  Object.entries(PRESETS).forEach(([id,p]) => {
+    const btn = document.createElement('div');
+    btn.className = 'preset-btn';
+    btn.innerHTML = `<div class="preset-swatch" style="background:linear-gradient(135deg,${p.goldDeep},${p.gold},${p.cream})"></div><div class="preset-name">${p.label}</div>`;
+    btn.addEventListener('click', () => {
+      Object.entries(p).forEach(([k,v]) => { if (k!=='label') { if(!currentConfig.theme) currentConfig.theme={colors:{}}; currentConfig.theme.colors[k]=v; } });
+      buildColorGrid();
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+// ── Musique ───────────────────────────────────────────────────────────────
+function buildMusicTracks(){
+  const wrap = document.getElementById('musicTracks');
+  wrap.innerHTML = '';
+  if (!currentConfig.music) currentConfig.music = [];
+  currentConfig.music.forEach((track,i) => {
+    const div = document.createElement('div');
+    div.className = 'music-track';
+    div.innerHTML = `<div class="music-track-header"><span class="music-track-label">Piste ${i+1} — ${track.label||''}</span></div>
+      <div class="field-group"><label>Nom de la piste</label><input type="text" class="mt-label" value="${track.label||''}"></div>
+      <div class="field-group"><label>Fichier audio</label>
+        <div class="upload-zone"><input type="file" accept="audio/*" class="mt-file"><div class="upload-zone-text">${track.url?'✓ Fichier chargé':'Glisser un fichier audio'}</div></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label>Démarrer à (secondes)</label><input type="number" class="mt-start" min="0" value="${track.startAt||0}"></div>
+        <div class="field-group"><label>Boucler à partir de (secondes)</label><input type="number" class="mt-loop" min="0" value="${track.loopFrom||0}"></div>
+      </div>`;
+    wrap.appendChild(div);
+    div.querySelector('.mt-label').addEventListener('input', e => track.label = e.target.value);
+    div.querySelector('.mt-start').addEventListener('input', e => track.startAt = parseInt(e.target.value)||0);
+    div.querySelector('.mt-loop').addEventListener('input', e => track.loopFrom = parseInt(e.target.value)||0);
+    div.querySelector('.mt-file').addEventListener('change', async e => {
+      const file = e.target.files[0]; if (!file) return;
+      const url = await uploaderFichier(file, 'music');
+      if (url) { track.url = url; div.querySelector('.upload-zone-text').textContent = '✓ ' + file.name; showToast('Musique envoyée'); }
+    });
+  });
+}
+
+// ── Événements (faire-part / shabbat) ────────────────────────────────────
+function buildEventsList(section){
+  const wrap = document.getElementById(section+'-events');
+  const events = currentConfig.sections?.[section]?.events || [];
+  wrap.innerHTML = '';
+  events.forEach((ev,i) => {
+    const div = document.createElement('div');
+    div.className = 'event-item';
+    div.innerHTML = `<div class="event-item-header"><span class="event-item-title">Ligne ${i+1}</span><button class="btn-sm" data-del type="button">✕</button></div>
+      <div class="field-row">
+        <div class="field-group"><label>Label</label><input type="text" class="ev-label" value="${ev.label||''}"></div>
+        <div class="field-group"><label>Valeur</label><input type="text" class="ev-value" value="${ev.value||''}"></div>
+      </div>
+      <div class="field-group"><label>Adresse (optionnel)</label><input type="text" class="ev-address" value="${ev.address||''}"></div>`;
+    wrap.appendChild(div);
+    const maj = () => { events[i] = { label:div.querySelector('.ev-label').value, value:div.querySelector('.ev-value').value, address:div.querySelector('.ev-address').value }; };
+    div.querySelectorAll('input').forEach(el => el.addEventListener('input', maj));
+    div.querySelector('[data-del]').addEventListener('click', () => { events.splice(i,1); buildEventsList(section); });
+  });
+}
+const btnAddFP = document.getElementById('addFairePartEvent');
+if (btnAddFP) btnAddFP.addEventListener('click', () => { currentConfig.sections.fairepart.events = currentConfig.sections.fairepart.events||[]; currentConfig.sections.fairepart.events.push({label:'',value:'',address:''}); buildEventsList('fairepart'); });
+const btnAddSh = document.getElementById('addShabbatEvent');
+if (btnAddSh) btnAddSh.addEventListener('click', () => { currentConfig.sections.shabbat.events = currentConfig.sections.shabbat.events||[]; currentConfig.sections.shabbat.events.push({label:'',value:'',address:''}); buildEventsList('shabbat'); });
+
+function buildRsvpEvents(){
+  const wrap = document.getElementById('rsvp-events');
+  const events = currentConfig.sections?.rsvp?.events || [];
+  wrap.innerHTML = '';
+  events.forEach((ev,i) => {
+    const div = document.createElement('div');
+    div.className = 'rsvp-event-item';
+    div.innerHTML = `<div class="field-row">
+        <div class="field-group"><label>Identifiant (unique)</label><input type="text" class="re-id" value="${ev.id||''}"></div>
+        <div class="field-group"><label>Nom affiché</label><input type="text" class="re-name" value="${ev.name||''}"></div>
+      </div>
+      <div class="field-group"><label>Date affichée</label><input type="text" class="re-date" value="${ev.date||''}"></div>
+      <button class="btn-sm" data-del type="button" style="margin-top:6px">Supprimer</button>`;
+    wrap.appendChild(div);
+    const maj = () => { events[i] = { id:div.querySelector('.re-id').value, name:div.querySelector('.re-name').value, date:div.querySelector('.re-date').value }; };
+    div.querySelectorAll('input').forEach(el => el.addEventListener('input', maj));
+    div.querySelector('[data-del]').addEventListener('click', () => { events.splice(i,1); buildRsvpEvents(); });
+  });
+}
+document.getElementById('addRsvpEvent').addEventListener('click', () => {
+  if (!currentConfig.sections.rsvp.events) currentConfig.sections.rsvp.events = [];
+  currentConfig.sections.rsvp.events.push({ id:'ev'+Date.now(), name:'', date:'' });
+  buildRsvpEvents();
+});
+
+// ── Uploads (logo + photos) ───────────────────────────────────────────────
+async function uploaderFichier(file, type){
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('siteId', currentSite.id);
+  fd.append('type', type);
+  const { data:{ session } } = await supa.auth.getSession();
+  const r = await fetch('/api/mon-compte/upload-media', { method:'POST', headers:{ 'Authorization':'Bearer '+session.access_token }, body: fd });
+  const data = await r.json();
+  return data.url || null;
+}
+
+document.getElementById('logoFile').addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
+  const url = await uploaderFichier(file, 'logo');
+  if (url) { setPath(currentConfig,'identity.logo',url); document.getElementById('logoPreview').src=url; document.getElementById('logoPreview').style.display='block'; showToast('Logo envoyé'); }
+});
+document.querySelectorAll('[data-upload-to]').forEach(input => {
+  input.addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) return;
+    const url = await uploaderFichier(file, 'photo');
+    if (url) { setPath(currentConfig, input.dataset.uploadTo, url); showToast('Photo envoyée'); }
+  });
+});
+
+// ── Sauvegarde ────────────────────────────────────────────────────────────
+document.getElementById('btnSave').addEventListener('click', async () => {
+  const body = { config: currentConfig, active: document.getElementById('paramActive').checked };
+  const nouveauSousDomaine = document.getElementById('paramSubdomain').value.trim();
+  if (nouveauSousDomaine && nouveauSousDomaine !== currentSite.subdomain) body.subdomain = nouveauSousDomaine;
+
+  const r = await apiFetch('/api/mon-compte/site/'+currentSite.id, { method:'PUT', body: JSON.stringify(body) });
+  const data = await r.json();
+  if (data.error) { showToast('Erreur : ' + data.error); return; }
+  currentSite = data;
+  showToast('✓ Sauvegardé');
+
+  const frame = document.getElementById('previewFrame');
+  document.getElementById('previewLoading').style.display = 'none';
+  frame.style.display = 'block';
+  frame.src = '//' + currentSite.subdomain + '.mysavethedate.com?' + Date.now();
+  document.getElementById('previewLink').href = '//' + currentSite.subdomain + '.mysavethedate.com';
+});
+
+// ── Statistiques / réponses ───────────────────────────────────────────────
+async function loadStats(){
+  if (!currentSite) return;
+  const [rR, vR] = await Promise.all([
+    apiFetch('/api/mon-compte/site/'+currentSite.id+'/rsvp'),
+    apiFetch('/api/mon-compte/site/'+currentSite.id+'/videos'),
+  ]);
+  const rsvps = await rR.json();
+  const videos = await vR.json();
+  renderStats(rsvps, videos);
+}
+
+function renderStats(rsvps, videos){
+  const events = currentConfig.sections?.rsvp?.events || [];
+  let html = `<div class="stat-box"><div class="stat-num">${rsvps.length}</div><div class="stat-lbl">Réponses</div></div>`;
+  events.forEach(ev => {
+    const presents = rsvps.filter(r => r.data?.[ev.id]?.presence === 'oui');
+    const adultes = presents.reduce((s,r)=>s+(r.data?.[ev.id]?.adults||0),0);
+    const enfants = presents.reduce((s,r)=>s+(r.data?.[ev.id]?.children||0),0);
+    html += `<div class="stat-box"><div class="stat-num">${adultes+enfants}</div><div class="stat-lbl">Présents ${ev.name.split(' ')[0]}</div></div>`;
+  });
+  html += `<div class="stat-box"><div class="stat-num">${videos.length}</div><div class="stat-lbl">Vidéos</div></div>`;
+  document.getElementById('statsRow').innerHTML = html;
+
+  const rsvpWrap = document.getElementById('rsvpTableWrap');
+  if (!rsvps.length) { rsvpWrap.innerHTML = '<p class="help-text">Aucune réponse reçue pour l\'instant.</p>'; }
+  else {
+    const evCols = events.map(ev => `<th>${ev.name.split('&')[0].trim()}</th><th>Ad.</th><th>Enf.</th>`).join('');
+    const rows = rsvps.map(r => {
+      const evTds = events.map(ev => `<td><span class="badge ${r.data?.[ev.id]?.presence||'non'}">${r.data?.[ev.id]?.presence==='oui'?'✓':'✗'}</span></td><td>${r.data?.[ev.id]?.adults||0}</td><td>${r.data?.[ev.id]?.children||0}</td>`).join('');
+      return `<tr><td>${r.nom||''} ${r.prenom||''}</td>${evTds}<td style="max-width:150px">${r.message||'—'}</td><td style="white-space:nowrap">${new Date(r.created_at).toLocaleDateString('fr-FR')}</td></tr>`;
+    }).join('');
+    rsvpWrap.innerHTML = `<table class="data-table"><thead><tr><th>Nom</th>${evCols}<th>Message</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  document.getElementById('exportRsvpBtn').onclick = () => exportCSV(rsvps, events);
+
+  const vidWrap = document.getElementById('videosWrap');
+  if (!videos.length) { vidWrap.innerHTML = '<p class="help-text">Aucune vidéo reçue pour l\'instant.</p>'; }
+  else {
+    vidWrap.innerHTML = `<table class="data-table"><thead><tr><th>De</th><th>Message</th><th>Date</th><th></th></tr></thead><tbody>
+      ${videos.map(v => `<tr><td>${v.name||''}</td><td style="max-width:200px">${v.message||'—'}</td><td style="white-space:nowrap">${new Date(v.created_at).toLocaleDateString('fr-FR')}</td><td><a class="btn-sm" href="${v.video_url}" target="_blank">Voir</a></td></tr>`).join('')}
+    </tbody></table>`;
+  }
+}
+
+function exportCSV(rsvps, events){
+  if (!rsvps.length) return;
+  const headers = ['Nom','Prénom',...events.flatMap(e=>[e.name+' présent',e.name+' adultes',e.name+' enfants']),'Message','Date'];
+  const rows = rsvps.map(r => [r.nom,r.prenom,...events.flatMap(e=>[r.data?.[e.id]?.presence||'non',r.data?.[e.id]?.adults||0,r.data?.[e.id]?.children||0]),r.message,new Date(r.created_at).toLocaleDateString('fr-FR')].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';'));
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,﻿' + encodeURIComponent([headers.join(';'), ...rows].join('\n'));
+  a.download = 'rsvp-' + currentSite.subdomain + '.csv';
+  a.click();
+}
+
+// ── Utilitaires ───────────────────────────────────────────────────────────
+async function apiFetch(url, opts={}){
+  const { data:{ session } } = await supa.auth.getSession();
+  return fetch(url, { ...opts, headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+(session?.access_token||''), ...(opts.headers||{}) } });
+}
+function getPath(obj, path){ return path.split('.').reduce((o,k)=>o?.[k], obj); }
+function setPath(obj, path, val){ const keys=path.split('.'); let cur=obj; for(let i=0;i<keys.length-1;i++){ if(!cur[keys[i]]) cur[keys[i]]={}; cur=cur[keys[i]]; } cur[keys[keys.length-1]]=val; }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+</script>
+</body>
+</html>

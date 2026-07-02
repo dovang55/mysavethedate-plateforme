@@ -113,5 +113,10 @@ module.exports = {
     date:     "2026-11-05",
     time:     "08:30",
     timezone: "+02:00"
-  }
+  },
+
+  // Ordre des sections entre le hero et le footer. Modifiable librement
+  // depuis l'éditeur (espace client) : les sections désactivées restent
+  // simplement absentes du rendu, sans qu'il soit nécessaire d'y toucher.
+  pageOrder: ["fairepart", "hommage", "shabbat", "infos", "video", "rsvp"]
 };
