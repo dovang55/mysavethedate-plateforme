@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Envoyer une vidéo</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0d1f3c;
+    --gold:#c9a96e;
+    --gold-light:#f8f0e0;
+    --light:#f7f5f2;
+    --white:#ffffff;
+    --grey:#5a5a72;
+    --border:rgba(13,31,60,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--light);
+    color:var(--navy);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    padding:32px 18px;
+  }
+
+  .carte{
+    width:100%;
+    max-width:460px;
+    background:var(--white);
+    border-top:4px solid var(--gold);
+    box-shadow:0 30px 80px rgba(13,31,60,.10);
+    padding:48px 32px;
+    text-align:center;
+  }
+
+  .eyebrow{
+    font-family:'Montserrat',sans-serif;
+    font-size:9px;
+    font-weight:700;
+    letter-spacing:.5em;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin-bottom:18px;
+  }
+
+  h1{
+    font-family:'Montserrat',sans-serif;
+    font-size:28px;
+    font-weight:800;
+    letter-spacing:-.01em;
+    text-transform:uppercase;
+    margin-bottom:14px;
+    line-height:1.15;
+  }
+
+  .intro{
+    font-size:15px;
+    color:var(--grey);
+    line-height:1.7;
+    margin-bottom:36px;
+  }
+
+  form{ text-align:left; }
+
+  .champ{ margin-bottom:22px; }
+
+  .champ label{
+    display:block;
+    font-family:'Montserrat',sans-serif;
+    font-size:9px;
+    font-weight:700;
+    letter-spacing:.35em;
+    text-transform:uppercase;
+    color:var(--navy);
+    margin-bottom:10px;
+  }
+
+  .champ input[type="text"],
+  .champ textarea{
+    width:100%;
+    background:transparent;
+    border:none;
+    border-bottom:2px solid var(--border);
+    padding:10px 0;
+    font-family:'Inter',sans-serif;
+    font-size:16px;
+    color:var(--navy);
+    outline:none;
+    transition:border-color .2s;
+  }
+  .champ input[type="text"]:focus,
+  .champ textarea:focus{ border-bottom-color:var(--gold); }
+  .champ textarea{ resize:vertical; min-height:70px; }
+
+  .zone-video{
+    border:2px dashed var(--border);
+    padding:26px 16px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .2s, background .2s;
+  }
+  .zone-video:hover{ border-color:var(--gold); background:var(--gold-light); }
+  .zone-video input{ display:none; }
+  .zone-video-icone{ font-size:28px; margin-bottom:8px; }
+  .zone-video-texte{ font-size:13px; color:var(--grey); }
+  .zone-video-nom{
+    margin-top:10px;
+    font-size:13px;
+    font-weight:600;
+    color:var(--navy);
+    word-break:break-all;
+  }
+
+  video#apercu{
+    width:100%;
+    margin-top:14px;
+    display:none;
+    background:#000;
+  }
+
+  .bouton{
+    width:100%;
+    padding:18px;
+    background:var(--navy);
+    color:#fff;
+    border:none;
+    font-family:'Montserrat',sans-serif;
+    font-weight:700;
+    letter-spacing:.4em;
+    font-size:10px;
+    text-transform:uppercase;
+    cursor:pointer;
+    margin-top:14px;
+    transition:background .25s;
+  }
+  .bouton:hover{ background:var(--gold); }
+  .bouton:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .barre-conteneur{
+    display:none;
+    height:6px;
+    background:var(--border);
+    margin-top:18px;
+    overflow:hidden;
+  }
+  .barre{ height:100%; width:0%; background:var(--gold); transition:width .15s ease; }
+  .barre-texte{ font-size:12px; color:var(--grey); margin-top:8px; text-align:center; }
+
+  .message-erreur{
+    display:none;
+    background:#FBEAEA;
+    color:#8A2C2C;
+    padding:12px 16px;
+    font-size:13px;
+    margin-top:16px;
+  }
+
+  .succes{ display:none; }
+  .succes-icone{ font-size:40px; margin-bottom:16px; }
+  .succes h2{
+    font-family:'Montserrat',sans-serif;
+    font-size:22px;
+    font-weight:800;
+    text-transform:uppercase;
+    margin-bottom:12px;
+  }
+  .succes p{ font-size:15px; color:var(--grey); line-height:1.7; }
+</style>
+</head>
+<body>
+
+<div class="carte">
+  <div id="etatFormulaire">
+    <div class="eyebrow">Livre d'or vidéo</div>
+    <h1>Envoyez votre vidéo</h1>
+    <p class="intro">Laissez un message vidéo qui sera précieusement conservé. Quelques mots suffisent !</p>
+
+    <form id="formulaireUpload">
+      <div class="champ">
+        <label for="nom">Votre nom</label>
+        <input type="text" id="nom" name="name" placeholder="Votre prénom et nom" required>
+      </div>
+
+      <div class="champ">
+        <label for="message">Votre message (optionnel)</label>
+        <textarea id="message" name="message" placeholder="Un petit mot pour accompagner votre vidéo…"></textarea>
+      </div>
+
+      <div class="champ">
+        <label>Votre vidéo</label>
+        <label class="zone-video" id="zoneVideo">
+          <div class="zone-video-icone">🎥</div>
+          <div class="zone-video-texte">Touchez ici pour filmer ou choisir une vidéo</div>
+          <div class="zone-video-nom" id="nomFichier"></div>
+          <input type="file" id="video" name="video" accept="video/*" capture="user" required>
+        </label>
+        <video id="apercu" controls></video>
+      </div>
+
+      <button type="submit" class="bouton" id="boutonEnvoyer">Envoyer ma vidéo</button>
+
+      <div class="barre-conteneur" id="barreConteneur">
+        <div class="barre" id="barre"></div>
+        <p class="barre-texte" id="barreTexte">Envoi en cours…</p>
+      </div>
+
+      <p class="message-erreur" id="messageErreur"></p>
+    </form>
+  </div>
+
+  <div class="succes" id="etatSucces">
+    <div class="succes-icone">💌</div>
+    <h2>Merci infiniment</h2>
+    <p>Votre vidéo a bien été envoyée. Elle restera précieusement conservée.</p>
+  </div>
+</div>
+
+<script>
+  const zoneVideo   = document.getElementById('zoneVideo');
+  const champVideo  = document.getElementById('video');
+  const nomFichier  = document.getElementById('nomFichier');
+  const apercu      = document.getElementById('apercu');
+  const formulaire  = document.getElementById('formulaireUpload');
+  const bouton      = document.getElementById('boutonEnvoyer');
+  const barreConteneur = document.getElementById('barreConteneur');
+  const barre       = document.getElementById('barre');
+  const barreTexte   = document.getElementById('barreTexte');
+  const messageErreur = document.getElementById('messageErreur');
+
+  // Aperçu de la vidéo choisie, directement dans le navigateur
+  champVideo.addEventListener('change', function () {
+    const fichier = champVideo.files[0];
+    if (!fichier) return;
+    nomFichier.textContent = fichier.name;
+    apercu.src = URL.createObjectURL(fichier);
+    apercu.style.display = 'block';
+  });
+
+  formulaire.addEventListener('submit', function (evenement) {
+    evenement.preventDefault();
+    messageErreur.style.display = 'none';
+
+    if (!champVideo.files[0]) {
+      messageErreur.textContent = 'Merci de choisir une vidéo avant d\'envoyer.';
+      messageErreur.style.display = 'block';
+      return;
+    }
+
+    const donnees = new FormData(formulaire);
+
+    // On utilise XMLHttpRequest (plutôt que fetch) pour pouvoir afficher une
+    // barre de progression : les vidéos peuvent être volumineuses, l'envoi
+    // peut prendre du temps sur une connexion mobile.
+    const requete = new XMLHttpRequest();
+    requete.open('POST', '/api/upload');
+
+    requete.upload.addEventListener('progress', function (evenement) {
+      if (!evenement.lengthComputable) return;
+      const pourcentage = Math.round((evenement.loaded / evenement.total) * 100);
+      barre.style.width = pourcentage + '%';
+      barreTexte.textContent = 'Envoi en cours… ' + pourcentage + '%';
+    });
+
+    requete.addEventListener('load', function () {
+      let reponse = {};
+      try { reponse = JSON.parse(requete.responseText); } catch (erreur) {}
+
+      if (requete.status >= 200 && requete.status < 300 && reponse.success) {
+        document.getElementById('etatFormulaire').style.display = 'none';
+        document.getElementById('etatSucces').style.display = 'block';
+      } else {
+        bouton.disabled = false;
+        barreConteneur.style.display = 'none';
+        messageErreur.textContent = reponse.error || 'Une erreur est survenue, merci de réessayer.';
+        messageErreur.style.display = 'block';
+      }
+    });
+
+    requete.addEventListener('error', function () {
+      bouton.disabled = false;
+      barreConteneur.style.display = 'none';
+      messageErreur.textContent = 'Erreur réseau — vérifiez votre connexion et réessayez.';
+      messageErreur.style.display = 'block';
+    });
+
+    bouton.disabled = true;
+    barreConteneur.style.display = 'block';
+    requete.send(donnees);
+  });
+</script>
+</body>
+</html>
