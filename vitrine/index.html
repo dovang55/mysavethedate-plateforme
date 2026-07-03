@@ -223,6 +223,7 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
 .style-card.sel{border-color:var(--gold);background:rgba(201,169,110,.08)}
 .style-card h4{font-family:'Montserrat',sans-serif;font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;margin-bottom:7px}
 .style-card p{font-family:'Inter',sans-serif;font-size:12px;color:var(--grey);line-height:1.45}
+.palette-swatch{height:44px;border-radius:6px;margin-bottom:12px}
 
 /* Budget */
 .budget-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:44px}
@@ -539,7 +540,7 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
     <div class="q-topbar-logo">MySaveThe<em>Date</em></div>
     <div class="q-bar-progress">
       <div class="q-bar-meta">
-        <span class="q-bar-step" id="qStepLabel">Étape 1 sur 7</span>
+        <span class="q-bar-step" id="qStepLabel">Étape 1 sur 8</span>
         <span class="q-bar-pct" id="qBarPct">0%</span>
       </div>
       <div class="q-bar-track"><div class="q-bar-fill" id="qBarFill" style="width:0%"></div></div>
@@ -568,16 +569,49 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
             <div class="ev-card" data-val="Autre" onclick="pickEv(this)"><span class="ev-emoji">🎉</span><div class="ev-lbl">Autre</div></div>
           </div>
           <div class="q-nav">
-            <span class="q-nav-count">1 / 7</span>
+            <span class="q-nav-count">1 / 8</span>
             <button class="btn-qnext" id="s1next" onclick="next()" disabled>Suivant →</button>
           </div>
         </div>
       </div>
 
-      <!-- ── STEP 2 : Date & Lieu ── -->
+      <!-- ── STEP 2 : Sujet du faire-part ── -->
       <div class="q-step">
         <div class="q-inner">
-          <div class="q-eye">Étape 2 · La date et le lieu</div>
+          <div class="q-eye">Étape 2 · Le faire-part est pour qui ?</div>
+          <h2 class="q-h">Parlez-nous<br>du sujet.</h2>
+          <p class="q-sub">Ces informations apparaîtront directement sur votre faire-part.</p>
+
+          <div class="q-row" id="rowPrenoms">
+            <div class="q-field" id="grpPrenom1">
+              <label class="q-lbl" id="lblPrenom1">Prénom</label>
+              <input type="text" class="q-inp" id="fSujetPrenom1" placeholder="Prénom" oninput="chkSujet()">
+            </div>
+            <div class="q-field" id="grpPrenom2" style="display:none">
+              <label class="q-lbl">Prénom du second marié</label>
+              <input type="text" class="q-inp" id="fSujetPrenom2" placeholder="Prénom" oninput="chkSujet()">
+            </div>
+          </div>
+          <div class="q-field" id="grpNom">
+            <label class="q-lbl" id="lblNom">Nom de famille</label>
+            <input type="text" class="q-inp" id="fSujetNom" placeholder="Nom de famille" oninput="chkSujet()">
+          </div>
+          <div class="q-field" id="grpExtra" style="display:none">
+            <label class="q-lbl" id="lblExtra">Prénoms des parents</label>
+            <input type="text" class="q-inp" id="fSujetExtra" placeholder="Ex : Sarah et David" oninput="chkSujet()">
+          </div>
+
+          <div class="q-nav">
+            <button class="btn-qprev" onclick="prev()">← Précédent</button>
+            <button class="btn-qnext" id="s1bnext" onclick="next()" disabled>Suivant →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 3 : Date & Lieu ── -->
+      <div class="q-step">
+        <div class="q-inner">
+          <div class="q-eye">Étape 3 · La date et le lieu</div>
           <h2 class="q-h">Quand et où ?</h2>
           <p class="q-sub">La date approximative et la ville — cela nous aide à tout planifier avec vous.</p>
           <div class="q-row" style="margin-bottom:20px">
@@ -600,7 +634,7 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
       <!-- ── STEP 3 : Convives ── -->
       <div class="q-step">
         <div class="q-inner">
-          <div class="q-eye">Étape 3 · Vos invités</div>
+          <div class="q-eye">Étape 4 · Vos invités</div>
           <h2 class="q-h">Combien de<br>convives attendez-vous ?</h2>
           <p class="q-sub">Une estimation suffit amplement.</p>
           <div class="q-slider-box">
@@ -616,24 +650,32 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
         </div>
       </div>
 
-      <!-- ── STEP 4 : Style & Budget ── -->
+      <!-- ── STEP 4 : Palette de couleurs ── -->
       <div class="q-step">
         <div class="q-inner">
-          <div class="q-eye">Étape 4 · Vos envies</div>
-          <h2 class="q-h">Quel style<br>vous correspond ?</h2>
-          <p class="q-sub">Choisissez l'ambiance qui vous ressemble — on s'occupe du reste.</p>
-          <div class="style-grid" id="styleGrid">
-            <div class="style-card" data-val="Élégant & Classique" onclick="pickStyle(this)">
-              <h4>Élégant & Classique</h4>
-              <p>Typographie fine, couleurs douces — parfait pour un mariage ou Bar Mitsva traditionnel.</p>
+          <div class="q-eye">Étape 5 · Vos envies</div>
+          <h2 class="q-h">Quelle palette<br>de couleurs ?</h2>
+          <p class="q-sub">Choisissez les couleurs de votre faire-part — modifiable à tout moment ensuite.</p>
+          <div class="style-grid" id="paletteGrid">
+            <div class="style-card" data-val="bleu-blanc" onclick="pickPalette(this)">
+              <div class="palette-swatch" style="background:linear-gradient(135deg,#1d4ed8,#2563eb,#f0f5ff)"></div>
+              <h4>Bleu &amp; Blanc</h4>
+              <p>Élégant et intemporel.</p>
             </div>
-            <div class="style-card" data-val="Moderne & Épuré" onclick="pickStyle(this)">
-              <h4>Moderne & Épuré</h4>
-              <p>Design minimaliste, typographie bold — une ambiance contemporaine et impactante.</p>
+            <div class="style-card" data-val="bleu-marine" onclick="pickPalette(this)">
+              <div class="palette-swatch" style="background:linear-gradient(135deg,#283593,#3f51b5,#e8eaf6)"></div>
+              <h4>Marine Foncé</h4>
+              <p>Sophistiqué et profond.</p>
             </div>
-            <div class="style-card" data-val="Festif & Coloré" onclick="pickStyle(this)">
-              <h4>Festif & Coloré</h4>
-              <p>Vibrant, joyeux, avec animations et photos — pour une ambiance vraiment unique.</p>
+            <div class="style-card" data-val="noir-blanc" onclick="pickPalette(this)">
+              <div class="palette-swatch" style="background:linear-gradient(135deg,#0d0d0d,#1a1a1a,#f5f5f5)"></div>
+              <h4>Noir &amp; Blanc</h4>
+              <p>Moderne et minimaliste.</p>
+            </div>
+            <div class="style-card" data-val="bleu-or" onclick="pickPalette(this)">
+              <div class="palette-swatch" style="background:linear-gradient(135deg,#b45309,#d97706,#f0f5ff)"></div>
+              <h4>Bleu &amp; Or</h4>
+              <p>Chaleureux et festif.</p>
             </div>
           </div>
           <div class="q-nav">
@@ -646,7 +688,7 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
       <!-- ── STEP 5 : Pages ── -->
       <div class="q-step">
         <div class="q-inner">
-          <div class="q-eye">Étape 5 · Le contenu de votre faire-part</div>
+          <div class="q-eye">Étape 6 · Le contenu de votre faire-part</div>
           <h2 class="q-h">Quelles pages<br>voulez-vous ?</h2>
           <p class="q-sub">La page d'invitation principale est toujours incluse. Cochez ce que vous souhaitez en plus — vous pourrez tout activer, désactiver ou réorganiser ensuite dans votre espace.</p>
           <div class="style-grid" id="pagesGrid">
@@ -681,9 +723,9 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
       <!-- ── STEP 6 : Coordonnées ── -->
       <div class="q-step">
         <div class="q-inner">
-          <div class="q-eye">Étape 6 · Vos coordonnées</div>
-          <h2 class="q-h">Comment vous<br>contacter ?</h2>
-          <p class="q-sub">Vos informations sont confidentielles et ne sont jamais partagées.</p>
+          <div class="q-eye">Étape 7 · Vous, l'organisateur·rice</div>
+          <h2 class="q-h">Et vous,<br>qui êtes-vous ?</h2>
+          <p class="q-sub">Vos coordonnées à vous (pas celles du sujet du faire-part) — confidentielles, jamais partagées.</p>
           <div class="q-row">
             <div class="q-field">
               <label class="q-lbl">Prénom</label>
@@ -737,8 +779,16 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
 <script>
 /* ══ STATE ══ */
 let step = 0;
-const STEPS = 7;
-const S = { eventType:'', date:'', location:'', guests:150, style:'', budget:'', firstName:'', lastName:'', email:'', phone:'', pages:{hommage:true,shabbat:false,infos:false,video:true,rsvp:true} };
+const STEPS = 8;
+const S = {
+  eventType:'', date:'', location:'', guests:150, colorPreset:'', budget:'',
+  // Le sujet du faire-part (l'enfant, les mariés, la personne fêtée…) — pas
+  // forcément la même personne que l'organisateur qui remplit le formulaire.
+  subjectFirstName:'', subjectSecondFirstName:'', subjectLastName:'', subjectExtra:'',
+  // Coordonnées de l'organisateur (celui qui crée le compte)
+  firstName:'', lastName:'', email:'', phone:'',
+  pages:{hommage:true,shabbat:false,infos:false,video:true,rsvp:true},
+};
 
 /* ══ OVERLAY QUESTIONNAIRE ══ */
 // Le questionnaire s'ouvre directement, sans compte : la connexion n'est
@@ -773,6 +823,36 @@ function pickEv(el){
   carteShabbat.style.display = estJuif ? '' : 'none';
   carteShabbat.classList.toggle('sel', estJuif);
   S.pages.shabbat = estJuif;
+
+  configurerEtapeSujet();
+}
+
+/* ══ STEP 2 – Sujet du faire-part (adapté au type d'événement) ══ */
+function configurerEtapeSujet(){
+  const estBarBat  = S.eventType === 'Bar Mitsva' || S.eventType === 'Bat Mitsva';
+  const estMariage = S.eventType === 'Mariage';
+  const estAnniv   = S.eventType === 'Anniversaire';
+
+  document.getElementById('grpPrenom2').style.display = estMariage ? '' : 'none';
+  document.getElementById('grpExtra').style.display = (estBarBat || estAnniv) ? '' : 'none';
+
+  document.getElementById('lblPrenom1').textContent = estBarBat ? "Prénom de l'enfant"
+    : estMariage ? 'Prénom du premier marié'
+    : estAnniv ? 'Prénom de la personne fêtée'
+    : 'Prénom';
+  document.getElementById('lblNom').textContent = 'Nom de famille' + (estBarBat ? '' : ' (optionnel)');
+  document.getElementById('lblExtra').textContent = estBarBat ? 'Prénoms des parents' : estAnniv ? 'Âge fêté' : '';
+  document.getElementById('fSujetExtra').placeholder = estBarBat ? 'Ex : Sarah et David' : estAnniv ? 'Ex : 30' : '';
+
+  chkSujet();
+}
+function chkSujet(){
+  const estMariage = S.eventType === 'Mariage';
+  S.subjectFirstName = document.getElementById('fSujetPrenom1').value.trim();
+  S.subjectSecondFirstName = document.getElementById('fSujetPrenom2').value.trim();
+  S.subjectLastName = document.getElementById('fSujetNom').value.trim();
+  S.subjectExtra = document.getElementById('fSujetExtra').value.trim();
+  document.getElementById('s1bnext').disabled = !(S.subjectFirstName && (!estMariage || S.subjectSecondFirstName));
 }
 
 /* ══ STEP 5 – Pages ══ */
@@ -781,19 +861,19 @@ function togglePage(el){
   S.pages[el.dataset.page] = el.classList.contains('sel');
 }
 
-/* ══ STEP 2 – Date & Lieu ══ */
+/* ══ STEP 3 – Date & Lieu ══ */
 function chk2(){
   S.date = document.getElementById('fDate').value;
   S.location = document.getElementById('fLoc').value.trim();
   document.getElementById('s2next').disabled = !(S.date && S.location);
 }
 
-/* ══ STEP 4 – Style & Budget ══ */
-function pickStyle(el){
-  document.querySelectorAll('#styleGrid .style-card').forEach(c=>c.classList.remove('sel'));
-  el.classList.add('sel'); S.style = el.dataset.val; chk4();
+/* ══ STEP 4 – Palette de couleurs ══ */
+function pickPalette(el){
+  document.querySelectorAll('#paletteGrid .style-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel'); S.colorPreset = el.dataset.val; chk4();
 }
-function chk4(){ document.getElementById('s4next').disabled = !S.style; }
+function chk4(){ document.getElementById('s4next').disabled = !S.colorPreset; }
 
 /* ══ STEP 5 – Contact ══ */
 function chk5(){
@@ -806,17 +886,23 @@ function chk5(){
 }
 
 /* ══ SUBMIT ══ */
+const NOMS_PALETTES = { 'bleu-blanc':'Bleu & Blanc', 'bleu-marine':'Marine Foncé', 'noir-blanc':'Noir & Blanc', 'bleu-or':'Bleu & Or' };
+
 async function submit(){
   S.guests = document.getElementById('gSlider').value;
+  S.firstName = document.getElementById('fFirst').value.trim();
+  S.lastName  = document.getElementById('fLast').value.trim();
+  S.email     = document.getElementById('fEmail').value.trim();
+  S.phone     = document.getElementById('fPhone').value.trim();
 
   // Populate success screen
-  document.getElementById('cName').textContent = S.firstName;
+  document.getElementById('cName').textContent = S.subjectFirstName || S.firstName;
   const dateFmt = S.date ? new Date(S.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}) : '—';
   document.getElementById('sEvt').textContent    = S.eventType;
   document.getElementById('sDte').textContent    = dateFmt;
   document.getElementById('sLoc').textContent    = S.location;
   document.getElementById('sGuests').textContent = S.guests + ' personnes';
-  document.getElementById('sStyle').textContent  = S.style;
+  document.getElementById('sStyle').textContent  = NOMS_PALETTES[S.colorPreset] || S.colorPreset;
 
   next(); // Go to success screen
 

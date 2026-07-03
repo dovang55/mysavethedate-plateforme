@@ -136,35 +136,72 @@ const EVENT_TYPE_VERS_SLUG = {
 
 function construireConfigParDefaut(lead){
   const config = JSON.parse(JSON.stringify(defaultConfig));
-  const prenom = lead.firstName || 'Prénom';
-  const nom    = lead.lastName  || 'Nom';
   const eventType = EVENT_TYPE_VERS_SLUG[lead.eventType] || 'mariage';
   const libelleEvenement = lead.eventType || 'Événement';
+  const estMariage    = eventType === 'mariage';
+  const estAnniv      = eventType === 'anniversaire';
+  const estBarMitsva  = eventType === 'bar-mitsva';
+  const estBatMitsva  = eventType === 'bat-mitsva';
 
-  config.identity.firstName = prenom;
-  config.identity.lastName  = nom;
+  // Le "sujet" du faire-part (l'enfant, les mariés, la personne fêtée…)
+  // n'est pas forcément la personne qui remplit le questionnaire : on
+  // utilise en priorité les champs "sujet", avec les coordonnées de
+  // l'organisateur en repli si jamais ils manquent.
+  const sujetPrenom  = lead.subjectFirstName || lead.firstName || 'Prénom';
+  const sujetPrenom2 = lead.subjectSecondFirstName || '';
+  const sujetNom     = lead.subjectLastName || lead.lastName || 'Nom';
+  const sujetExtra   = (lead.subjectExtra || '').trim(); // parents (bar/bat mitsva) ou âge (anniversaire)
+
+  config.identity.firstName = sujetPrenom;
+  // Pour un mariage avec les deux prénoms, "Camille" / "& Antoine" rend
+  // très bien avec la mise en forme du hero (deux lignes, la 2e en couleur).
+  config.identity.lastName = (estMariage && sujetPrenom2) ? `& ${sujetPrenom2}` : sujetNom;
   // "brit-mila" et "autre" n'ont pas d'option dédiée dans l'éditeur : on les
   // fait démarrer sur une base "mariage", modifiable ensuite.
   const TYPES_AVEC_OPTION_DEDIEE = ['bar-mitsva','bat-mitsva','mariage','anniversaire'];
   config.identity.eventType = TYPES_AVEC_OPTION_DEDIEE.includes(eventType) ? eventType : 'mariage';
-  config.meta.title = `${prenom} ${nom}`;
+  config.meta.title = (estMariage && sujetPrenom2) ? `${sujetPrenom} & ${sujetPrenom2}` : `${sujetPrenom} ${sujetNom}`;
 
   if (lead.date) config.target.date = lead.date;
 
   const ligneLieu = (config.sections.fairepart.events||[]).find(e => e.label === 'Lieu');
   if (ligneLieu && lead.location) ligneLieu.value = lead.location;
 
-  const presetId = STYLE_VERS_PRESET[lead.style] || 'bleu-blanc';
+  const presetId = PRESETS_COULEUR[lead.colorPreset] ? lead.colorPreset : (STYLE_VERS_PRESET[lead.style] || 'bleu-blanc');
   Object.assign(config.theme.colors, PRESETS_COULEUR[presetId]);
 
-  const estJuif = eventType === 'bar-mitsva' || eventType === 'bat-mitsva';
-  if (!estJuif) {
-    // Le contenu par défaut (hommage, Shabbat, infos visa) est spécifique
-    // aux Bar/Bat Mitsva : on le désactive et on adapte les textes pour les
-    // autres types d'événement. Le client peut tout modifier ensuite.
-    const estMariage = eventType === 'mariage';
-    const estAnniv   = eventType === 'anniversaire';
+  if (estBarMitsva) {
+    // Le contenu par défaut (defaultConfig.js) est déjà écrit pour une Bar
+    // Mitsva ("Mise des Téfilines", etc.) — on ajoute juste les prénoms des
+    // parents s'ils ont été renseignés.
+    if (sujetExtra) config.sections.fairepart.familyLine = `${sujetExtra} ont le plaisir de vous convier`;
 
+  } else if (estBatMitsva) {
+    // La Bat Mitsva a son propre rituel : contrairement à la Bar Mitsva, il
+    // n'y a pas de "Mise des Téfilines" (spécifique aux garçons). On adapte
+    // les textes pour ne pas afficher un contenu qui n'a pas de sens ici.
+    config.sections.hero.eyebrow = 'Bat Mitsva';
+    config.sections.fairepart.ceremonyTag = 'Cérémonie';
+    config.sections.fairepart.ceremonyName = `Bat Mitsva de ${sujetPrenom}`;
+    config.sections.fairepart.ceremonyHe = '';
+    config.sections.fairepart.familyLine = sujetExtra
+      ? `${sujetExtra} ont le plaisir de vous convier`
+      : 'Les parents ont le plaisir de vous convier';
+    config.sections.fairepart.events = (config.sections.fairepart.events||[]).map(ev =>
+      ev.label === 'Heure' ? { ...ev, value: 'La cérémonie débutera à 10h30' } : ev
+    );
+    config.sections.rsvp.events = [
+      { id:'ceremonie', name:'Cérémonie & Réception', date: lead.date || '' },
+      { id:'shabbat',   name:'Shabbat Bat Mitsva',    date:'' },
+    ];
+    config.sections.shabbat.tag = 'Shabbat Bat Mitsva';
+    config.sections.footer.credit = 'Bat Mitzvah · MMXXVI';
+
+  } else {
+    // Mariage / Anniversaire / Brit Mila / Autre : le contenu par défaut
+    // (hommage, Shabbat, infos visa) est spécifique aux Bar/Bat Mitsva, on
+    // le désactive et on adapte les textes. Le client peut tout modifier
+    // ensuite depuis son éditeur.
     config.identity.bsd = false;
     config.sections.hommage.enabled = false;
     config.sections.shabbat.enabled = false;
@@ -174,12 +211,12 @@ function construireConfigParDefaut(lead){
     config.sections.fairepart.blessing     = '';
     config.sections.fairepart.ceremonyTag  = estMariage ? 'Cérémonie' : 'Célébration';
     config.sections.fairepart.ceremonyName = estMariage ? 'Notre mariage'
-      : estAnniv ? `Anniversaire de ${prenom}`
-      : `${libelleEvenement} de ${prenom}`;
+      : estAnniv ? `${sujetPrenom} fête ses ${sujetExtra || '?'} ans`
+      : `${libelleEvenement} de ${sujetPrenom}`;
     config.sections.fairepart.ceremonyHe   = '';
     config.sections.fairepart.familyLine   = estMariage
-      ? `${prenom} & ${nom} ont le plaisir de vous convier à leur mariage`
-      : `${prenom} a le plaisir de vous inviter`;
+      ? `${sujetPrenom} & ${sujetPrenom2 || sujetNom} ont le plaisir de vous convier à leur mariage`
+      : `${sujetPrenom} a le plaisir de vous inviter`;
     config.sections.fairepart.inviteHe  = '';
     config.sections.fairepart.inviteSub = 'Nous serions heureux de célébrer ce moment avec vous.';
     config.sections.rsvp.events = [

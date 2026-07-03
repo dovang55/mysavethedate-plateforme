@@ -548,11 +548,31 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
   const password = document.getElementById('loginPassword').value;
   if (!email || password.length < 6) { afficherMessage('loginMsg','Email invalide ou mot de passe trop court (6 caractères min.).'); return; }
   document.getElementById('btnLogin').disabled = true;
-  const { error } = (modeAuth === 'signup')
-    ? await supa.auth.signUp({ email, password })
-    : await supa.auth.signInWithPassword({ email, password });
-  document.getElementById('btnLogin').disabled = false;
-  if (error) afficherMessage('loginMsg', modeAuth === 'signup' ? error.message : 'Email ou mot de passe incorrect.');
+
+  if (modeAuth === 'signup') {
+    // On conserve ?revendiquer=...&next=... dans le lien de confirmation
+    // envoyé par email : si la confirmation par adresse email est activée
+    // sur le projet Supabase, la personne doit d'abord cliquer ce lien
+    // avant d'avoir une session active — sans ça, on perdrait la trace du
+    // faire-part à rattacher à son compte une fois revenue sur le site.
+    const { data, error } = await supa.auth.signUp({
+      email, password,
+      options: { emailRedirectTo: window.location.origin + '/espace/' + window.location.search },
+    });
+    document.getElementById('btnLogin').disabled = false;
+    if (error) { afficherMessage('loginMsg', error.message); return; }
+    if (!data.session) {
+      // Compte créé mais confirmation par email requise avant de pouvoir
+      // se connecter : onAuthStateChange ne se déclenchera pas tout de
+      // suite, donc on doit prévenir explicitement — sinon rien ne
+      // s'affiche et ça semble ne pas fonctionner.
+      afficherMessage('loginMsg', 'Compte créé ! Vérifiez votre boîte mail et cliquez sur le lien de confirmation pour continuer.', true);
+    }
+  } else {
+    const { error } = await supa.auth.signInWithPassword({ email, password });
+    document.getElementById('btnLogin').disabled = false;
+    if (error) afficherMessage('loginMsg', 'Email ou mot de passe incorrect.');
+  }
 });
 
 document.getElementById('btnGoForgot').addEventListener('click', () => afficherEcran('screenForgot'));
@@ -620,6 +640,12 @@ async function ouvrirTableauDeBord(){
   document.getElementById('editorActions').style.display='none';
 
   const r = await apiFetch('/api/mon-compte/site');
+  if (r.status === 401) {
+    // Session locale invalide (ex : compte supprimé depuis, jeton expiré) —
+    // on se déconnecte proprement plutôt que d'afficher une erreur bloquante.
+    await supa.auth.signOut();
+    return;
+  }
   if (r.status === 404) {
     document.getElementById('dashContent').innerHTML = '<p class="dash-empty">Aucun faire-part associé à ce compte pour l\'instant. Contactez-nous si ce n\'est pas normal.</p>';
     return;
