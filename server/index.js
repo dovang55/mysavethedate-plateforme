@@ -126,16 +126,24 @@ async function genererSousDomaineUnique(prenom, nom){
 // Construit une configuration de départ à partir des réponses du
 // questionnaire prospect. Tout reste ensuite modifiable par le client dans
 // son espace personnel — ceci n'est qu'un point de départ personnalisé.
+// La vitrine envoie le libellé affiché ("Bar Mitsva", "Mariage"…), pas un
+// identifiant technique : on normalise ici.
+const EVENT_TYPE_VERS_SLUG = {
+  'bar-mitsva':'bar-mitsva', 'bat-mitsva':'bat-mitsva', 'mariage':'mariage', 'anniversaire':'anniversaire',
+  'Bar Mitsva':'bar-mitsva', 'Bat Mitsva':'bat-mitsva', 'Mariage':'mariage', 'Anniversaire':'anniversaire',
+  'Brit Mila':'brit-mila', 'Autre':'autre',
+};
+
 function construireConfigParDefaut(lead){
   const config = JSON.parse(JSON.stringify(defaultConfig));
   const prenom = lead.firstName || 'Prénom';
   const nom    = lead.lastName  || 'Nom';
-  const typesConnus = ['bar-mitsva','bat-mitsva','mariage','anniversaire'];
-  const eventType = typesConnus.includes(lead.eventType) ? lead.eventType : 'mariage';
+  const eventType = EVENT_TYPE_VERS_SLUG[lead.eventType] || 'mariage';
+  const libelleEvenement = lead.eventType || 'Événement';
 
   config.identity.firstName = prenom;
   config.identity.lastName  = nom;
-  config.identity.eventType = eventType;
+  config.identity.eventType = (eventType === 'bar-mitsva' || eventType === 'bat-mitsva') ? eventType : 'mariage';
   config.meta.title = `${prenom} ${nom}`;
 
   if (lead.date) config.target.date = lead.date;
@@ -149,19 +157,22 @@ function construireConfigParDefaut(lead){
   const estJuif = eventType === 'bar-mitsva' || eventType === 'bat-mitsva';
   if (!estJuif) {
     // Le contenu par défaut (hommage, Shabbat, infos visa) est spécifique
-    // aux Bar/Bat Mitsva : on le désactive et on adapte les textes pour un
-    // mariage ou un anniversaire. Le client peut tout réactiver/modifier
-    // ensuite depuis son éditeur.
+    // aux Bar/Bat Mitsva : on le désactive et on adapte les textes pour les
+    // autres types d'événement. Le client peut tout modifier ensuite.
+    const estMariage = eventType === 'mariage';
+    const estAnniv   = eventType === 'anniversaire';
+
     config.identity.bsd = false;
     config.sections.hommage.enabled = false;
     config.sections.shabbat.enabled = false;
     config.sections.infos.enabled   = false;
 
-    const estMariage = eventType === 'mariage';
-    config.sections.hero.eyebrow = estMariage ? 'Mariage' : 'Anniversaire';
+    config.sections.hero.eyebrow = libelleEvenement;
     config.sections.fairepart.blessing     = '';
-    config.sections.fairepart.ceremonyTag  = estMariage ? 'Cérémonie' : 'Fête';
-    config.sections.fairepart.ceremonyName = estMariage ? 'Notre mariage' : `Anniversaire de ${prenom}`;
+    config.sections.fairepart.ceremonyTag  = estMariage ? 'Cérémonie' : 'Célébration';
+    config.sections.fairepart.ceremonyName = estMariage ? 'Notre mariage'
+      : estAnniv ? `Anniversaire de ${prenom}`
+      : `${libelleEvenement} de ${prenom}`;
     config.sections.fairepart.ceremonyHe   = '';
     config.sections.fairepart.familyLine   = estMariage
       ? `${prenom} & ${nom} ont le plaisir de vous convier à leur mariage`
@@ -169,11 +180,22 @@ function construireConfigParDefaut(lead){
     config.sections.fairepart.inviteHe  = '';
     config.sections.fairepart.inviteSub = 'Nous serions heureux de célébrer ce moment avec vous.';
     config.sections.rsvp.events = [
-      { id:'principal', name: estMariage ? 'Cérémonie & Réception' : 'La fête', date: lead.date || '' }
+      { id:'principal', name: estMariage ? 'Cérémonie & Réception' : libelleEvenement, date: lead.date || '' }
     ];
   }
 
-  config.pageOrder = [...SECTIONS_REORDONNABLES];
+  // Choix des pages fait dans le questionnaire (case à cocher par section).
+  // Non fourni = on garde les valeurs par défaut définies ci-dessus.
+  if (lead.pages && typeof lead.pages === 'object') {
+    SECTIONS_REORDONNABLES.forEach(cle => {
+      if (cle === 'fairepart') return; // toujours activée
+      if (Object.prototype.hasOwnProperty.call(lead.pages, cle)) {
+        config.sections[cle].enabled = !!lead.pages[cle];
+      }
+    });
+  }
+  config.pageOrder = SECTIONS_REORDONNABLES.filter(cle => cle === 'fairepart' || config.sections[cle]?.enabled !== false);
+
   return config;
 }
 
@@ -220,8 +242,8 @@ app.use('/assets', express.static(path.join(__dirname,'..','public','assets')));
 // ─── Upload pages (contextuelles au sous-domaine) ───────────────────────────
 app.get('/upload', async (req,res) => {
   const sub = getSubdomain(req);
-  const { data:site } = await supabase.from('msd_sites').select('id,config').eq('subdomain', sub).single();
-  if (!site) return res.status(404).send('Site not found');
+  const { data:site } = await supabase.from('msd_sites').select('id,config,active').eq('subdomain', sub).single();
+  if (!site || !site.active) return res.status(404).send('Site not found');
   const cfg = mergeConfig(site.config);
   res.sendFile(path.join(__dirname,'..','public','upload.html'));
 });
@@ -287,6 +309,45 @@ app.get('/api/mon-compte/site', requireClientAuth, async (req,res) => {
   res.json(data);
 });
 
+// Création d'un nouveau faire-part pour le compte connecté, à partir des
+// réponses du questionnaire (vitrine). Contrairement à /api/lead, on est
+// déjà authentifié ici : pas besoin de créer de compte ni de lien de
+// récupération, le site est directement rattaché à l'utilisateur connecté.
+app.post('/api/mon-compte/sites', requireClientAuth, async (req,res) => {
+  const lead = req.body || {};
+  try {
+    // Sauvegarde optionnelle en base pour vos statistiques (best-effort)
+    let leadId = null;
+    try {
+      const { data:leadRow } = await supabase.from('msd_leads').insert({
+        event_type: lead.eventType, event_date: lead.date, event_location: lead.location,
+        guests: parseInt(lead.guests)||0, style: lead.style, budget: lead.budget,
+        first_name: lead.firstName, last_name: lead.lastName,
+        email: req.clientUser.email, phone: lead.phone,
+        rdv_date: lead.rdvDay, rdv_time: lead.rdvTime, rdv_formatted: lead.rdvFormatted,
+      }).select().single();
+      leadId = leadRow?.id || null;
+    } catch(_) { /* table optionnelle */ }
+
+    const subdomain = await genererSousDomaineUnique(lead.firstName, lead.lastName);
+    const config = construireConfigParDefaut(lead);
+
+    const { data:site, error:siteErr } = await supabase.from('msd_sites')
+      // Créé inactif : le faire-part est visible par son créateur dans son
+      // espace, mais pas encore accessible aux invités tant qu'il n'a pas
+      // débloqué le partage (voir /api/mon-compte/site/:id/payer).
+      .insert({ subdomain, template:'bar-mitsva', config, active:false, user_id:req.clientUser.id })
+      .select().single();
+    if (siteErr) throw siteErr;
+
+    if (leadId) await supabase.from('msd_leads').update({ site_id:site.id }).eq('id', leadId);
+
+    res.json(site);
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.put('/api/mon-compte/site/:id', requireClientAuth, chargerSiteDuClient, async (req,res) => {
   const { config, active, subdomain } = req.body;
   const updates = {};
@@ -294,6 +355,21 @@ app.put('/api/mon-compte/site/:id', requireClientAuth, chargerSiteDuClient, asyn
   if(active!==undefined) updates.active = active;
   if(subdomain!==undefined) updates.subdomain = subdomain;
   const { data, error } = await supabase.from('msd_sites').update(updates).eq('id',req.params.id).select().single();
+  if(error) return res.status(500).json({error:error.message});
+  res.json(data);
+});
+
+// ⚠️ Paiement simulé pour l'instant : aucune vraie carte bancaire n'est
+// débitée. On débloque directement le partage, comme si le paiement avait
+// réussi. À remplacer par un vrai prestataire (ex. Stripe) plus tard.
+const PRIX_PARTAGE_EUROS = 49.99;
+
+app.get('/api/mon-compte/tarif', requireClientAuth, (req,res) => {
+  res.json({ prix: PRIX_PARTAGE_EUROS });
+});
+
+app.post('/api/mon-compte/site/:id/payer', requireClientAuth, chargerSiteDuClient, async (req,res) => {
+  const { data, error } = await supabase.from('msd_sites').update({ active:true }).eq('id',req.params.id).select().single();
   if(error) return res.status(500).json({error:error.message});
   res.json(data);
 });
@@ -360,8 +436,8 @@ app.post('/api/admin/upload-media', requireAdmin, upload.single('file'), async (
 app.post('/api/rsvp', async (req,res) => {
   const sub = getSubdomain(req);
   try {
-    const { data:site } = await supabase.from('msd_sites').select('id,config').eq('subdomain',sub).single();
-    if(!site) return res.status(404).json({error:'Site introuvable'});
+    const { data:site } = await supabase.from('msd_sites').select('id,config,active').eq('subdomain',sub).single();
+    if(!site || !site.active) return res.status(404).json({error:'Site introuvable'});
 
     const body = req.body;
     const cfg  = mergeConfig(site.config);
@@ -410,8 +486,8 @@ app.post('/api/upload', upload.single('video'), async (req,res) => {
   const tmpPath = req.file?.path;
   const sub = getSubdomain(req);
   try {
-    const { data:site } = await supabase.from('msd_sites').select('id').eq('subdomain',sub).single();
-    if(!site) return res.status(404).json({error:'Site introuvable'});
+    const { data:site } = await supabase.from('msd_sites').select('id,active').eq('subdomain',sub).single();
+    if(!site || !site.active) return res.status(404).json({error:'Site introuvable'});
     if(!req.file) return res.status(400).json({error:'Aucun fichier'});
     const { name='Anonyme', message='' } = req.body;
     const ext = path.extname(req.file.originalname).toLowerCase()||'.mp4';

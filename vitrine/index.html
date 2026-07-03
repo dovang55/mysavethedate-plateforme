@@ -531,6 +531,38 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
 <!-- ══════════════════════════════════════════
      QUESTIONNAIRE OVERLAY
 ══════════════════════════════════════════ -->
+<!-- ══ PORTAIL COMPTE (avant le questionnaire) ══ -->
+<div class="q-overlay" id="authOverlay">
+  <div class="q-topbar">
+    <div class="q-topbar-logo">MySaveThe<em>Date</em></div>
+    <button class="q-close" onclick="closeAuth()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="q-body">
+    <div style="max-width:460px;margin:0 auto;padding:60px 24px;width:100%">
+      <div class="q-eye" id="authEyebrow">Avant de commencer</div>
+      <h2 class="q-h" id="authTitle">Créez votre compte</h2>
+      <p class="q-sub" id="authSub">Pour créer et retrouver votre faire-part à tout moment.</p>
+
+      <div class="q-field">
+        <label class="q-lbl">Adresse e-mail</label>
+        <input type="email" class="q-inp" id="authEmail" placeholder="vous@exemple.com">
+      </div>
+      <div class="q-field">
+        <label class="q-lbl">Mot de passe</label>
+        <input type="password" class="q-inp" id="authPassword" placeholder="6 caractères minimum">
+      </div>
+
+      <div class="q-nav" style="border-top:none;padding-top:0;margin-top:24px">
+        <span class="auth-toggle" id="authToggle" style="font-family:'Inter',sans-serif;font-size:13px;color:var(--grey);cursor:pointer">Déjà un compte ? Se connecter</span>
+        <button class="btn-qnext" id="authSubmitBtn" onclick="soumettreAuth()">Créer mon compte →</button>
+      </div>
+      <p style="font-family:'Inter',sans-serif;font-size:13px;color:#dc2626;margin-top:16px;display:none" id="authMsg"></p>
+    </div>
+  </div>
+</div>
+
 <div class="q-overlay" id="qOverlay">
 
   <!-- Top bar -->
@@ -538,10 +570,10 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
     <div class="q-topbar-logo">MySaveThe<em>Date</em></div>
     <div class="q-bar-progress">
       <div class="q-bar-meta">
-        <span class="q-bar-step" id="qStepLabel">Étape 1 sur 6</span>
-        <span class="q-bar-pct" id="qBarPct">17%</span>
+        <span class="q-bar-step" id="qStepLabel">Étape 1 sur 7</span>
+        <span class="q-bar-pct" id="qBarPct">0%</span>
       </div>
-      <div class="q-bar-track"><div class="q-bar-fill" id="qBarFill" style="width:17%"></div></div>
+      <div class="q-bar-track"><div class="q-bar-fill" id="qBarFill" style="width:0%"></div></div>
     </div>
     <button class="q-close" onclick="closeQ()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -567,7 +599,7 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
             <div class="ev-card" data-val="Autre" onclick="pickEv(this)"><span class="ev-emoji">🎉</span><div class="ev-lbl">Autre</div></div>
           </div>
           <div class="q-nav">
-            <span class="q-nav-count">1 / 6</span>
+            <span class="q-nav-count">1 / 7</span>
             <button class="btn-qnext" id="s1next" onclick="next()" disabled>Suivant →</button>
           </div>
         </div>
@@ -642,10 +674,45 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
         </div>
       </div>
 
-      <!-- ── STEP 5 : Coordonnées ── -->
+      <!-- ── STEP 5 : Pages ── -->
       <div class="q-step">
         <div class="q-inner">
-          <div class="q-eye">Étape 5 · Vos coordonnées</div>
+          <div class="q-eye">Étape 5 · Le contenu de votre faire-part</div>
+          <h2 class="q-h">Quelles pages<br>voulez-vous ?</h2>
+          <p class="q-sub">La page d'invitation principale est toujours incluse. Cochez ce que vous souhaitez en plus — vous pourrez tout activer, désactiver ou réorganiser ensuite dans votre espace.</p>
+          <div class="style-grid" id="pagesGrid">
+            <div class="style-card sel" data-page="hommage" onclick="togglePage(this)">
+              <h4>Hommage / Souvenirs</h4>
+              <p>Un texte et une photo souvenir, en mémoire d'un proche ou pour marquer l'occasion.</p>
+            </div>
+            <div class="style-card" data-page="shabbat" id="pageShabbatCard" onclick="togglePage(this)" style="display:none">
+              <h4>Page Shabbat</h4>
+              <p>Parasha et détails de l'office — spécifique aux Bar/Bat Mitsva.</p>
+            </div>
+            <div class="style-card" data-page="infos" onclick="togglePage(this)">
+              <h4>Informations pratiques</h4>
+              <p>Hébergement, transport, visa… tout ce que vos invités doivent savoir.</p>
+            </div>
+            <div class="style-card sel" data-page="video" onclick="togglePage(this)">
+              <h4>Livre d'or vidéo</h4>
+              <p>Vos invités laissent un message vidéo, précieusement conservé.</p>
+            </div>
+            <div class="style-card sel" data-page="rsvp" onclick="togglePage(this)">
+              <h4>RSVP</h4>
+              <p>Vos invités confirment leur présence directement en ligne.</p>
+            </div>
+          </div>
+          <div class="q-nav">
+            <button class="btn-qprev" onclick="prev()">← Précédent</button>
+            <button class="btn-qnext" onclick="next()">Suivant →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 6 : Coordonnées ── -->
+      <div class="q-step">
+        <div class="q-inner">
+          <div class="q-eye">Étape 6 · Vos coordonnées</div>
           <h2 class="q-h">Comment vous<br>contacter ?</h2>
           <p class="q-sub">Vos informations sont confidentielles et ne sont jamais partagées.</p>
           <div class="q-row">
@@ -676,7 +743,7 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
       <!-- ── STEP 6 : RDV ── -->
       <div class="q-step">
         <div class="q-inner">
-          <div class="q-eye">Étape 6 · Votre rendez-vous</div>
+          <div class="q-eye">Étape 7 · Votre rendez-vous</div>
           <h2 class="q-h">Choisissez<br>votre créneau.</h2>
           <p class="q-sub">Un appel de 30 minutes pour tout aligner avant de démarrer la création de votre faire-part.</p>
           <div class="rdv-section">
@@ -729,23 +796,65 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
   </div><!-- /q-body -->
 </div><!-- /q-overlay -->
 
+<script src="/espace/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
+const supa = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
 /* ══ STATE ══ */
 let step = 0;
-const STEPS = 7;
-const S = { eventType:'', date:'', location:'', guests:150, style:'', budget:'', firstName:'', lastName:'', email:'', phone:'', rdvDay:'', rdvTime:'' };
+const STEPS = 8;
+const S = { eventType:'', date:'', location:'', guests:150, style:'', budget:'', firstName:'', lastName:'', email:'', phone:'', rdvDay:'', rdvTime:'', pages:{hommage:true,shabbat:false,infos:false,video:true,rsvp:true} };
 
-/* ══ OVERLAY ══ */
-function openQ(){ document.getElementById('qOverlay').classList.add('open'); document.body.style.overflow='hidden'; buildRdvDays(); }
+/* ══ PORTAIL COMPTE ══ */
+let authMode = 'signup'; // 'signup' | 'login'
+
+async function openQ(){
+  const { data } = await supa.auth.getSession();
+  if (data.session) { ouvrirQuestionnaire(); }
+  else { document.getElementById('authOverlay').classList.add('open'); document.body.style.overflow='hidden'; }
+}
+function closeAuth(){ document.getElementById('authOverlay').classList.remove('open'); document.body.style.overflow=''; }
+
+document.getElementById('authToggle').addEventListener('click', () => {
+  authMode = (authMode === 'signup') ? 'login' : 'signup';
+  const estInscription = authMode === 'signup';
+  document.getElementById('authTitle').textContent = estInscription ? 'Créez votre compte' : 'Connectez-vous';
+  document.getElementById('authSub').textContent = estInscription ? 'Pour créer et retrouver votre faire-part à tout moment.' : 'Retrouvez votre espace pour continuer votre faire-part.';
+  document.getElementById('authSubmitBtn').textContent = estInscription ? 'Créer mon compte →' : 'Me connecter →';
+  document.getElementById('authToggle').textContent = estInscription ? 'Déjà un compte ? Se connecter' : "Pas encore de compte ? S'inscrire";
+});
+
+async function soumettreAuth(){
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const msg = document.getElementById('authMsg');
+  msg.style.display = 'none';
+  if (!email || password.length < 6) { msg.textContent = 'Email invalide ou mot de passe trop court (6 caractères min.).'; msg.style.display='block'; return; }
+
+  document.getElementById('authSubmitBtn').disabled = true;
+  const { error } = (authMode === 'signup')
+    ? await supa.auth.signUp({ email, password })
+    : await supa.auth.signInWithPassword({ email, password });
+  document.getElementById('authSubmitBtn').disabled = false;
+
+  if (error) { msg.textContent = error.message; msg.style.display='block'; return; }
+  closeAuth();
+  ouvrirQuestionnaire();
+}
+
+/* ══ OVERLAY QUESTIONNAIRE ══ */
+function ouvrirQuestionnaire(){ document.getElementById('qOverlay').classList.add('open'); document.body.style.overflow='hidden'; buildRdvDays(); setStep(0); }
 function closeQ(){ document.getElementById('qOverlay').classList.remove('open'); document.body.style.overflow=''; }
 
 /* ══ PROGRESS ══ */
 function setStep(n){
   step = n;
   document.getElementById('qRail').style.transform = `translateX(-${n * 100}%)`;
-  const display = Math.min(n+1, STEPS);
+  const nbEtapesContenu = STEPS - 1; // le dernier "step" est l'écran de succès, pas une étape à remplir
+  const display = Math.min(n+1, nbEtapesContenu);
   const pct = Math.round((n/STEPS)*100);
-  document.getElementById('qStepLabel').textContent = `Étape ${Math.min(display,6)} sur 6`;
+  document.getElementById('qStepLabel').textContent = `Étape ${display} sur ${nbEtapesContenu}`;
   document.getElementById('qBarPct').textContent = pct + '%';
   document.getElementById('qBarFill').style.width = pct + '%';
 }
@@ -757,6 +866,19 @@ function pickEv(el){
   document.querySelectorAll('#evGrid .ev-card').forEach(c=>c.classList.remove('sel'));
   el.classList.add('sel'); S.eventType = el.dataset.val;
   document.getElementById('s1next').disabled = false;
+
+  // La page Shabbat n'a de sens que pour une Bar/Bat Mitsva
+  const estJuif = S.eventType === 'Bar Mitsva' || S.eventType === 'Bat Mitsva';
+  const carteShabbat = document.getElementById('pageShabbatCard');
+  carteShabbat.style.display = estJuif ? '' : 'none';
+  carteShabbat.classList.toggle('sel', estJuif);
+  S.pages.shabbat = estJuif;
+}
+
+/* ══ STEP 5 – Pages ══ */
+function togglePage(el){
+  el.classList.toggle('sel');
+  S.pages[el.dataset.page] = el.classList.contains('sel');
 }
 
 /* ══ STEP 2 – Date & Lieu ══ */
@@ -830,17 +952,18 @@ async function submit(){
 
   next(); // Go to success screen
 
-  // Send data to server (non-blocking)
+  // Crée le faire-part sous le compte du visiteur (déjà connecté à ce stade)
   try {
-    const r = await fetch('/api/lead', {
+    const { data:{ session } } = await supa.auth.getSession();
+    const r = await fetch('/api/mon-compte/sites', {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+(session?.access_token||'') },
       body: JSON.stringify({ ...S, rdvFormatted: rdvFmt })
     });
     const data = await r.json();
-    if (data.accessLink) {
+    if (!data.error) {
       const btn = document.getElementById('btnAccesEspace');
-      btn.href = data.accessLink;
+      btn.href = '/espace/';
       btn.style.display = 'flex';
     }
   } catch(e){ /* ignore — the UX is not blocked */ }
