@@ -531,37 +531,6 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
 <!-- ══════════════════════════════════════════
      QUESTIONNAIRE OVERLAY
 ══════════════════════════════════════════ -->
-<!-- ══ PORTAIL COMPTE (avant le questionnaire) ══ -->
-<div class="q-overlay" id="authOverlay">
-  <div class="q-topbar">
-    <div class="q-topbar-logo">MySaveThe<em>Date</em></div>
-    <button class="q-close" onclick="closeAuth()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-    </button>
-  </div>
-  <div class="q-body">
-    <div style="max-width:460px;margin:0 auto;padding:60px 24px;width:100%">
-      <div class="q-eye" id="authEyebrow">Avant de commencer</div>
-      <h2 class="q-h" id="authTitle">Créez votre compte</h2>
-      <p class="q-sub" id="authSub">Pour créer et retrouver votre faire-part à tout moment.</p>
-
-      <div class="q-field">
-        <label class="q-lbl">Adresse e-mail</label>
-        <input type="email" class="q-inp" id="authEmail" placeholder="vous@exemple.com">
-      </div>
-      <div class="q-field">
-        <label class="q-lbl">Mot de passe</label>
-        <input type="password" class="q-inp" id="authPassword" placeholder="6 caractères minimum">
-      </div>
-
-      <div class="q-nav" style="border-top:none;padding-top:0;margin-top:24px">
-        <span class="auth-toggle" id="authToggle" style="font-family:'Inter',sans-serif;font-size:13px;color:var(--grey);cursor:pointer">Déjà un compte ? Se connecter</span>
-        <button class="btn-qnext" id="authSubmitBtn" onclick="soumettreAuth()">Créer mon compte →</button>
-      </div>
-      <p style="font-family:'Inter',sans-serif;font-size:13px;color:#dc2626;margin-top:16px;display:none" id="authMsg"></p>
-    </div>
-  </div>
-</div>
 
 <div class="q-overlay" id="qOverlay">
 
@@ -747,7 +716,7 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
           </div>
           <h2 class="success-h">C'est créé !</h2>
-          <p class="success-p">Merci <strong id="cName" style="color:var(--navy);font-weight:700"></strong> ! Votre faire-part vient d'être généré. Personnalisez-le dès maintenant dans votre espace.</p>
+          <p class="success-p">Merci <strong id="cName" style="color:var(--navy);font-weight:700"></strong> ! Votre faire-part vient d'être généré. Découvrez-le dès maintenant.</p>
           <div class="summary-block">
             <div class="summary-title">Récapitulatif de votre faire-part</div>
             <div class="summary-row"><span class="summary-k">Événement</span><span class="summary-v" id="sEvt">—</span></div>
@@ -756,7 +725,7 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
             <div class="summary-row"><span class="summary-k">Convives</span><span class="summary-v" id="sGuests">—</span></div>
             <div class="summary-row"><span class="summary-k">Style</span><span class="summary-v" id="sStyle">—</span></div>
           </div>
-          <a class="btn-qnext" id="btnAccesEspace" href="#" style="display:none;margin:0 auto 14px;text-decoration:none">Personnaliser mon faire-part →</a>
+          <a class="btn-qnext" id="btnAccesEspace" href="#" style="display:none;margin:0 auto 14px;text-decoration:none">Prévisualiser mon faire-part →</a>
           <button class="btn-qnext" style="margin:0 auto" onclick="closeQ()">Fermer ✕</button>
         </div>
       </div>
@@ -765,66 +734,17 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
   </div><!-- /q-body -->
 </div><!-- /q-overlay -->
 
-<script src="/espace/config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-// On protège la création du client Supabase : si la configuration serveur
-// est incomplète (variable d'environnement manquante en production, par
-// exemple), on ne veut surtout pas qu'une erreur ici bloque TOUT le reste
-// du JavaScript de la page (et donc tous les boutons du site).
-let supa = null;
-try {
-  if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) throw new Error('Configuration Supabase manquante (SUPABASE_URL / SUPABASE_ANON_KEY)');
-  supa = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
-} catch (erreur) {
-  console.error('[MySaveTheDate] Impossible d\'initialiser la connexion :', erreur.message);
-}
-
 /* ══ STATE ══ */
 let step = 0;
 const STEPS = 7;
 const S = { eventType:'', date:'', location:'', guests:150, style:'', budget:'', firstName:'', lastName:'', email:'', phone:'', pages:{hommage:true,shabbat:false,infos:false,video:true,rsvp:true} };
 
-/* ══ PORTAIL COMPTE ══ */
-let authMode = 'signup'; // 'signup' | 'login'
-
-async function openQ(){
-  if (!supa) { alert("Une erreur technique empêche la création de faire-part pour l'instant. Merci de réessayer plus tard ou de nous contacter."); return; }
-  const { data } = await supa.auth.getSession();
-  if (data.session) { ouvrirQuestionnaire(); }
-  else { document.getElementById('authOverlay').classList.add('open'); document.body.style.overflow='hidden'; }
-}
-function closeAuth(){ document.getElementById('authOverlay').classList.remove('open'); document.body.style.overflow=''; }
-
-document.getElementById('authToggle').addEventListener('click', () => {
-  authMode = (authMode === 'signup') ? 'login' : 'signup';
-  const estInscription = authMode === 'signup';
-  document.getElementById('authTitle').textContent = estInscription ? 'Créez votre compte' : 'Connectez-vous';
-  document.getElementById('authSub').textContent = estInscription ? 'Pour créer et retrouver votre faire-part à tout moment.' : 'Retrouvez votre espace pour continuer votre faire-part.';
-  document.getElementById('authSubmitBtn').textContent = estInscription ? 'Créer mon compte →' : 'Me connecter →';
-  document.getElementById('authToggle').textContent = estInscription ? 'Déjà un compte ? Se connecter' : "Pas encore de compte ? S'inscrire";
-});
-
-async function soumettreAuth(){
-  const email = document.getElementById('authEmail').value.trim();
-  const password = document.getElementById('authPassword').value;
-  const msg = document.getElementById('authMsg');
-  msg.style.display = 'none';
-  if (!email || password.length < 6) { msg.textContent = 'Email invalide ou mot de passe trop court (6 caractères min.).'; msg.style.display='block'; return; }
-
-  document.getElementById('authSubmitBtn').disabled = true;
-  const { error } = (authMode === 'signup')
-    ? await supa.auth.signUp({ email, password })
-    : await supa.auth.signInWithPassword({ email, password });
-  document.getElementById('authSubmitBtn').disabled = false;
-
-  if (error) { msg.textContent = error.message; msg.style.display='block'; return; }
-  closeAuth();
-  ouvrirQuestionnaire();
-}
-
 /* ══ OVERLAY QUESTIONNAIRE ══ */
-function ouvrirQuestionnaire(){ document.getElementById('qOverlay').classList.add('open'); document.body.style.overflow='hidden'; setStep(0); }
+// Le questionnaire s'ouvre directement, sans compte : la connexion n'est
+// demandée qu'ensuite, depuis la page d'aperçu, si la personne veut
+// personnaliser ou partager son faire-part.
+function openQ(){ document.getElementById('qOverlay').classList.add('open'); document.body.style.overflow='hidden'; setStep(0); }
 function closeQ(){ document.getElementById('qOverlay').classList.remove('open'); document.body.style.overflow=''; }
 
 /* ══ PROGRESS ══ */
@@ -900,18 +820,17 @@ async function submit(){
 
   next(); // Go to success screen
 
-  // Crée le faire-part sous le compte du visiteur (déjà connecté à ce stade)
+  // Génère tout de suite un vrai aperçu du faire-part, sans compte
   try {
-    const { data:{ session } } = await supa.auth.getSession();
-    const r = await fetch('/api/mon-compte/sites', {
+    const r = await fetch('/api/apercu', {
       method:'POST',
-      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+(session?.access_token||'') },
+      headers:{ 'Content-Type':'application/json' },
       body: JSON.stringify(S)
     });
     const data = await r.json();
-    if (!data.error) {
+    if (!data.error && data.id) {
       const btn = document.getElementById('btnAccesEspace');
-      btn.href = '/espace/';
+      btn.href = '/apercu/' + data.id;
       btn.style.display = 'flex';
     }
   } catch(e){ /* ignore — the UX is not blocked */ }

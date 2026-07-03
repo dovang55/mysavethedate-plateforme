@@ -160,14 +160,15 @@ a{color:inherit;text-decoration:none}
 </head>
 <body>
 
-<!-- LOGIN -->
+<!-- LOGIN / INSCRIPTION -->
 <div class="auth-screen" id="screenLogin">
   <div class="auth-box">
     <div class="auth-logo">MySaveTheDate</div>
-    <div class="auth-sub">Mon espace personnel</div>
+    <div class="auth-sub" id="loginSub">Mon espace personnel</div>
     <input type="email" id="loginEmail" placeholder="Votre email" autocomplete="username">
     <input type="password" id="loginPassword" placeholder="Votre mot de passe" autocomplete="current-password">
     <button class="btn-dark" id="btnLogin">Se connecter</button>
+    <span class="auth-link" id="btnToggleSignup">Pas encore de compte ? S'inscrire</span>
     <span class="auth-link" id="btnGoForgot">Mot de passe oublié ?</span>
     <div class="auth-msg" id="loginMsg"></div>
   </div>
@@ -532,15 +533,26 @@ function afficherMessage(id, texte, ok){
   el.className = 'auth-msg show ' + (ok?'ok':'err');
 }
 
+let modeAuth = 'login'; // 'login' | 'signup'
+document.getElementById('btnToggleSignup').addEventListener('click', () => {
+  modeAuth = (modeAuth === 'login') ? 'signup' : 'login';
+  const estInscription = modeAuth === 'signup';
+  document.getElementById('loginSub').textContent = estInscription ? 'Créez votre compte' : 'Mon espace personnel';
+  document.getElementById('btnLogin').textContent = estInscription ? 'Créer mon compte' : 'Se connecter';
+  document.getElementById('btnToggleSignup').textContent = estInscription ? 'Déjà un compte ? Se connecter' : "Pas encore de compte ? S'inscrire";
+});
+
 document.getElementById('btnLogin').addEventListener('click', async () => {
   if (!supa) { afficherMessage('loginMsg', 'Erreur technique, merci de réessayer plus tard.'); return; }
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
-  if (!email || !password) { afficherMessage('loginMsg','Merci de remplir email et mot de passe.'); return; }
+  if (!email || password.length < 6) { afficherMessage('loginMsg','Email invalide ou mot de passe trop court (6 caractères min.).'); return; }
   document.getElementById('btnLogin').disabled = true;
-  const { error } = await supa.auth.signInWithPassword({ email, password });
+  const { error } = (modeAuth === 'signup')
+    ? await supa.auth.signUp({ email, password })
+    : await supa.auth.signInWithPassword({ email, password });
   document.getElementById('btnLogin').disabled = false;
-  if (error) afficherMessage('loginMsg', 'Email ou mot de passe incorrect.');
+  if (error) afficherMessage('loginMsg', modeAuth === 'signup' ? error.message : 'Email ou mot de passe incorrect.');
 });
 
 document.getElementById('btnGoForgot').addEventListener('click', () => afficherEcran('screenForgot'));
@@ -581,6 +593,23 @@ async function demarrerApplication(){
   ['screenLogin','screenForgot','screenRecovery'].forEach(s=>document.getElementById(s).style.display='none');
   document.getElementById('topbar').style.display='flex';
   document.getElementById('appBody').style.display='flex';
+
+  // Arrivée depuis la page d'aperçu public (?revendiquer=<id>&next=editeur|payer) :
+  // on rattache ce faire-part créé sans compte au compte qui vient de se
+  // connecter, puis on l'emmène directement où il voulait aller.
+  const params = new URLSearchParams(window.location.search);
+  const siteARevendiquer = params.get('revendiquer');
+  if (siteARevendiquer) {
+    const etapeSuivante = params.get('next');
+    window.history.replaceState({}, '', '/espace/'); // évite de re-déclencher au rechargement
+    const r = await apiFetch('/api/mon-compte/site/'+siteARevendiquer+'/revendiquer', { method:'POST' });
+    const data = await r.json();
+    if (!data.error) {
+      currentSite = data;
+      if (etapeSuivante === 'editeur') { await ouvrirEditeur(); return; }
+    }
+  }
+
   await ouvrirTableauDeBord();
 }
 

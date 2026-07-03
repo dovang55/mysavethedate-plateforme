@@ -143,7 +143,10 @@ function construireConfigParDefaut(lead){
 
   config.identity.firstName = prenom;
   config.identity.lastName  = nom;
-  config.identity.eventType = (eventType === 'bar-mitsva' || eventType === 'bat-mitsva') ? eventType : 'mariage';
+  // "brit-mila" et "autre" n'ont pas d'option dédiée dans l'éditeur : on les
+  // fait démarrer sur une base "mariage", modifiable ensuite.
+  const TYPES_AVEC_OPTION_DEDIEE = ['bar-mitsva','bat-mitsva','mariage','anniversaire'];
+  config.identity.eventType = TYPES_AVEC_OPTION_DEDIEE.includes(eventType) ? eventType : 'mariage';
   config.meta.title = `${prenom} ${nom}`;
 
   if (lead.date) config.target.date = lead.date;
@@ -313,6 +316,56 @@ app.get('/api/mon-compte/site', requireClientAuth, async (req,res) => {
 // réponses du questionnaire (vitrine). Contrairement à /api/lead, on est
 // déjà authentifié ici : pas besoin de créer de compte ni de lien de
 // récupération, le site est directement rattaché à l'utilisateur connecté.
+// ─────────────────────────────────────────────────────────────────────────────
+// APERÇU PUBLIC — questionnaire → faire-part généré, sans compte
+// ─────────────────────────────────────────────────────────────────────────────
+// Le visiteur remplit le questionnaire sur la vitrine sans se connecter : on
+// génère tout de suite un vrai aperçu de son faire-part. Le compte n'est
+// demandé qu'ensuite, s'il veut le personnaliser ou le partager (voir
+// /api/mon-compte/site/:id/revendiquer plus bas).
+app.post('/api/apercu', async (req,res) => {
+  const lead = req.body || {};
+  try {
+    let leadId = null;
+    try {
+      const { data:leadRow } = await supabase.from('msd_leads').insert({
+        event_type: lead.eventType, event_date: lead.date, event_location: lead.location,
+        guests: parseInt(lead.guests)||0, style: lead.style, budget: lead.budget,
+        first_name: lead.firstName, last_name: lead.lastName,
+        email: lead.email, phone: lead.phone,
+      }).select().single();
+      leadId = leadRow?.id || null;
+    } catch(_) { /* table optionnelle */ }
+
+    const subdomain = await genererSousDomaineUnique(lead.firstName, lead.lastName);
+    const config = construireConfigParDefaut(lead);
+
+    const { data:site, error:siteErr } = await supabase.from('msd_sites')
+      .insert({ subdomain, template:'bar-mitsva', config, active:false, user_id:null })
+      .select().single();
+    if (siteErr) throw siteErr;
+
+    if (leadId) await supabase.from('msd_leads').update({ site_id:site.id }).eq('id', leadId);
+
+    res.json({ id: site.id });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Revendication d'un faire-part créé anonymement : dès que le visiteur se
+// connecte (ou crée son compte) depuis la page d'aperçu, on rattache le
+// site à son compte — seulement s'il n'appartient encore à personne.
+app.post('/api/mon-compte/site/:id/revendiquer', requireClientAuth, async (req,res) => {
+  const { data:site, error:findErr } = await supabase.from('msd_sites').select('id,user_id').eq('id',req.params.id).single();
+  if (findErr || !site) return res.status(404).json({error:'Faire-part introuvable'});
+  if (site.user_id && site.user_id !== req.clientUser.id) return res.status(403).json({error:'Ce faire-part appartient déjà à quelqu\'un d\'autre'});
+
+  const { data, error } = await supabase.from('msd_sites').update({ user_id:req.clientUser.id }).eq('id',req.params.id).select().single();
+  if (error) return res.status(500).json({error:error.message});
+  res.json(data);
+});
+
 app.post('/api/mon-compte/sites', requireClientAuth, async (req,res) => {
   const lead = req.body || {};
   try {
@@ -598,6 +651,40 @@ app.post('/api/lead', async (req,res) => {
   }
 
   res.json({ success:true, siteUrl, accessLink });
+});
+
+// Page d'aperçu public (juste après le questionnaire, avant tout compte) :
+// affiche le vrai rendu du faire-part, quel que soit son statut, avec une
+// petite barre d'outils "Personnaliser / Partager" ajoutée par-dessus.
+app.get('/apercu/:id', async (req,res) => {
+  try {
+    const { data:site, error } = await supabase.from('msd_sites').select('*').eq('id',req.params.id).single();
+    if (error || !site) return res.status(404).send('<h1>Aperçu introuvable</h1><p>Ce lien n\'est plus valide.</p>');
+    const cfg = mergeConfig(site.config);
+    const html = renderBarMitsva(cfg, site.id);
+
+    const barreOutils = `
+<style>.deck{margin-top:56px !important;height:calc(100vh - 56px) !important;}</style>
+<div id="msd-preview-toolbar" style="position:fixed;top:0;left:0;right:0;height:56px;background:#0d1f3c;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:9999;font-family:'Inter',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.15)">
+  <span style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;opacity:.85">Aperçu de votre faire-part</span>
+  <div style="display:flex;gap:10px">
+    <button id="msd-btn-personnaliser" style="padding:9px 20px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;border-radius:4px">Personnaliser</button>
+    <button id="msd-btn-partager" style="padding:9px 20px;border:none;background:#2563eb;color:#fff;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;border-radius:4px">Partager mon faire-part</button>
+  </div>
+</div>
+<script>
+  document.getElementById('msd-btn-personnaliser').addEventListener('click', function(){
+    window.location.href = '/espace/?revendiquer=${site.id}&next=editeur';
+  });
+  document.getElementById('msd-btn-partager').addEventListener('click', function(){
+    window.location.href = '/espace/?revendiquer=${site.id}&next=payer';
+  });
+</script>`;
+
+    res.send(html.replace('</body>', barreOutils + '</body>'));
+  } catch(err) {
+    res.status(500).send('Erreur serveur');
+  }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
