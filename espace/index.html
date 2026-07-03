@@ -463,7 +463,17 @@ a{color:inherit;text-decoration:none}
 <script src="/espace/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-const supa = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+// On protège la création du client Supabase : si la configuration serveur
+// est incomplète (variable d'environnement manquante en production, par
+// exemple), on ne veut surtout pas qu'une erreur ici bloque tout le reste
+// du JavaScript de la page (et donc tous les boutons).
+let supa = null;
+try {
+  if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) throw new Error('Configuration Supabase manquante (SUPABASE_URL / SUPABASE_ANON_KEY)');
+  supa = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+} catch (erreur) {
+  console.error('[MySaveTheDate] Impossible d\'initialiser la connexion :', erreur.message);
+}
 
 let currentSite = null;
 let currentConfig = null;
@@ -489,26 +499,32 @@ function afficherEcran(id){
   });
 }
 
-supa.auth.onAuthStateChange((event, session) => {
-  if (event === 'PASSWORD_RECOVERY') {
-    afficherEcran('screenRecovery');
-  } else if (event === 'SIGNED_IN' && session) {
-    demarrerApplication();
-  } else if (event === 'SIGNED_OUT') {
-    ['screenLogin','screenForgot','screenRecovery'].forEach(s=>document.getElementById(s).style.display='none');
-    afficherEcran('screenLogin');
-    document.getElementById('topbar').style.display='none';
-    document.getElementById('appBody').style.display='none';
-  }
-});
+if (supa) {
+  supa.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      afficherEcran('screenRecovery');
+    } else if (event === 'SIGNED_IN' && session) {
+      demarrerApplication();
+    } else if (event === 'SIGNED_OUT') {
+      ['screenLogin','screenForgot','screenRecovery'].forEach(s=>document.getElementById(s).style.display='none');
+      afficherEcran('screenLogin');
+      document.getElementById('topbar').style.display='none';
+      document.getElementById('appBody').style.display='none';
+    }
+  });
 
-// Au chargement : si une session existe déjà (retour d'un visiteur), on
-// saute directement à l'application. Sinon, écran de connexion.
-(async () => {
-  const { data } = await supa.auth.getSession();
-  if (data.session) demarrerApplication();
-  else afficherEcran('screenLogin');
-})();
+  // Au chargement : si une session existe déjà (retour d'un visiteur), on
+  // saute directement à l'application. Sinon, écran de connexion.
+  (async () => {
+    const { data } = await supa.auth.getSession();
+    if (data.session) demarrerApplication();
+    else afficherEcran('screenLogin');
+  })();
+} else {
+  afficherEcran('screenLogin');
+  document.getElementById('loginMsg').textContent = "Une erreur technique empêche l'accès à votre espace pour l'instant. Merci de réessayer plus tard.";
+  document.getElementById('loginMsg').className = 'auth-msg show err';
+}
 
 function afficherMessage(id, texte, ok){
   const el = document.getElementById(id);
@@ -517,6 +533,7 @@ function afficherMessage(id, texte, ok){
 }
 
 document.getElementById('btnLogin').addEventListener('click', async () => {
+  if (!supa) { afficherMessage('loginMsg', 'Erreur technique, merci de réessayer plus tard.'); return; }
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
   if (!email || !password) { afficherMessage('loginMsg','Merci de remplir email et mot de passe.'); return; }
@@ -530,6 +547,7 @@ document.getElementById('btnGoForgot').addEventListener('click', () => afficherE
 document.getElementById('btnBackLogin').addEventListener('click', () => afficherEcran('screenLogin'));
 
 document.getElementById('btnSendForgot').addEventListener('click', async () => {
+  if (!supa) { afficherMessage('forgotMsg', 'Erreur technique, merci de réessayer plus tard.'); return; }
   const email = document.getElementById('forgotEmail').value.trim();
   if (!email) { afficherMessage('forgotMsg','Merci de saisir votre email.'); return; }
   document.getElementById('btnSendForgot').disabled = true;
@@ -540,6 +558,7 @@ document.getElementById('btnSendForgot').addEventListener('click', async () => {
 });
 
 document.getElementById('btnSetPassword').addEventListener('click', async () => {
+  if (!supa) { afficherMessage('recoveryMsg', 'Erreur technique, merci de réessayer plus tard.'); return; }
   const p1 = document.getElementById('recoveryPassword').value;
   const p2 = document.getElementById('recoveryPassword2').value;
   if (p1.length < 6) { afficherMessage('recoveryMsg','Le mot de passe doit contenir au moins 6 caractères.'); return; }

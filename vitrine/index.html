@@ -452,23 +452,23 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
 <section class="how" id="how">
   <div style="max-width:1140px;margin:0 auto;position:relative;z-index:2">
     <div class="section-eyebrow">Notre approche</div>
-    <h2 class="section-h2">Simple,<br>humain, et beau.</h2>
-    <p class="section-sub">De notre premier échange à la mise en ligne, tout se passe avec douceur — et en quelques jours seulement.</p>
+    <h2 class="section-h2">Simple,<br>rapide, et beau.</h2>
+    <p class="section-sub">De vos premières réponses à la mise en ligne, tout se passe en quelques minutes.</p>
     <div class="steps">
       <div class="step">
         <div class="step-n">01</div>
-        <div class="step-h">On se rencontre</div>
-        <div class="step-p">Vous répondez à 6 questions rapides, on fixe un rendez-vous de 30 min pour parler de votre vision et de votre événement.</div>
+        <div class="step-h">Vous répondez</div>
+        <div class="step-p">Quelques questions rapides sur votre événement, votre style, et les pages que vous voulez.</div>
       </div>
       <div class="step">
         <div class="step-n">02</div>
-        <div class="step-h">On crée</div>
-        <div class="step-p">On design et développe votre faire-part sur-mesure. Photos, musique, couleurs — tout personnalisé. Délai : 3 à 7 jours.</div>
+        <div class="step-h">C'est généré</div>
+        <div class="step-p">Votre faire-part est créé automatiquement, immédiatement, sous votre compte.</div>
       </div>
       <div class="step">
         <div class="step-n">03</div>
-        <div class="step-h">Vous partagez</div>
-        <div class="step-p">Votre lien unique est prêt. Partagez-le sur WhatsApp, email ou SMS. Suivez les RSVP en temps réel depuis votre espace.</div>
+        <div class="step-h">Vous personnalisez et partagez</div>
+        <div class="step-p">Affinez tout depuis votre espace, puis débloquez votre lien unique à partager avec vos invités.</div>
       </div>
     </div>
   </div>
@@ -513,7 +513,7 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
 <!-- ══ CTA BAND ══ -->
 <section class="cta">
   <h2>Votre histoire<br>commence ici.</h2>
-  <p>Répondez à 6 questions, on se retrouve le temps d'un appel — et on crée quelque chose d'unique pour vous et les vôtres.</p>
+  <p>Répondez à quelques questions et votre faire-part est créé instantanément, prêt à être personnalisé.</p>
   <button class="btn-cta" onclick="openQ()">Démarrer mon projet →</button>
 </section>
 
@@ -735,34 +735,7 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
           </div>
           <div class="q-nav">
             <button class="btn-qprev" onclick="prev()">← Précédent</button>
-            <button class="btn-qnext" id="s5next" onclick="next()" disabled>Suivant →</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── STEP 6 : RDV ── -->
-      <div class="q-step">
-        <div class="q-inner">
-          <div class="q-eye">Étape 7 · Votre rendez-vous</div>
-          <h2 class="q-h">Choisissez<br>votre créneau.</h2>
-          <p class="q-sub">Un appel de 30 minutes pour tout aligner avant de démarrer la création de votre faire-part.</p>
-          <div class="rdv-section">
-            <div class="q-lbl">Choisissez un jour</div>
-            <div class="rdv-days" id="rdvDays"></div>
-          </div>
-          <div class="rdv-section">
-            <div class="q-lbl">Choisissez un horaire</div>
-            <div class="rdv-times" id="rdvTimes">
-              <div class="rdv-time" data-val="09:00" onclick="pickTime(this)"><span>9h00</span></div>
-              <div class="rdv-time" data-val="11:00" onclick="pickTime(this)"><span>11h00</span></div>
-              <div class="rdv-time" data-val="14:00" onclick="pickTime(this)"><span>14h00</span></div>
-              <div class="rdv-time" data-val="16:00" onclick="pickTime(this)"><span>16h00</span></div>
-              <div class="rdv-time" data-val="18:00" onclick="pickTime(this)"><span>18h00</span></div>
-            </div>
-          </div>
-          <div class="q-nav">
-            <button class="btn-qprev" onclick="prev()">← Précédent</button>
-            <button class="btn-confirm" id="s6confirm" onclick="submit()" disabled>Confirmer mon RDV ✓</button>
+            <button class="btn-confirm" id="s5next" onclick="submit()" disabled>Créer mon faire-part ✓</button>
           </div>
         </div>
       </div>
@@ -773,12 +746,8 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
           <div class="success-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
           </div>
-          <h2 class="success-h">C'est confirmé !</h2>
-          <p class="success-p">Merci <strong id="cName" style="color:var(--navy);font-weight:700"></strong> ! Votre rendez-vous est enregistré. Vous allez recevoir une confirmation par e-mail très bientôt.</p>
-          <div class="rdv-box">
-            <div class="rdv-box-lbl">📅 Votre rendez-vous</div>
-            <div class="rdv-box-val" id="cRdv">—</div>
-          </div>
+          <h2 class="success-h">C'est créé !</h2>
+          <p class="success-p">Merci <strong id="cName" style="color:var(--navy);font-weight:700"></strong> ! Votre faire-part vient d'être généré. Personnalisez-le dès maintenant dans votre espace.</p>
           <div class="summary-block">
             <div class="summary-title">Récapitulatif de votre faire-part</div>
             <div class="summary-row"><span class="summary-k">Événement</span><span class="summary-v" id="sEvt">—</span></div>
@@ -799,17 +768,28 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
 <script src="/espace/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-const supa = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+// On protège la création du client Supabase : si la configuration serveur
+// est incomplète (variable d'environnement manquante en production, par
+// exemple), on ne veut surtout pas qu'une erreur ici bloque TOUT le reste
+// du JavaScript de la page (et donc tous les boutons du site).
+let supa = null;
+try {
+  if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) throw new Error('Configuration Supabase manquante (SUPABASE_URL / SUPABASE_ANON_KEY)');
+  supa = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+} catch (erreur) {
+  console.error('[MySaveTheDate] Impossible d\'initialiser la connexion :', erreur.message);
+}
 
 /* ══ STATE ══ */
 let step = 0;
-const STEPS = 8;
-const S = { eventType:'', date:'', location:'', guests:150, style:'', budget:'', firstName:'', lastName:'', email:'', phone:'', rdvDay:'', rdvTime:'', pages:{hommage:true,shabbat:false,infos:false,video:true,rsvp:true} };
+const STEPS = 7;
+const S = { eventType:'', date:'', location:'', guests:150, style:'', budget:'', firstName:'', lastName:'', email:'', phone:'', pages:{hommage:true,shabbat:false,infos:false,video:true,rsvp:true} };
 
 /* ══ PORTAIL COMPTE ══ */
 let authMode = 'signup'; // 'signup' | 'login'
 
 async function openQ(){
+  if (!supa) { alert("Une erreur technique empêche la création de faire-part pour l'instant. Merci de réessayer plus tard ou de nous contacter."); return; }
   const { data } = await supa.auth.getSession();
   if (data.session) { ouvrirQuestionnaire(); }
   else { document.getElementById('authOverlay').classList.add('open'); document.body.style.overflow='hidden'; }
@@ -844,7 +824,7 @@ async function soumettreAuth(){
 }
 
 /* ══ OVERLAY QUESTIONNAIRE ══ */
-function ouvrirQuestionnaire(){ document.getElementById('qOverlay').classList.add('open'); document.body.style.overflow='hidden'; buildRdvDays(); setStep(0); }
+function ouvrirQuestionnaire(){ document.getElementById('qOverlay').classList.add('open'); document.body.style.overflow='hidden'; setStep(0); }
 function closeQ(){ document.getElementById('qOverlay').classList.remove('open'); document.body.style.overflow=''; }
 
 /* ══ PROGRESS ══ */
@@ -905,44 +885,12 @@ function chk5(){
   document.getElementById('s5next').disabled = !ok;
 }
 
-/* ══ STEP 6 – RDV ══ */
-const MOIS = ['jan.','fév.','mar.','avr.','mai','juin','juil.','août','sep.','oct.','nov.','déc.'];
-const JOURS = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
-function buildRdvDays(){
-  const wrap = document.getElementById('rdvDays'); wrap.innerHTML = '';
-  let d = new Date(); d.setDate(d.getDate()+1);
-  let count = 0;
-  while(count < 12){
-    if(d.getDay()!==0 && d.getDay()!==6){
-      const el = document.createElement('div'); el.className='rdv-day';
-      const iso = d.toISOString().split('T')[0]; el.dataset.val = iso;
-      el.innerHTML = `<div class="rdv-day-dow">${JOURS[d.getDay()]}</div><div class="rdv-day-d">${d.getDate()}</div><div class="rdv-day-m">${MOIS[d.getMonth()]}</div>`;
-      el.onclick = ()=>pickDay(el);
-      wrap.appendChild(el); count++;
-    }
-    d.setDate(d.getDate()+1);
-  }
-}
-function pickDay(el){
-  document.querySelectorAll('.rdv-day').forEach(d=>d.classList.remove('sel'));
-  el.classList.add('sel'); S.rdvDay = el.dataset.val; chk6();
-}
-function pickTime(el){
-  document.querySelectorAll('.rdv-time').forEach(t=>t.classList.remove('sel'));
-  el.classList.add('sel'); S.rdvTime = el.dataset.val; chk6();
-}
-function chk6(){ document.getElementById('s6confirm').disabled = !(S.rdvDay && S.rdvTime); }
-
 /* ══ SUBMIT ══ */
 async function submit(){
   S.guests = document.getElementById('gSlider').value;
 
-  const rdvDate = new Date(S.rdvDay + 'T12:00:00');
-  const rdvFmt = `${JOURS[rdvDate.getDay()]} ${rdvDate.getDate()} ${MOIS[rdvDate.getMonth()]} à ${S.rdvTime}`;
-
   // Populate success screen
   document.getElementById('cName').textContent = S.firstName;
-  document.getElementById('cRdv').textContent = rdvFmt;
   const dateFmt = S.date ? new Date(S.date+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}) : '—';
   document.getElementById('sEvt').textContent    = S.eventType;
   document.getElementById('sDte').textContent    = dateFmt;
@@ -958,7 +906,7 @@ async function submit(){
     const r = await fetch('/api/mon-compte/sites', {
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+(session?.access_token||'') },
-      body: JSON.stringify({ ...S, rdvFormatted: rdvFmt })
+      body: JSON.stringify(S)
     });
     const data = await r.json();
     if (!data.error) {
