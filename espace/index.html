@@ -69,9 +69,29 @@ a{color:inherit;text-decoration:none}
 .editor-preview{width:380px;border-left:1px solid var(--border);background:#060f1e;display:flex;flex-direction:column;flex-shrink:0}
 .preview-bar{height:38px;background:#030811;display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0}
 .preview-dot{width:10px;height:10px;border-radius:50%}
-.preview-iframe-wrap{flex:1;overflow:hidden;position:relative}
-.preview-iframe-wrap iframe{width:200%;height:200%;transform:scale(.5);transform-origin:top left;border:none;pointer-events:none}
-.preview-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-family:'Inter',sans-serif;font-size:12px;font-weight:500}
+.preview-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-family:'Inter',sans-serif;font-size:12px;font-weight:500;text-align:center;padding:0 20px}
+
+.preview-toolbar-row{display:flex;justify-content:center;gap:8px;padding:10px;background:#030811;flex-shrink:0}
+.preview-toggle-btn{width:34px;height:34px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(244,236,224,.5);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.preview-toggle-btn:hover{color:#fff;border-color:rgba(255,255,255,.35)}
+.preview-toggle-btn.active{background:rgba(37,99,235,.25);border-color:#2563eb;color:#fff}
+.preview-toggle-btn svg{width:16px;height:16px}
+
+.preview-stage{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:24px 16px;position:relative}
+
+/* Mockup iPhone */
+.device-mobile{width:224px;height:462px;background:#0a0a0a;border-radius:34px;padding:10px;box-shadow:0 25px 50px rgba(0,0,0,.5);position:relative;flex-shrink:0}
+.device-mobile::before{content:'';position:absolute;top:10px;left:50%;transform:translateX(-50%);width:80px;height:16px;background:#0a0a0a;border-radius:0 0 10px 10px;z-index:2}
+.device-mobile .device-screen{width:100%;height:100%;border-radius:24px;overflow:hidden;background:#fff;position:relative}
+
+/* Mockup ordinateur portable */
+.device-laptop{width:340px;flex-shrink:0}
+.device-laptop .device-screen-frame{background:#0a0a0a;border-radius:10px 10px 0 0;padding:9px 9px 0;box-shadow:0 25px 50px rgba(0,0,0,.5)}
+.device-laptop .device-screen{width:100%;aspect-ratio:16/10;border-radius:3px;overflow:hidden;background:#fff;position:relative}
+.device-laptop .device-base{height:12px;background:linear-gradient(#2c2c2c,#0a0a0a);border-radius:0 0 8px 8px;position:relative;box-shadow:0 8px 16px rgba(0,0,0,.35)}
+.device-laptop .device-base::after{content:'';position:absolute;left:50%;top:0;transform:translateX(-50%);width:56px;height:5px;background:#3a3a3a;border-radius:0 0 5px 5px}
+
+#previewFrame{border:none;position:absolute;top:0;left:0}
 
 .ed-section{display:none}
 .ed-section.active{display:block}
@@ -201,9 +221,7 @@ a{color:inherit;text-decoration:none}
 <!-- TOPBAR -->
 <div class="topbar" id="topbar" style="display:none">
   <div class="topbar-title">MySaveThe<span>Date</span></div>
-  <div id="editorActions" style="display:none;gap:8px">
-    <button class="btn-sm primary" id="btnSave">Sauvegarder</button>
-  </div>
+  <div id="editorActions" style="display:none;gap:8px"></div>
   <button class="btn-sm" id="btnBackDash" style="display:none">← Tableau de bord</button>
   <button class="btn-sm" id="logoutBtn">Déconnexion</button>
 </div>
@@ -447,12 +465,28 @@ a{color:inherit;text-decoration:none}
         <div class="preview-dot" style="background:#ff5f57"></div>
         <div class="preview-dot" style="background:#febc2e"></div>
         <div class="preview-dot" style="background:#28c840"></div>
-        <span style="font-family:'Inter',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,236,224,.4);margin-left:8px">Aperçu</span>
+        <span id="statutSauvegarde" style="font-family:'Inter',sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,236,224,.4);margin-left:8px">Aperçu</span>
         <a id="previewLink" href="#" target="_blank" style="margin-left:auto;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,236,224,.4)">Ouvrir ↗</a>
       </div>
-      <div class="preview-iframe-wrap">
+      <div class="preview-toolbar-row">
+        <button class="preview-toggle-btn active" id="btnDeviceMobile" title="Aperçu mobile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="2" width="10" height="20" rx="2"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+        </button>
+        <button class="preview-toggle-btn" id="btnDeviceDesktop" title="Aperçu ordinateur">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </button>
+      </div>
+      <div class="preview-stage" id="previewStage">
         <div class="preview-loading" id="previewLoading">Sauvegardez pour voir l'aperçu</div>
-        <iframe id="previewFrame" style="display:none"></iframe>
+        <div class="device-mobile" id="deviceMobile">
+          <div class="device-screen" id="screenMobile"><iframe id="previewFrame" style="display:none"></iframe></div>
+        </div>
+        <div class="device-laptop" id="deviceLaptop" style="display:none">
+          <div class="device-screen-frame">
+            <div class="device-screen" id="screenDesktop"></div>
+          </div>
+          <div class="device-base"></div>
+        </div>
       </div>
     </div>
 
@@ -714,11 +748,14 @@ async function ouvrirEditeur(){
   // Aperçu affiché tout de suite (état déjà enregistré), avant même la
   // première sauvegarde — toujours via /apercu/:id, qui fonctionne que le
   // partage soit débloqué ou non.
+  modeApercu = 'mobile';
   const frame = document.getElementById('previewFrame');
   document.getElementById('previewLoading').style.display = 'none';
   frame.style.display = 'block';
   frame.src = '/apercu/' + currentSite.id + '?embed=1&t=' + Date.now();
   document.getElementById('previewLink').href = '/apercu/' + currentSite.id;
+  positionnerApercu();
+  afficherStatutSauvegarde('✓ Enregistré', true);
   setActiveEdNav('identite');
 }
 
@@ -743,10 +780,12 @@ function populateFields(){
 }
 
 document.querySelectorAll('[data-path]').forEach(el => {
-  const maj = () => setPath(currentConfig, el.dataset.path, el.type==='checkbox'?el.checked:el.value);
+  const maj = () => { setPath(currentConfig, el.dataset.path, el.type==='checkbox'?el.checked:el.value); declencherSauvegardeAuto(); };
   el.addEventListener('input', maj);
   el.addEventListener('change', maj);
 });
+document.getElementById('paramSubdomain').addEventListener('change', declencherSauvegardeAuto);
+document.getElementById('paramActive').addEventListener('change', declencherSauvegardeAuto);
 
 // ── Pages (activation + ordre) ──────────────────────────────────────────
 function buildPagesList(){
@@ -771,6 +810,7 @@ function buildPagesList(){
       // Garde les toggles de l'onglet dédié à cette section synchronisés
       const jumeau = document.querySelector(`[data-path="sections.${cle}.enabled"]`);
       if (jumeau) jumeau.checked = e.target.checked;
+      declencherSauvegardeAuto();
     });
     const btnUp = div.querySelector('[data-move-up]');
     const btnDown = div.querySelector('[data-move-down]');
@@ -783,6 +823,7 @@ function deplacerPage(depuis, vers){
   if (vers < 0 || vers >= arr.length) return;
   [arr[depuis], arr[vers]] = [arr[vers], arr[depuis]];
   buildPagesList();
+  declencherSauvegardeAuto();
 }
 
 // ── Couleurs ──────────────────────────────────────────────────────────────
@@ -801,11 +842,13 @@ function buildColorGrid(){
     if (!currentConfig.theme.colors) currentConfig.theme.colors = {};
     currentConfig.theme.colors[k] = v;
     grid.querySelector(`[data-color-text="${k}"]`).value = v;
+    declencherSauvegardeAuto();
   }));
   grid.querySelectorAll('[data-color-text]').forEach(el => el.addEventListener('input', () => {
     const k = el.dataset.colorText, v = el.value;
     currentConfig.theme.colors[k] = v;
     grid.querySelector(`[data-color="${k}"]`).value = v;
+    declencherSauvegardeAuto();
   }));
 }
 function buildPalettePresets(){
@@ -818,6 +861,7 @@ function buildPalettePresets(){
     btn.addEventListener('click', () => {
       Object.entries(p).forEach(([k,v]) => { if (k!=='label') { if(!currentConfig.theme) currentConfig.theme={colors:{}}; currentConfig.theme.colors[k]=v; } });
       buildColorGrid();
+      declencherSauvegardeAuto();
     });
     wrap.appendChild(btn);
   });
@@ -841,13 +885,13 @@ function buildMusicTracks(){
         <div class="field-group"><label>Boucler à partir de (secondes)</label><input type="number" class="mt-loop" min="0" value="${track.loopFrom||0}"></div>
       </div>`;
     wrap.appendChild(div);
-    div.querySelector('.mt-label').addEventListener('input', e => track.label = e.target.value);
-    div.querySelector('.mt-start').addEventListener('input', e => track.startAt = parseInt(e.target.value)||0);
-    div.querySelector('.mt-loop').addEventListener('input', e => track.loopFrom = parseInt(e.target.value)||0);
+    div.querySelector('.mt-label').addEventListener('input', e => { track.label = e.target.value; declencherSauvegardeAuto(); });
+    div.querySelector('.mt-start').addEventListener('input', e => { track.startAt = parseInt(e.target.value)||0; declencherSauvegardeAuto(); });
+    div.querySelector('.mt-loop').addEventListener('input', e => { track.loopFrom = parseInt(e.target.value)||0; declencherSauvegardeAuto(); });
     div.querySelector('.mt-file').addEventListener('change', async e => {
       const file = e.target.files[0]; if (!file) return;
       const url = await uploaderFichier(file, 'music');
-      if (url) { track.url = url; div.querySelector('.upload-zone-text').textContent = '✓ ' + file.name; showToast('Musique envoyée'); }
+      if (url) { track.url = url; div.querySelector('.upload-zone-text').textContent = '✓ ' + file.name; showToast('Musique envoyée'); declencherSauvegardeAuto(); }
     });
   });
 }
@@ -867,15 +911,15 @@ function buildEventsList(section){
       </div>
       <div class="field-group"><label>Adresse (optionnel)</label><input type="text" class="ev-address" value="${ev.address||''}"></div>`;
     wrap.appendChild(div);
-    const maj = () => { events[i] = { label:div.querySelector('.ev-label').value, value:div.querySelector('.ev-value').value, address:div.querySelector('.ev-address').value }; };
+    const maj = () => { events[i] = { label:div.querySelector('.ev-label').value, value:div.querySelector('.ev-value').value, address:div.querySelector('.ev-address').value }; declencherSauvegardeAuto(); };
     div.querySelectorAll('input').forEach(el => el.addEventListener('input', maj));
-    div.querySelector('[data-del]').addEventListener('click', () => { events.splice(i,1); buildEventsList(section); });
+    div.querySelector('[data-del]').addEventListener('click', () => { events.splice(i,1); buildEventsList(section); declencherSauvegardeAuto(); });
   });
 }
 const btnAddFP = document.getElementById('addFairePartEvent');
-if (btnAddFP) btnAddFP.addEventListener('click', () => { currentConfig.sections.fairepart.events = currentConfig.sections.fairepart.events||[]; currentConfig.sections.fairepart.events.push({label:'',value:'',address:''}); buildEventsList('fairepart'); });
+if (btnAddFP) btnAddFP.addEventListener('click', () => { currentConfig.sections.fairepart.events = currentConfig.sections.fairepart.events||[]; currentConfig.sections.fairepart.events.push({label:'',value:'',address:''}); buildEventsList('fairepart'); declencherSauvegardeAuto(); });
 const btnAddSh = document.getElementById('addShabbatEvent');
-if (btnAddSh) btnAddSh.addEventListener('click', () => { currentConfig.sections.shabbat.events = currentConfig.sections.shabbat.events||[]; currentConfig.sections.shabbat.events.push({label:'',value:'',address:''}); buildEventsList('shabbat'); });
+if (btnAddSh) btnAddSh.addEventListener('click', () => { currentConfig.sections.shabbat.events = currentConfig.sections.shabbat.events||[]; currentConfig.sections.shabbat.events.push({label:'',value:'',address:''}); buildEventsList('shabbat'); declencherSauvegardeAuto(); });
 
 function buildRsvpEvents(){
   const wrap = document.getElementById('rsvp-events');
@@ -891,15 +935,16 @@ function buildRsvpEvents(){
       <div class="field-group"><label>Date affichée</label><input type="text" class="re-date" value="${ev.date||''}"></div>
       <button class="btn-sm" data-del type="button" style="margin-top:6px">Supprimer</button>`;
     wrap.appendChild(div);
-    const maj = () => { events[i] = { id:div.querySelector('.re-id').value, name:div.querySelector('.re-name').value, date:div.querySelector('.re-date').value }; };
+    const maj = () => { events[i] = { id:div.querySelector('.re-id').value, name:div.querySelector('.re-name').value, date:div.querySelector('.re-date').value }; declencherSauvegardeAuto(); };
     div.querySelectorAll('input').forEach(el => el.addEventListener('input', maj));
-    div.querySelector('[data-del]').addEventListener('click', () => { events.splice(i,1); buildRsvpEvents(); });
+    div.querySelector('[data-del]').addEventListener('click', () => { events.splice(i,1); buildRsvpEvents(); declencherSauvegardeAuto(); });
   });
 }
 document.getElementById('addRsvpEvent').addEventListener('click', () => {
   if (!currentConfig.sections.rsvp.events) currentConfig.sections.rsvp.events = [];
   currentConfig.sections.rsvp.events.push({ id:'ev'+Date.now(), name:'', date:'' });
   buildRsvpEvents();
+  declencherSauvegardeAuto();
 });
 
 // ── Uploads (logo + photos) ───────────────────────────────────────────────
@@ -917,28 +962,53 @@ async function uploaderFichier(file, type){
 document.getElementById('logoFile').addEventListener('change', async e => {
   const file = e.target.files[0]; if (!file) return;
   const url = await uploaderFichier(file, 'logo');
-  if (url) { setPath(currentConfig,'identity.logo',url); document.getElementById('logoPreview').src=url; document.getElementById('logoPreview').style.display='block'; showToast('Logo envoyé'); }
+  if (url) { setPath(currentConfig,'identity.logo',url); document.getElementById('logoPreview').src=url; document.getElementById('logoPreview').style.display='block'; showToast('Logo envoyé'); declencherSauvegardeAuto(); }
 });
 document.querySelectorAll('[data-upload-to]').forEach(input => {
   input.addEventListener('change', async e => {
     const file = e.target.files[0]; if (!file) return;
     const url = await uploaderFichier(file, 'photo');
-    if (url) { setPath(currentConfig, input.dataset.uploadTo, url); showToast('Photo envoyée'); }
+    if (url) { setPath(currentConfig, input.dataset.uploadTo, url); showToast('Photo envoyée'); declencherSauvegardeAuto(); }
   });
 });
 
-// ── Sauvegarde ────────────────────────────────────────────────────────────
-document.getElementById('btnSave').addEventListener('click', async () => {
+// ── Sauvegarde automatique ────────────────────────────────────────────────
+// Toute modification (texte, couleur, page, événement, upload…) déclenche
+// une sauvegarde après une courte pause, sans avoir besoin d'appuyer sur un
+// bouton. On attend un court instant après la dernière modification pour
+// éviter d'enregistrer à chaque frappe.
+let minuteurSauvegarde = null;
+
+function declencherSauvegardeAuto(){
+  afficherStatutSauvegarde('Modification…', false);
+  if (minuteurSauvegarde) clearTimeout(minuteurSauvegarde);
+  minuteurSauvegarde = setTimeout(sauvegarderMaintenant, 900);
+}
+
+function afficherStatutSauvegarde(texte, estEnregistre){
+  const el = document.getElementById('statutSauvegarde');
+  if (!el) return;
+  el.textContent = texte;
+  el.style.color = estEnregistre ? 'rgba(147,197,253,.9)' : 'rgba(244,236,224,.4)';
+}
+
+async function sauvegarderMaintenant(){
+  if (!currentSite) return;
+  afficherStatutSauvegarde('Enregistrement…', false);
+
   const body = { config: currentConfig, active: document.getElementById('paramActive').checked };
   const nouveauSousDomaine = document.getElementById('paramSubdomain').value.trim();
   if (nouveauSousDomaine && nouveauSousDomaine !== currentSite.subdomain) body.subdomain = nouveauSousDomaine;
 
   const r = await apiFetch('/api/mon-compte/site/'+currentSite.id, { method:'PUT', body: JSON.stringify(body) });
   const data = await r.json();
-  if (data.error) { showToast('Erreur : ' + data.error); return; }
+  if (data.error) { showToast('Erreur : ' + data.error); afficherStatutSauvegarde('Erreur — réessai…', false); minuteurSauvegarde = setTimeout(sauvegarderMaintenant, 2000); return; }
   currentSite = data;
-  showToast('✓ Sauvegardé');
+  afficherStatutSauvegarde('✓ Enregistré', true);
+  rafraichirApercu();
+}
 
+function rafraichirApercu(){
   const frame = document.getElementById('previewFrame');
   document.getElementById('previewLoading').style.display = 'none';
   frame.style.display = 'block';
@@ -947,6 +1017,31 @@ document.getElementById('btnSave').addEventListener('click', async () => {
   // lui, ne répond qu'une fois le site actif.
   frame.src = '/apercu/' + currentSite.id + '?embed=1&t=' + Date.now();
   document.getElementById('previewLink').href = '/apercu/' + currentSite.id;
+  positionnerApercu();
+}
+
+// ── Mockups d'aperçu (mobile / ordinateur) ────────────────────────────────
+let modeApercu = 'mobile';
+const TAILLES_APERCU = {
+  mobile:  { largeur:375,  hauteur:812, echelle: 200/375 },
+  desktop: { largeur:1280, hauteur:800, echelle: 320/1280 },
+};
+function positionnerApercu(){
+  const frame = document.getElementById('previewFrame');
+  const t = TAILLES_APERCU[modeApercu];
+  frame.style.width = t.largeur + 'px';
+  frame.style.height = t.hauteur + 'px';
+  frame.style.transform = 'scale(' + t.echelle + ')';
+  frame.style.transformOrigin = 'top left';
+  const cible = document.getElementById(modeApercu === 'mobile' ? 'screenMobile' : 'screenDesktop');
+  cible.appendChild(frame);
+  document.getElementById('deviceMobile').style.display = modeApercu === 'mobile' ? '' : 'none';
+  document.getElementById('deviceLaptop').style.display = modeApercu === 'desktop' ? '' : 'none';
+  document.getElementById('btnDeviceMobile').classList.toggle('active', modeApercu==='mobile');
+  document.getElementById('btnDeviceDesktop').classList.toggle('active', modeApercu==='desktop');
+}
+document.getElementById('btnDeviceMobile').addEventListener('click', () => { modeApercu='mobile'; positionnerApercu(); });
+document.getElementById('btnDeviceDesktop').addEventListener('click', () => { modeApercu='desktop'; positionnerApercu();
 });
 
 // ── Statistiques / réponses ───────────────────────────────────────────────
