@@ -252,7 +252,6 @@ a{color:inherit;text-decoration:none}
       <div class="editor-nav-item" data-ed="video">Vidéo</div>
       <div class="editor-nav-item" data-ed="rsvp">RSVP</div>
       <div class="editor-nav-item" data-ed="musique">Musique</div>
-      <div class="editor-nav-item" data-ed="stats">Réponses</div>
       <div class="editor-nav-item" data-ed="parametres">Paramètres</div>
     </div>
 
@@ -885,10 +884,6 @@ function mettreAJourVisibiliteNav(){
     const active = currentConfig.sections?.[cle]?.enabled !== false;
     item.style.display = active ? '' : 'none';
   });
-  // L'onglet "Réponses" (RSVP + vidéos reçues) ne sert que si la page RSVP
-  // est activée.
-  const itemStats = document.querySelector('.editor-nav-item[data-ed="stats"]');
-  if (itemStats) itemStats.style.display = (currentConfig.sections?.rsvp?.enabled !== false) ? '' : 'none';
   // Si l'onglet actuellement ouvert vient d'être masqué, on bascule vers
   // l'onglet "Pages" pour ne pas laisser l'éditeur sur un onglet invisible.
   const itemActif = document.querySelector(`.editor-nav-item[data-ed="${activeEdKey}"]`);
