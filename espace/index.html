@@ -80,16 +80,16 @@ a{color:inherit;text-decoration:none}
 .preview-stage{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:24px 16px;position:relative}
 
 /* Mockup iPhone */
-.device-mobile{width:224px;height:462px;background:#0a0a0a;border-radius:34px;padding:10px;box-shadow:0 25px 50px rgba(0,0,0,.5), 0 0 70px rgba(226,232,255,.16);position:relative;flex-shrink:0}
-.device-mobile::before{content:'';position:absolute;top:10px;left:50%;transform:translateX(-50%);width:80px;height:16px;background:#0a0a0a;border-radius:0 0 10px 10px;z-index:2}
-.device-mobile .device-screen{width:100%;height:100%;border-radius:24px;overflow:hidden;background:#fff;position:relative}
+.device-mobile{width:300px;height:620px;background:#0a0a0a;border-radius:40px;padding:13px;box-shadow:0 25px 50px rgba(0,0,0,.5), 0 0 90px rgba(226,232,255,.18);position:relative;flex-shrink:0}
+.device-mobile::before{content:'';position:absolute;top:13px;left:50%;transform:translateX(-50%);width:100px;height:20px;background:#0a0a0a;border-radius:0 0 14px 14px;z-index:2}
+.device-mobile .device-screen{width:100%;height:100%;border-radius:28px;overflow:hidden;background:#fff;position:relative}
 
 /* Mockup ordinateur portable */
-.device-laptop{width:340px;flex-shrink:0}
-.device-laptop .device-screen-frame{background:#0a0a0a;border-radius:10px 10px 0 0;padding:9px 9px 0;box-shadow:0 25px 50px rgba(0,0,0,.5), 0 0 70px rgba(226,232,255,.16)}
-.device-laptop .device-screen{width:100%;aspect-ratio:16/10;border-radius:3px;overflow:hidden;background:#fff;position:relative}
-.device-laptop .device-base{height:12px;background:linear-gradient(#2c2c2c,#0a0a0a);border-radius:0 0 8px 8px;position:relative;box-shadow:0 8px 16px rgba(0,0,0,.35)}
-.device-laptop .device-base::after{content:'';position:absolute;left:50%;top:0;transform:translateX(-50%);width:56px;height:5px;background:#3a3a3a;border-radius:0 0 5px 5px}
+.device-laptop{width:560px;flex-shrink:0}
+.device-laptop .device-screen-frame{background:#0a0a0a;border-radius:14px 14px 0 0;padding:10px 10px 0;box-shadow:0 25px 50px rgba(0,0,0,.5), 0 0 90px rgba(226,232,255,.18)}
+.device-laptop .device-screen{width:100%;aspect-ratio:16/10;border-radius:4px;overflow:hidden;background:#fff;position:relative}
+.device-laptop .device-base{height:16px;background:linear-gradient(#2c2c2c,#0a0a0a);border-radius:0 0 10px 10px;position:relative;box-shadow:0 10px 20px rgba(0,0,0,.35)}
+.device-laptop .device-base::after{content:'';position:absolute;left:50%;top:0;transform:translateX(-50%);width:80px;height:6px;background:#3a3a3a;border-radius:0 0 6px 6px}
 
 #previewFrame{border:none;position:absolute;top:0;left:0}
 
@@ -1023,8 +1023,8 @@ function rafraichirApercu(){
 // ── Mockups d'aperçu (mobile / ordinateur) ────────────────────────────────
 let modeApercu = 'mobile';
 const TAILLES_APERCU = {
-  mobile:  { largeur:375,  hauteur:812, echelle: 200/375 },
-  desktop: { largeur:1280, hauteur:800, echelle: 320/1280 },
+  mobile:  { largeur:375,  hauteur:812, echelle: 274/375 },   // 300px de mockup - 13px de bordure de chaque côté
+  desktop: { largeur:1280, hauteur:800, echelle: 540/1280 },  // 560px de mockup - 10px de bordure de chaque côté
 };
 function positionnerApercu(){
   const frame = document.getElementById('previewFrame');
