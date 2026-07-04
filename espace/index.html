@@ -857,7 +857,14 @@ function populateFields(){
 }
 
 document.querySelectorAll('[data-path]').forEach(el => {
-  const maj = () => { setPath(currentConfig, el.dataset.path, el.type==='checkbox'?el.checked:el.value); declencherSauvegardeAuto(); };
+  const maj = () => {
+    setPath(currentConfig, el.dataset.path, el.type==='checkbox'?el.checked:el.value);
+    declencherSauvegardeAuto();
+    // Le toggle "Page activée" de l'onglet de la section elle-même doit
+    // aussi mettre à jour la liste de l'onglet "Pages" et la visibilité
+    // de l'onglet dans le menu de gauche.
+    if (/^sections\.[a-zA-Z0-9_-]+\.enabled$/.test(el.dataset.path)) buildPagesList();
+  };
   el.addEventListener('input', maj);
   el.addEventListener('change', maj);
   // Le champ appartient à une section (ex. "sections.infos.title") : on
@@ -865,6 +872,23 @@ document.querySelectorAll('[data-path]').forEach(el => {
   const cleSection = el.dataset.path.match(/^sections\.([a-zA-Z0-9_-]+)\./)?.[1];
   if (cleSection) el.addEventListener('focus', () => naviguerApercuVers(cleSection));
 });
+
+// Les onglets de gauche des sections fixes (Faire-part, Hommage, …) ne sont
+// affichés que si la page est activée ; désactivée, elle reste éditable
+// uniquement depuis l'onglet "Pages" (qui liste toujours toutes les pages).
+const SECTIONS_AVEC_ONGLET = ['fairepart','hommage','shabbat','infos','video','rsvp'];
+function mettreAJourVisibiliteNav(){
+  SECTIONS_AVEC_ONGLET.forEach(cle => {
+    const item = document.querySelector(`.editor-nav-item[data-ed="${cle}"]`);
+    if (!item) return;
+    const active = currentConfig.sections?.[cle]?.enabled !== false;
+    item.style.display = active ? '' : 'none';
+  });
+  // Si l'onglet actuellement ouvert vient d'être masqué, on bascule vers
+  // l'onglet "Pages" pour ne pas laisser l'éditeur sur un onglet invisible.
+  const itemActif = document.querySelector(`.editor-nav-item[data-ed="${activeEdKey}"]`);
+  if (itemActif && itemActif.style.display === 'none') setActiveEdNav('pages');
+}
 document.getElementById('paramSubdomain').addEventListener('change', declencherSauvegardeAuto);
 document.getElementById('paramActive').addEventListener('change', declencherSauvegardeAuto);
 
@@ -898,11 +922,13 @@ function buildPagesList(){
       if (pagePerso) {
         pagePerso.enabled = e.target.checked;
       } else {
+        if (!currentConfig.sections) currentConfig.sections = {};
         if (!currentConfig.sections[cle]) currentConfig.sections[cle] = {};
         currentConfig.sections[cle].enabled = e.target.checked;
         // Garde les toggles de l'onglet dédié à cette section synchronisés
         const jumeau = document.querySelector(`[data-path="sections.${cle}.enabled"]`);
         if (jumeau) jumeau.checked = e.target.checked;
+        mettreAJourVisibiliteNav();
       }
       declencherSauvegardeAuto();
     });
@@ -914,6 +940,7 @@ function buildPagesList(){
     if (btnSupprimer) btnSupprimer.addEventListener('click', () => { supprimerPagePersonnalisee(cle); });
   });
   buildCustomPagesEditor();
+  mettreAJourVisibiliteNav();
 }
 function deplacerPage(depuis, vers){
   const arr = currentConfig.pageOrder;
