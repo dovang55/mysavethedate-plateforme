@@ -1,3 +1,34 @@
+// Convertit une couleur hexadécimale ("#2563eb") en rgba() utilisable dans
+// un gradient CSS avec une opacité donnée.
+function hexVersRgba(hex, alpha) {
+  const h = (hex || '#000000').replace('#', '');
+  const complet = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+  const nombre = parseInt(complet, 16) || 0;
+  const r = (nombre >> 16) & 255, g = (nombre >> 8) & 255, b = nombre & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// Construit le CSS de l'arrière-plan : un dégradé décoratif (par défaut,
+// qui suit désormais les couleurs réelles du thème plutôt que des teintes
+// bleues figées) ou un simple fond uni, selon le choix du client.
+function construireFondCSS(t) {
+  const bg = t.background || { type: 'degrade', angle: 155 };
+  if (bg.type === 'uni') return t.colors.creamWarm;
+  return `radial-gradient(ellipse 70% 50% at 18% 22%, ${hexVersRgba(t.colors.creamDeep, .85)}, transparent 65%),
+    radial-gradient(ellipse 60% 50% at 82% 18%, ${hexVersRgba(t.colors.gold, .08)}, transparent 65%),
+    radial-gradient(ellipse 55% 45% at 25% 80%, ${hexVersRgba(t.colors.gold, .06)}, transparent 65%),
+    linear-gradient(${bg.angle ?? 155}deg, ${t.colors.creamWarm} 0%, ${t.colors.creamDeep} 55%, ${t.colors.cream} 100%)`;
+}
+
+// Construit l'URL Google Fonts à partir des polices réellement choisies
+// (au lieu d'une liste figée) : sans ça, choisir une police dans l'éditeur
+// n'avait aucun effet, la police n'étant jamais chargée dans la page.
+function construireUrlPolices(t) {
+  const familles = [...new Set([t.fonts?.heading, t.fonts?.body, t.fonts?.ui, t.fonts?.hebrew].filter(Boolean))];
+  const params = familles.map(f => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700;800`).join('&');
+  return `https://fonts.googleapis.com/css2?${params}&display=swap`;
+}
+
 // Génère le HTML complet d'un site à partir de son config JSON
 module.exports = function renderSite(cfg, siteId) {
   const c = cfg;
@@ -9,12 +40,17 @@ module.exports = function renderSite(cfg, siteId) {
   // milieu peut être personnalisé par le client (config.pageOrder) ; hero et
   // footer restent toujours en premier/dernier.
   const SECTIONS_CONNUES = ['fairepart','hommage','shabbat','infos','video','rsvp'];
-  let ordreMilieu = Array.isArray(c.pageOrder) ? c.pageOrder.filter(k => SECTIONS_CONNUES.includes(k)) : [];
+  const customPages = Array.isArray(c.customPages) ? c.customPages : [];
+  const customIds = customPages.map(p => p.id);
+  let ordreMilieu = Array.isArray(c.pageOrder) ? c.pageOrder.filter(k => SECTIONS_CONNUES.includes(k) || customIds.includes(k)) : [];
   SECTIONS_CONNUES.forEach(k => { if (!ordreMilieu.includes(k)) ordreMilieu.push(k); });
+  customIds.forEach(k => { if (!ordreMilieu.includes(k)) ordreMilieu.push(k); });
   const pageDefs = ['hero', ...ordreMilieu, 'footer'];
   const activePages = pageDefs.filter(k => {
     if (k === 'hero' || k === 'footer') return true;
-    return s[k]?.enabled !== false;
+    if (SECTIONS_CONNUES.includes(k)) return s[k]?.enabled !== false;
+    const pagePerso = customPages.find(p => p.id === k);
+    return pagePerso ? pagePerso.enabled !== false : false;
   });
 
   // Mapping musique : page index → track index
@@ -194,7 +230,27 @@ module.exports = function renderSite(cfg, siteId) {
 
   };
 
-  const sectionsMilieuHTML = ordreMilieu.map(k => sectionsHTML[k]||'').join('');
+  // Pages personnalisées créées librement par le client : même habillage
+  // visuel que la page "Hommage" (titre + texte + photo), pour rester
+  // cohérent avec le reste du faire-part sans ajouter de nouveau design.
+  const customSectionsHTML = {};
+  customPages.forEach(p => {
+    if (p.enabled === false) { customSectionsHTML[p.id] = ''; return; }
+    customSectionsHTML[p.id] = `
+<!-- PAGE PERSONNALISÉE : ${p.title||''} -->
+<section class="hommage">
+  <div class="container">
+    <div class="hommage-card fade-in">
+      <div class="hommage-tag">${p.tag||'Page'}</div>
+      <h2 class="hommage-title">${p.title||''}</h2>
+      ${photoSlot(p.photo, 'Photo', 'max-width:420px')}
+      <p class="hommage-text">${(p.text||'').replace(/\n/g,'<br>')}</p>
+    </div>
+  </div>
+</section>`;
+  });
+
+  const sectionsMilieuHTML = ordreMilieu.map(k => sectionsHTML[k] || customSectionsHTML[k] || '').join('');
 
   return `<!doctype html>
 <html lang="${c.meta?.lang||'fr'}">
@@ -204,7 +260,7 @@ module.exports = function renderSite(cfg, siteId) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@300;400;500;600&family=Frank+Ruhl+Libre:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="${construireUrlPolices(t)}" rel="stylesheet">
 <style>
   :root{
     --cream:${t.colors.cream};
@@ -253,10 +309,7 @@ module.exports = function renderSite(cfg, siteId) {
   }
 
   .bg-gradient{position:fixed;inset:0;z-index:-2;pointer-events:none;background:
-    radial-gradient(ellipse 70% 50% at 18% 22%, rgba(219,234,254,.85), transparent 65%),
-    radial-gradient(ellipse 60% 50% at 82% 18%, rgba(37,99,235,.06), transparent 65%),
-    radial-gradient(ellipse 55% 45% at 25% 80%, rgba(37,99,235,.05), transparent 65%),
-    linear-gradient(155deg, ${t.colors.creamWarm} 0%, #e8f0fe 55%, #dbeafe 100%)}
+    ${construireFondCSS(t)}}
 
   .bsd{position:fixed;top:20px;right:24px;z-index:55;font-family:'${t.fonts.hebrew}',serif;font-size:14px;font-weight:600;letter-spacing:.04em;color:var(--bronze);opacity:.85;direction:rtl;pointer-events:none}
 

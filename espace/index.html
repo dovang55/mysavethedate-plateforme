@@ -12,7 +12,7 @@
   --cream:#e8f0fe;--sidebar:210px;--topbar:56px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--ink);background:var(--bg);min-height:100vh;display:flex;flex-direction:column}
+body{font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--ink);background:var(--bg);height:100vh;overflow:hidden;display:flex;flex-direction:column}
 a{color:inherit;text-decoration:none}
 
 /* AUTH SCREENS */
@@ -48,7 +48,7 @@ a{color:inherit;text-decoration:none}
 .app-body{display:flex;flex:1;overflow:hidden}
 
 /* DASHBOARD */
-#view-dashboard{padding:40px;max-width:640px;margin:0 auto;width:100%}
+#view-dashboard{padding:40px;max-width:640px;margin:0 auto;width:100%;overflow-y:auto;height:100%}
 .dash-card{background:var(--paper);border:1px solid var(--border);border-left:4px solid var(--gold);padding:32px;margin-top:24px}
 .dash-sub{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
 .dash-name{font-family:'Montserrat',sans-serif;font-weight:800;font-size:26px;color:var(--ink);margin-bottom:4px}
@@ -121,6 +121,8 @@ a{color:inherit;text-decoration:none}
 .preset-swatch{height:32px;border-radius:4px;margin-bottom:6px}
 .preset-name{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--ink-s)}
 .color-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.advanced-colors summary{list-style:none}
+.advanced-colors summary::-webkit-details-marker{display:none}
 .color-field{display:flex;align-items:center;gap:10px}
 .color-field input[type=color]{width:40px;height:36px;border:1px solid var(--border);padding:2px;background:var(--paper);cursor:pointer;border-radius:4px}
 .color-field input[type=text]{flex:1;border:1px solid var(--border);padding:8px 10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;background:var(--paper);outline:none;border-radius:4px}
@@ -156,7 +158,7 @@ a{color:inherit;text-decoration:none}
 
 /* PAGES (réordonnancement) */
 .page-row{display:flex;align-items:center;gap:12px;background:var(--cream);border:1px solid var(--border);padding:12px 16px;margin-bottom:8px;border-radius:6px}
-.page-row-name{flex:1;font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:var(--ink)}
+.page-row-name{flex:1;font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:var(--ink);cursor:pointer}
 .page-row-btns{display:flex;gap:4px}
 .page-row-btns button{width:28px;height:28px;border:1px solid var(--border);background:var(--paper);cursor:pointer;border-radius:4px;font-size:12px;color:var(--ink-s)}
 .page-row-btns button:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
@@ -292,27 +294,28 @@ a{color:inherit;text-decoration:none}
         <div class="section-title">Modèles de couleurs</div>
         <div class="palette-presets" id="palettePresets"></div>
         <div class="divider"></div>
-        <div class="section-title">Couleurs personnalisées</div>
-        <div class="color-grid" id="colorGrid"></div>
+        <details class="advanced-colors">
+          <summary class="section-title" style="cursor:pointer;user-select:none">Couleurs personnalisées (avancé) ▾</summary>
+          <div class="color-grid" id="colorGrid" style="margin-top:14px"></div>
+        </details>
         <div class="divider"></div>
         <div class="section-title">Typographie</div>
         <div class="field-row">
           <div class="field-group"><label>Police des titres</label>
-            <select data-path="theme.fonts.heading">
-              <option value="Montserrat">Montserrat (défaut)</option>
-              <option value="Playfair Display">Playfair Display</option>
-              <option value="Cormorant Garamond">Cormorant Garamond</option>
-              <option value="Cinzel">Cinzel</option>
-            </select>
+            <select data-path="theme.fonts.heading" id="selectPoliceTitres"></select>
           </div>
           <div class="field-group"><label>Police du texte</label>
-            <select data-path="theme.fonts.body">
-              <option value="Inter">Inter (défaut)</option>
-              <option value="Cormorant Garamond">Cormorant Garamond</option>
-              <option value="Lora">Lora</option>
-              <option value="EB Garamond">EB Garamond</option>
-            </select>
+            <select data-path="theme.fonts.body" id="selectPoliceTexte"></select>
           </div>
+        </div>
+        <div class="divider"></div>
+        <div class="section-title">Arrière-plan</div>
+        <div class="bg-type-toggle" id="bgTypeToggle" style="display:flex;gap:8px;margin-bottom:12px">
+          <button type="button" class="btn-sm bg-type-btn" data-bg-type="degrade" style="flex:1">Dégradé</button>
+          <button type="button" class="btn-sm bg-type-btn" data-bg-type="uni" style="flex:1">Uni</button>
+        </div>
+        <div class="field-group" id="bgAngleGroup"><label>Angle du dégradé (<span id="bgAngleValue">155</span>°)</label>
+          <input type="range" min="0" max="360" step="5" data-path="theme.background.angle" id="bgAngleRange" style="width:100%">
         </div>
       </div>
 
@@ -320,6 +323,10 @@ a{color:inherit;text-decoration:none}
         <div class="ed-title">Pages</div>
         <div class="ed-sub">Activez, désactivez et réordonnez les pages de votre faire-part (le Hero et le pied de page restent toujours en premier et en dernier)</div>
         <div id="pagesList"></div>
+        <button class="btn-sm" id="btnAjouterPage" style="margin-top:16px">+ Créer une nouvelle page</button>
+        <div class="divider"></div>
+        <div class="section-title">Pages personnalisées</div>
+        <div id="customPagesEditor"></div>
       </div>
 
       <div class="ed-section" data-ed="hero">
@@ -521,8 +528,44 @@ const PRESETS = {
   'bleu-marine':{ label:'Marine Foncé', cream:'#e8eaf6',creamWarm:'#eef0fa',creamDeep:'#c5cae9',paper:'#f5f6fe',gold:'#3f51b5',goldBright:'#5c6bc0',goldDeep:'#283593',bronze:'#1a237e',ink:'#0d0d2b',inkSoft:'#303f9f' },
   'noir-blanc': { label:'Noir & Blanc', cream:'#f5f5f5',creamWarm:'#fafafa',creamDeep:'#e8e8e8',paper:'#ffffff',gold:'#1a1a1a',goldBright:'#333333',goldDeep:'#0d0d0d',bronze:'#555555',ink:'#111111',inkSoft:'#444444' },
   'bleu-or':    { label:'Bleu & Or', cream:'#f0f5ff',creamWarm:'#e8f0fe',creamDeep:'#dbeafe',paper:'#ffffff',gold:'#d97706',goldBright:'#f59e0b',goldDeep:'#b45309',bronze:'#1e3a8a',ink:'#0d1f3c',inkSoft:'#475569' },
+  'rose-gold':  { label:'Rose Gold', cream:'#fdf2f4',creamWarm:'#fce7ea',creamDeep:'#f8d7dc',paper:'#fffbfc',gold:'#b76e79',goldBright:'#d68a94',goldDeep:'#9c5560',bronze:'#7d4249',ink:'#3d2226',inkSoft:'#6b4750' },
+  'bordeaux':   { label:'Bordeaux', cream:'#f7ecec',creamWarm:'#f2dede',creamDeep:'#e8c4c4',paper:'#fffafa',gold:'#7a1f2b',goldBright:'#a02c3b',goldDeep:'#5c1620',bronze:'#4a1119',ink:'#2b0d12',inkSoft:'#6b3038' },
+  'emeraude':   { label:'Émeraude', cream:'#eefbf3',creamWarm:'#e0f6e9',creamDeep:'#c6ecd6',paper:'#ffffff',gold:'#0f7a4e',goldBright:'#14a366',goldDeep:'#0a5c3a',bronze:'#0d4a30',ink:'#0a2a1c',inkSoft:'#3a6b52' },
+  'lavande':    { label:'Lavande', cream:'#f5f0fb',creamWarm:'#ede4f8',creamDeep:'#ddc9f0',paper:'#fffdff',gold:'#7c4dab',goldBright:'#9968c4',goldDeep:'#5f3785',bronze:'#4a2a68',ink:'#2a1740',inkSoft:'#5c4577' },
+  'terracotta': { label:'Terracotta', cream:'#fdf3ec',creamWarm:'#fae6d6',creamDeep:'#f0cba8',paper:'#fffaf5',gold:'#c1622d',goldBright:'#de7d43',goldDeep:'#9c4a20',bronze:'#7a3a19',ink:'#3d1f0d',inkSoft:'#6b4128' },
+  'sauge':      { label:'Sauge', cream:'#f3f6f0',creamWarm:'#e9efe3',creamDeep:'#d5e0c9',paper:'#ffffff',gold:'#6b8a5a',goldBright:'#87a571',goldDeep:'#506844',bronze:'#435638',ink:'#22301c',inkSoft:'#4a5c40' },
+  'gris-perle': { label:'Gris Perle', cream:'#f5f5f7',creamWarm:'#ececef',creamDeep:'#dcdce2',paper:'#ffffff',gold:'#6b6f7a',goldBright:'#8a8f9c',goldDeep:'#4d505a',bronze:'#3d3f47',ink:'#1e1f24',inkSoft:'#52555e' },
+  'corail':     { label:'Corail', cream:'#fef1ee',creamWarm:'#fce3dc',creamDeep:'#f7c6b8',paper:'#fffaf8',gold:'#e15b41',goldBright:'#f07c60',goldDeep:'#b8402a',bronze:'#8f3520',ink:'#401a10',inkSoft:'#7a3c2b' },
+  'prune':      { label:'Prune', cream:'#f7f0f5',creamWarm:'#efe0e9',creamDeep:'#dcc0d1',paper:'#fffbfd',gold:'#8b3a62',goldBright:'#ad4f7d',goldDeep:'#692a49',bronze:'#522038',ink:'#2c1120',inkSoft:'#5c3448' },
+  'or-noir':    { label:'Or & Noir', cream:'#f5f2ea',creamWarm:'#ede7d6',creamDeep:'#ddd0ac',paper:'#fefdf9',gold:'#c9a24b',goldBright:'#e0bc6b',goldDeep:'#a3812f',bronze:'#7a611f',ink:'#17140d',inkSoft:'#4a4432' },
+  'champagne':  { label:'Champagne', cream:'#faf6ee',creamWarm:'#f5ecda',creamDeep:'#ebd9b4',paper:'#fffdf8',gold:'#b98d3e',goldBright:'#d4a94f',goldDeep:'#93702c',bronze:'#6e5620',ink:'#362a10',inkSoft:'#5f4d2c' },
+  'bleu-canard':{ label:'Bleu Canard', cream:'#ecf7f7',creamWarm:'#dbf0ef',creamDeep:'#b8e2e0',paper:'#ffffff',gold:'#147a76',goldBright:'#1c9e99',goldDeep:'#0d5754',bronze:'#0a4643',ink:'#082220',inkSoft:'#2d5a57' },
 };
 const COLOR_LABELS = { cream:'Crème', creamWarm:'Crème chaud', creamDeep:'Crème profond', paper:'Papier', gold:'Or', goldBright:'Or clair', goldDeep:'Or profond', bronze:'Bronze', ink:'Encre', inkSoft:'Encre douce' };
+
+// Polices Google Fonts proposées dans l'éditeur, groupées par style. La
+// police doit aussi être chargée par le moteur de rendu (voir
+// construireUrlPolices dans render.js) pour s'afficher correctement.
+const GROUPES_POLICES = {
+  'Sans-serif — moderne': ['Montserrat','Inter','Poppins','Raleway','Work Sans','Josefin Sans','Outfit','Manrope','Jost','Quicksand','Nunito','Karla','Space Grotesk','Sora','Barlow','Archivo','Urbanist'],
+  'Serif — élégant': ['Playfair Display','Cormorant Garamond','EB Garamond','Cinzel','Marcellus','Prata','Libre Baskerville','Crimson Text','Lora','Bodoni Moda','Abril Fatface','Frank Ruhl Libre','DM Serif Display','Fraunces','Cardo','Spectral','Vollkorn'],
+  'Script & décoratif': ['Great Vibes','Dancing Script','Parisienne','Sacramento','Italiana','Marck Script','Tangerine'],
+};
+function remplirSelectPolices(select, valeurParDefaut){
+  select.innerHTML = '';
+  Object.entries(GROUPES_POLICES).forEach(([groupe, polices]) => {
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = groupe;
+    polices.forEach(police => {
+      const option = document.createElement('option');
+      option.value = police;
+      option.textContent = police;
+      optgroup.appendChild(option);
+    });
+    select.appendChild(optgroup);
+  });
+  if (valeurParDefaut) select.value = valeurParDefaut;
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 // AUTHENTIFICATION
@@ -736,9 +779,12 @@ async function ouvrirEditeur(){
   document.getElementById('editorActions').style.display='flex';
   document.getElementById('edSiteName').textContent = `${currentConfig.identity?.firstName||''} ${currentConfig.identity?.lastName||''}`;
 
+  remplirSelectPolices(document.getElementById('selectPoliceTitres'), currentConfig.theme?.fonts?.heading);
+  remplirSelectPolices(document.getElementById('selectPoliceTexte'), currentConfig.theme?.fonts?.body);
   populateFields();
   buildColorGrid();
   buildPalettePresets();
+  buildBgTypeToggle();
   buildPagesList();
   buildMusicTracks();
   buildEventsList('fairepart');
@@ -752,6 +798,7 @@ async function ouvrirEditeur(){
   const frame = document.getElementById('previewFrame');
   document.getElementById('previewLoading').style.display = 'none';
   frame.style.display = 'block';
+  frame.onload = () => naviguerApercuVers(activeEdKey);
   frame.src = '/apercu/' + currentSite.id + '?embed=1&t=' + Date.now();
   document.getElementById('previewLink').href = '/apercu/' + currentSite.id;
   positionnerApercu();
@@ -759,11 +806,41 @@ async function ouvrirEditeur(){
   setActiveEdNav('identite');
 }
 
+// ── Navigation automatique de l'aperçu vers la page en cours d'édition ────
+let activeEdKey = 'identite';
 document.querySelectorAll('.editor-nav-item').forEach(el => el.addEventListener('click', () => setActiveEdNav(el.dataset.ed)));
 function setActiveEdNav(key){
+  activeEdKey = key;
   document.querySelectorAll('.editor-nav-item').forEach(e=>e.classList.toggle('active',e.dataset.ed===key));
   document.querySelectorAll('.ed-section').forEach(e=>e.classList.toggle('active',e.dataset.ed===key));
   if (key==='stats') loadStats();
+  naviguerApercuVers(key);
+}
+// Calcule l'index de la page (dans le deck de l'aperçu) correspondant à un
+// onglet de l'éditeur, en tenant compte de l'ordre et de l'activation réels
+// des pages (mêmes règles que côté serveur dans render.js).
+function calculerIndexPage(cle){
+  if (!currentConfig) return null;
+  if (cle === 'hero' || cle === 'identite') return 0;
+  const SECTIONS_CONNUES = ['fairepart','hommage','shabbat','infos','video','rsvp'];
+  const customPages = currentConfig.customPages || [];
+  const customIds = customPages.map(p => p.id);
+  let ordreMilieu = Array.isArray(currentConfig.pageOrder) ? currentConfig.pageOrder.filter(k => SECTIONS_CONNUES.includes(k) || customIds.includes(k)) : [];
+  SECTIONS_CONNUES.forEach(k => { if (!ordreMilieu.includes(k)) ordreMilieu.push(k); });
+  customIds.forEach(k => { if (!ordreMilieu.includes(k)) ordreMilieu.push(k); });
+  const activeMilieu = ordreMilieu.filter(k => {
+    if (SECTIONS_CONNUES.includes(k)) return currentConfig.sections?.[k]?.enabled !== false;
+    const cp = customPages.find(p => p.id === k);
+    return cp ? cp.enabled !== false : false;
+  });
+  const idx = activeMilieu.indexOf(cle);
+  return idx === -1 ? null : idx + 1;
+}
+function naviguerApercuVers(cle){
+  const idx = calculerIndexPage(cle);
+  if (idx === null) return;
+  const frame = document.getElementById('previewFrame');
+  try { frame.contentWindow?.deck?.go(idx); } catch(_) { /* aperçu pas encore chargé */ }
 }
 
 function populateFields(){
@@ -783,40 +860,60 @@ document.querySelectorAll('[data-path]').forEach(el => {
   const maj = () => { setPath(currentConfig, el.dataset.path, el.type==='checkbox'?el.checked:el.value); declencherSauvegardeAuto(); };
   el.addEventListener('input', maj);
   el.addEventListener('change', maj);
+  // Le champ appartient à une section (ex. "sections.infos.title") : on
+  // fait sauter l'aperçu sur cette page dès qu'on clique dedans.
+  const cleSection = el.dataset.path.match(/^sections\.([a-zA-Z0-9_-]+)\./)?.[1];
+  if (cleSection) el.addEventListener('focus', () => naviguerApercuVers(cleSection));
 });
 document.getElementById('paramSubdomain').addEventListener('change', declencherSauvegardeAuto);
 document.getElementById('paramActive').addEventListener('change', declencherSauvegardeAuto);
 
 // ── Pages (activation + ordre) ──────────────────────────────────────────
+function trouverPagePersonnalisee(id){
+  return (currentConfig.customPages||[]).find(p => p.id === id);
+}
 function buildPagesList(){
+  if (!currentConfig.customPages) currentConfig.customPages = [];
   if (!currentConfig.pageOrder) currentConfig.pageOrder = [...SECTIONS_REORDONNABLES];
+  currentConfig.customPages.forEach(p => { if (!currentConfig.pageOrder.includes(p.id)) currentConfig.pageOrder.push(p.id); });
   const wrap = document.getElementById('pagesList');
   wrap.innerHTML = '';
   currentConfig.pageOrder.forEach((cle, i) => {
-    const active = currentConfig.sections?.[cle]?.enabled !== false;
+    const pagePerso = trouverPagePersonnalisee(cle);
+    const active = pagePerso ? pagePerso.enabled !== false : currentConfig.sections?.[cle]?.enabled !== false;
+    const nom = pagePerso ? (pagePerso.title || 'Page sans titre') : (NOMS_SECTIONS[cle]||cle);
     const div = document.createElement('div');
     div.className = 'page-row';
     div.innerHTML = `
       <label class="toggle"><input type="checkbox" ${active?'checked':''} data-page-toggle="${cle}"><span class="toggle-slider"></span></label>
-      <span class="page-row-name">${NOMS_SECTIONS[cle]||cle}</span>
+      <span class="page-row-name">${nom}${pagePerso?' <em style="opacity:.6;font-style:italic">(personnalisée)</em>':''}</span>
       <div class="page-row-btns">
         <button type="button" data-move-up ${i===0?'disabled':''}>↑</button>
         <button type="button" data-move-down ${i===currentConfig.pageOrder.length-1?'disabled':''}>↓</button>
+        ${pagePerso?'<button type="button" data-supprimer-page>✕</button>':''}
       </div>`;
     wrap.appendChild(div);
+    div.querySelector('.page-row-name').addEventListener('click', () => naviguerApercuVers(cle));
     div.querySelector('[data-page-toggle]').addEventListener('change', e => {
-      if (!currentConfig.sections[cle]) currentConfig.sections[cle] = {};
-      currentConfig.sections[cle].enabled = e.target.checked;
-      // Garde les toggles de l'onglet dédié à cette section synchronisés
-      const jumeau = document.querySelector(`[data-path="sections.${cle}.enabled"]`);
-      if (jumeau) jumeau.checked = e.target.checked;
+      if (pagePerso) {
+        pagePerso.enabled = e.target.checked;
+      } else {
+        if (!currentConfig.sections[cle]) currentConfig.sections[cle] = {};
+        currentConfig.sections[cle].enabled = e.target.checked;
+        // Garde les toggles de l'onglet dédié à cette section synchronisés
+        const jumeau = document.querySelector(`[data-path="sections.${cle}.enabled"]`);
+        if (jumeau) jumeau.checked = e.target.checked;
+      }
       declencherSauvegardeAuto();
     });
     const btnUp = div.querySelector('[data-move-up]');
     const btnDown = div.querySelector('[data-move-down]');
     if (btnUp) btnUp.addEventListener('click', () => { deplacerPage(i, i-1); });
     if (btnDown) btnDown.addEventListener('click', () => { deplacerPage(i, i+1); });
+    const btnSupprimer = div.querySelector('[data-supprimer-page]');
+    if (btnSupprimer) btnSupprimer.addEventListener('click', () => { supprimerPagePersonnalisee(cle); });
   });
+  buildCustomPagesEditor();
 }
 function deplacerPage(depuis, vers){
   const arr = currentConfig.pageOrder;
@@ -824,6 +921,54 @@ function deplacerPage(depuis, vers){
   [arr[depuis], arr[vers]] = [arr[vers], arr[depuis]];
   buildPagesList();
   declencherSauvegardeAuto();
+}
+
+// ── Pages personnalisées ─────────────────────────────────────────────────
+document.getElementById('btnAjouterPage').addEventListener('click', () => {
+  if (!currentConfig.customPages) currentConfig.customPages = [];
+  const id = 'custom-' + Date.now();
+  currentConfig.customPages.push({ id, tag:'Page', title:'Nouvelle page', text:'', photo:'', enabled:true });
+  currentConfig.pageOrder.push(id);
+  buildPagesList();
+  declencherSauvegardeAuto();
+});
+function supprimerPagePersonnalisee(id){
+  currentConfig.customPages = (currentConfig.customPages||[]).filter(p => p.id !== id);
+  currentConfig.pageOrder = (currentConfig.pageOrder||[]).filter(k => k !== id);
+  buildPagesList();
+  declencherSauvegardeAuto();
+}
+function buildCustomPagesEditor(){
+  const wrap = document.getElementById('customPagesEditor');
+  wrap.innerHTML = '';
+  const pages = currentConfig.customPages || [];
+  if (!pages.length) { wrap.innerHTML = '<div class="ed-sub" style="margin:0">Aucune page personnalisée pour le moment.</div>'; return; }
+  pages.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'custom-page-card';
+    div.style.cssText = 'border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px';
+    div.innerHTML = `
+      <div class="field-group"><label>Tag (petit texte au-dessus du titre)</label><input type="text" data-cp-field="tag" value="${p.tag||''}"></div>
+      <div class="field-group"><label>Titre</label><input type="text" data-cp-field="title" value="${p.title||''}"></div>
+      <div class="field-group"><label>Texte</label><textarea rows="4" data-cp-field="text">${p.text||''}</textarea></div>
+      <div class="field-group"><label>Photo</label>
+        <div class="upload-zone"><input type="file" accept="image/*" data-cp-photo>
+          <div class="upload-zone-text">${p.photo?'Changer la photo':'Photo'}</div>
+        </div>
+      </div>
+      <button type="button" class="btn-sm" data-cp-supprimer style="margin-top:6px">Supprimer cette page</button>`;
+    wrap.appendChild(div);
+    div.querySelectorAll('[data-cp-field]').forEach(el => {
+      el.addEventListener('focus', () => naviguerApercuVers(p.id));
+      el.addEventListener('input', () => { p[el.dataset.cpField] = el.value; declencherSauvegardeAuto(); if (el.dataset.cpField==='title') buildPagesList(); });
+    });
+    div.querySelector('[data-cp-photo]').addEventListener('change', async e => {
+      const file = e.target.files[0]; if (!file) return;
+      const url = await uploaderFichier(file, 'photo');
+      if (url) { p.photo = url; showToast('Photo envoyée'); declencherSauvegardeAuto(); }
+    });
+    div.querySelector('[data-cp-supprimer]').addEventListener('click', () => supprimerPagePersonnalisee(p.id));
+  });
 }
 
 // ── Couleurs ──────────────────────────────────────────────────────────────
@@ -851,6 +996,28 @@ function buildColorGrid(){
     declencherSauvegardeAuto();
   }));
 }
+function buildBgTypeToggle(){
+  if (!currentConfig.theme) currentConfig.theme = {};
+  if (!currentConfig.theme.background) currentConfig.theme.background = { type:'degrade', angle:155 };
+  const bg = currentConfig.theme.background;
+  document.getElementById('bgAngleRange').value = bg.angle ?? 155;
+  document.getElementById('bgAngleValue').textContent = bg.angle ?? 155;
+  document.querySelectorAll('.bg-type-btn').forEach(btn => {
+    btn.classList.toggle('primary', btn.dataset.bgType === (bg.type||'degrade'));
+  });
+  document.getElementById('bgAngleGroup').style.display = (bg.type === 'uni') ? 'none' : '';
+}
+document.querySelectorAll('.bg-type-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (!currentConfig.theme.background) currentConfig.theme.background = { type:'degrade', angle:155 };
+    currentConfig.theme.background.type = btn.dataset.bgType;
+    buildBgTypeToggle();
+    declencherSauvegardeAuto();
+  });
+});
+document.getElementById('bgAngleRange').addEventListener('input', e => {
+  document.getElementById('bgAngleValue').textContent = e.target.value;
+});
 function buildPalettePresets(){
   const wrap = document.getElementById('palettePresets');
   wrap.innerHTML = '';
@@ -1015,6 +1182,7 @@ function rafraichirApercu(){
   // On prévisualise toujours via /apercu/:id (qui fonctionne même si le
   // partage n'est pas encore débloqué), pas via le sous-domaine public qui,
   // lui, ne répond qu'une fois le site actif.
+  frame.onload = () => naviguerApercuVers(activeEdKey);
   frame.src = '/apercu/' + currentSite.id + '?embed=1&t=' + Date.now();
   document.getElementById('previewLink').href = '/apercu/' + currentSite.id;
   positionnerApercu();

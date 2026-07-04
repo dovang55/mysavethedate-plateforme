@@ -31,6 +31,12 @@ module.exports = {
       body:    "Inter",
       ui:      "Inter",
       hebrew:  "Frank Ruhl Libre"
+    },
+    // Arrière-plan : "degrade" (radial doux + dégradé linéaire) ou "uni"
+    // (une seule couleur). L'angle ne s'applique qu'au dégradé.
+    background: {
+      type: "degrade",
+      angle: 155
     }
   },
   sections: {
@@ -118,5 +124,10 @@ module.exports = {
   // Ordre des sections entre le hero et le footer. Modifiable librement
   // depuis l'éditeur (espace client) : les sections désactivées restent
   // simplement absentes du rendu, sans qu'il soit nécessaire d'y toucher.
-  pageOrder: ["fairepart", "hommage", "shabbat", "infos", "video", "rsvp"]
+  // Peut aussi contenir des identifiants de customPages (ci-dessous).
+  pageOrder: ["fairepart", "hommage", "shabbat", "infos", "video", "rsvp"],
+
+  // Pages créées librement par le client depuis l'éditeur (titre + texte +
+  // photo). Chaque page a un id unique référencé dans pageOrder.
+  customPages: []
 };
