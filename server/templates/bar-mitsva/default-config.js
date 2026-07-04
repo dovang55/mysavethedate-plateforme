@@ -104,6 +104,15 @@ module.exports = {
         { id: "shabbat", name: "Shabbat Bar Mitsva",            date: "Samedi 10 octobre 2026" }
       ]
     },
+    // Option payante : la page se met par défaut sur tous les événements
+    // mais ne fonctionne que si le client a acheté l'option (achete=true)
+    // et que la date de bascule est passée (voir murEstActif dans render.js).
+    mur: {
+      achete:   false,
+      activeLe: "",   // "" = calculé automatiquement (lendemain de target.date), sinon date/heure ISO choisie par le client
+      titre:    "Mur de photos",
+      message:  "Merci d'avoir été des nôtres ! Partagez vos photos et vidéos de la soirée."
+    },
     footer: {
       credit: "Bar Mitzvah · MMXXVI",
       createdBy: "Dovan Guez",

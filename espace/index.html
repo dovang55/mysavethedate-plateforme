@@ -251,6 +251,7 @@ a{color:inherit;text-decoration:none}
       <div class="editor-nav-item" data-ed="infos">Informations</div>
       <div class="editor-nav-item" data-ed="video">Vidéo</div>
       <div class="editor-nav-item" data-ed="rsvp">RSVP</div>
+      <div class="editor-nav-item" data-ed="mur">Mur de photos</div>
       <div class="editor-nav-item" data-ed="musique">Musique</div>
       <div class="editor-nav-item" data-ed="parametres">Paramètres</div>
     </div>
@@ -433,6 +434,18 @@ a{color:inherit;text-decoration:none}
           <div class="section-title">Événements du formulaire</div>
           <div id="rsvp-events"></div>
           <button class="btn-sm" id="addRsvpEvent" style="margin-top:8px">+ Ajouter un événement</button>
+        </div>
+      </div>
+
+      <div class="ed-section" data-ed="mur">
+        <div class="ed-title">Mur de photos</div>
+        <div class="ed-sub">Option payante : après la soirée, les invités peuvent envoyer leurs photos et vidéos, visibles par tous</div>
+        <div id="murAchatWrap"></div>
+        <div id="murConfigWrap" style="display:none">
+          <div class="field-group"><label>Titre</label><input type="text" data-path="sections.mur.titre"></div>
+          <div class="field-group"><label>Message</label><textarea rows="3" data-path="sections.mur.message"></textarea></div>
+          <div class="field-group"><label>Bascule vers le mur à partir du</label><input type="datetime-local" id="murActiveLe"></div>
+          <div class="help-text" id="murStatutTexte"></div>
         </div>
       </div>
 
@@ -789,6 +802,7 @@ async function ouvrirEditeur(){
   buildEventsList('fairepart');
   buildEventsList('shabbat');
   buildRsvpEvents();
+  buildMurSection();
 
   // Aperçu affiché tout de suite (état déjà enregistré), avant même la
   // première sauvegarde — toujours via /apercu/:id, qui fonctionne que le
@@ -814,6 +828,7 @@ function setActiveEdNav(key){
   document.querySelectorAll('.ed-section').forEach(e=>e.classList.toggle('active',e.dataset.ed===key));
   if (key==='stats') loadStats();
   if (key==='musique') buildMusicTracks();
+  if (key==='mur') buildMurSection();
   naviguerApercuVers(key);
 }
 // Calcule l'index de la page (dans le deck de l'aperçu) correspondant à un
@@ -1181,6 +1196,58 @@ document.getElementById('addRsvpEvent').addEventListener('click', () => {
   currentConfig.sections.rsvp.events.push({ id:'ev'+Date.now(), name:'', date:'' });
   buildRsvpEvents();
   declencherSauvegardeAuto();
+});
+
+// ── Mur de photos (option payante) ───────────────────────────────────────
+function murEstActifCoteEditeur(){
+  const m = currentConfig.sections?.mur;
+  if (!m || !m.achete) return false;
+  let seuil;
+  if (m.activeLe) {
+    seuil = new Date(m.activeLe).getTime();
+  } else {
+    const base = new Date((currentConfig.target?.date||'2026-01-01')+'T00:00:00');
+    base.setDate(base.getDate()+1);
+    seuil = base.getTime();
+  }
+  return !isNaN(seuil) && Date.now() >= seuil;
+}
+function buildMurSection(){
+  if (!currentConfig.sections) currentConfig.sections = {};
+  if (!currentConfig.sections.mur) currentConfig.sections.mur = { achete:false, activeLe:'', titre:'Mur de photos', message:"Merci d'avoir été des nôtres ! Partagez vos photos et vidéos de la soirée." };
+  const m = currentConfig.sections.mur;
+  const achatWrap = document.getElementById('murAchatWrap');
+  const configWrap = document.getElementById('murConfigWrap');
+  if (!m.achete) {
+    configWrap.style.display = 'none';
+    achatWrap.innerHTML = '<button class="btn-sm primary" id="btnAcheterMur">Débloquer le mur de photos…</button>';
+    apiFetch('/api/mon-compte/tarif-mur').then(r=>r.json()).then(d => {
+      const btn = document.getElementById('btnAcheterMur');
+      if (btn) btn.textContent = 'Débloquer le mur de photos (' + (d.prix||0).toFixed(2).replace('.',',') + ' €)';
+    });
+    document.getElementById('btnAcheterMur').addEventListener('click', async () => {
+      const btn = document.getElementById('btnAcheterMur');
+      btn.disabled = true; btn.textContent = 'Traitement…';
+      const r = await apiFetch('/api/mon-compte/site/'+currentSite.id+'/acheter-mur', { method:'POST' });
+      const data = await r.json();
+      if (data.error) { showToast('Erreur : '+data.error); btn.disabled = false; return; }
+      currentConfig.sections.mur = data.config.sections.mur;
+      showToast('✓ Mur de photos débloqué !');
+      buildMurSection();
+    });
+  } else {
+    achatWrap.innerHTML = '<div class="help-text">✓ Option débloquée</div>';
+    configWrap.style.display = '';
+    document.getElementById('murActiveLe').value = m.activeLe || '';
+    document.getElementById('murStatutTexte').textContent = murEstActifCoteEditeur()
+      ? '🟢 Le mur est actuellement actif sur le site.'
+      : '🔒 Le mur n\'est pas encore actif' + (m.activeLe ? '' : ' (par défaut : le lendemain de la soirée)') + '.';
+  }
+}
+document.getElementById('murActiveLe').addEventListener('input', e => {
+  currentConfig.sections.mur.activeLe = e.target.value;
+  declencherSauvegardeAuto();
+  buildMurSection();
 });
 
 // ── Uploads (logo + photos) ───────────────────────────────────────────────

@@ -51,6 +51,22 @@ CREATE TABLE IF NOT EXISTS msd_videos (
 ALTER TABLE msd_videos ENABLE ROW LEVEL SECURITY;
 CREATE INDEX IF NOT EXISTS idx_msd_videos_site ON msd_videos(site_id);
 
+-- ── MUR DE PHOTOS (galerie collaborative post-soirée) ──────────
+-- Option payante : photos/vidéos envoyées par les invités, visibles par
+-- tous une fois la page "Mur de photos" activée (voir sections.mur dans
+-- le config JSONB de msd_sites).
+CREATE TABLE IF NOT EXISTS msd_mur_medias (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  site_id     UUID REFERENCES msd_sites(id) ON DELETE CASCADE,
+  type        TEXT NOT NULL DEFAULT 'photo',  -- 'photo' | 'video'
+  url         TEXT NOT NULL,
+  file_name   TEXT NOT NULL,
+  name        TEXT DEFAULT '',
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE msd_mur_medias ENABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_msd_mur_medias_site ON msd_mur_medias(site_id);
+
 -- ── LEADS (prospects du questionnaire vitrine) ─────────────────
 CREATE TABLE IF NOT EXISTS msd_leads (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),

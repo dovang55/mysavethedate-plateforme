@@ -464,6 +464,21 @@ app.post('/api/mon-compte/site/:id/payer', requireClientAuth, chargerSiteDuClien
   res.json(data);
 });
 
+// ── Mur de photos (option payante, indépendante du forfait "partage") ──────
+const PRIX_MUR_EUROS = 29.99;
+
+app.get('/api/mon-compte/tarif-mur', requireClientAuth, (req,res) => {
+  res.json({ prix: PRIX_MUR_EUROS });
+});
+
+app.post('/api/mon-compte/site/:id/acheter-mur', requireClientAuth, chargerSiteDuClient, async (req,res) => {
+  const cfg = mergeConfig(req.site.config);
+  cfg.sections.mur.achete = true;
+  const { data, error } = await supabase.from('msd_sites').update({ config:cfg }).eq('id',req.params.id).select().single();
+  if(error) return res.status(500).json({error:error.message});
+  res.json(data);
+});
+
 app.get('/api/mon-compte/site/:id/rsvp', requireClientAuth, chargerSiteDuClient, async (req,res) => {
   const { data,error } = await supabase.from('msd_rsvp').select('*').eq('site_id',req.params.id).order('created_at',{ascending:false});
   if(error) return res.status(500).json({error:error.message});
@@ -572,6 +587,55 @@ app.delete('/api/admin/rsvp/:id', requireAdmin, async (req,res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // PUBLIC API — Video upload
 // ─────────────────────────────────────────────────────────────────────────────
+// Même règle d'activation que côté rendu (voir murEstActif dans render.js) :
+// dupliquée ici volontairement pour éviter de changer la forme du module
+// render.js, déjà utilisé tel quel à plusieurs endroits.
+function murEstActif(cfg) {
+  const m = cfg.sections?.mur;
+  if (!m || !m.achete) return false;
+  let seuil;
+  if (m.activeLe) {
+    seuil = new Date(m.activeLe).getTime();
+  } else {
+    const base = new Date(`${cfg.target?.date||'2026-01-01'}T00:00:00${cfg.target?.timezone||'+02:00'}`).getTime();
+    seuil = base + 24*3600*1000;
+  }
+  return !isNaN(seuil) && Date.now() >= seuil;
+}
+
+app.post('/api/mur/:siteId/upload', upload.single('file'), async (req,res) => {
+  const tmpPath = req.file?.path;
+  try {
+    const { data:site } = await supabase.from('msd_sites').select('id,active,config').eq('id',req.params.siteId).single();
+    if(!site || !site.active) return res.status(404).json({error:'Site introuvable'});
+    if(!murEstActif(mergeConfig(site.config))) return res.status(403).json({error:'Le mur de photos n\'est pas encore ouvert'});
+    if(!req.file) return res.status(400).json({error:'Aucun fichier'});
+    const estVideo = req.file.mimetype.startsWith('video/');
+    const ext = path.extname(req.file.originalname).toLowerCase() || (estVideo?'.mp4':'.jpg');
+    const fileName = `${site.id}/${Date.now()}_${Math.random().toString(36).slice(2,8)}${ext}`;
+    const bucket = estVideo ? BUCKET_VIDEO : BUCKET_MEDIA;
+    const buffer = fs.readFileSync(tmpPath);
+    const { error:upErr } = await supabase.storage.from(bucket).upload(fileName, buffer, { contentType: req.file.mimetype, upsert:false });
+    if(upErr) throw upErr;
+    const { data:urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
+    await supabase.from('msd_mur_medias').insert({ site_id:site.id, type: estVideo?'video':'photo', url:urlData.publicUrl, file_name:fileName });
+    res.json({ success:true, url:urlData.publicUrl, type: estVideo?'video':'photo' });
+  } catch(err) {
+    res.status(500).json({error:err.message});
+  } finally {
+    if(tmpPath&&fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+  }
+});
+
+app.get('/api/mur/:siteId/medias', async (req,res) => {
+  const { data:site } = await supabase.from('msd_sites').select('id,active,config').eq('id',req.params.siteId).single();
+  if(!site || !site.active) return res.status(404).json({error:'Site introuvable'});
+  if(!murEstActif(mergeConfig(site.config))) return res.json([]);
+  const { data,error } = await supabase.from('msd_mur_medias').select('id,type,url,created_at').eq('site_id',req.params.siteId).order('created_at',{ascending:false});
+  if(error) return res.status(500).json({error:error.message});
+  res.json(data);
+});
+
 app.post('/api/upload', upload.single('video'), async (req,res) => {
   const tmpPath = req.file?.path;
   const sub = getSubdomain(req);
@@ -698,7 +762,8 @@ app.get('/apercu/:id', async (req,res) => {
     const { data:site, error } = await supabase.from('msd_sites').select('*').eq('id',req.params.id).single();
     if (error || !site) return res.status(404).send('<h1>Aperçu introuvable</h1><p>Ce lien n\'est plus valide.</p>');
     const cfg = mergeConfig(site.config);
-    const html = renderBarMitsva(cfg, site.id);
+    const murMedias = murEstActif(cfg) ? (await supabase.from('msd_mur_medias').select('type,url').eq('site_id',site.id).order('created_at',{ascending:false})).data : [];
+    const html = renderBarMitsva(cfg, site.id, murMedias);
 
     // Utilisé pour l'aperçu en direct dans l'éditeur (iframe) : pas besoin
     // de la barre d'outils Personnaliser/Partager dans ce contexte-là.
@@ -743,7 +808,8 @@ app.get('*', async (req,res) => {
     const { data:site, error } = await supabase.from('msd_sites').select('*').eq('subdomain',sub).eq('active',true).single();
     if(error||!site) return res.status(404).send('<h1>Site introuvable</h1><p>Ce faire-part n\'existe pas ou a été désactivé.</p>');
     const cfg = mergeConfig(site.config);
-    const html = renderBarMitsva(cfg, site.id);
+    const murMedias = murEstActif(cfg) ? (await supabase.from('msd_mur_medias').select('type,url').eq('site_id',site.id).order('created_at',{ascending:false})).data : [];
+    const html = renderBarMitsva(cfg, site.id, murMedias);
     res.send(html);
   } catch(err) {
     res.status(500).send('Erreur serveur');

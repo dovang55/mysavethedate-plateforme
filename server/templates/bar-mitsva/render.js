@@ -29,17 +29,35 @@ function construireUrlPolices(t) {
   return `https://fonts.googleapis.com/css2?${params}&display=swap`;
 }
 
-// Génère le HTML complet d'un site à partir de son config JSON
-module.exports = function renderSite(cfg, siteId) {
+// Le "mur de photos" est une option payante, mise par défaut sur tous les
+// événements mais qui ne s'active que si le client l'a achetée (achete=true)
+// et que la date de bascule choisie (ou calculée par défaut) est passée.
+function murEstActif(c) {
+  const m = c.sections?.mur;
+  if (!m || !m.achete) return false;
+  let seuil;
+  if (m.activeLe) {
+    seuil = new Date(m.activeLe).getTime();
+  } else {
+    const base = new Date(`${c.target?.date||'2026-01-01'}T00:00:00${c.target?.timezone||'+02:00'}`).getTime();
+    seuil = base + 24*3600*1000; // par défaut : le lendemain de l'événement
+  }
+  return !isNaN(seuil) && Date.now() >= seuil;
+}
+
+// Génère le HTML complet d'un site à partir de son config JSON. murMedias
+// (optionnel) : photos/vidéos déjà envoyées par les invités pour le mur.
+module.exports = function renderSite(cfg, siteId, murMedias) {
   const c = cfg;
   const t = c.theme;
   const s = c.sections;
   const id = c.identity;
+  const murActif = murEstActif(c);
 
   // Pages actives (pour l'ordre du deck et la musique). L'ordre des pages du
   // milieu peut être personnalisé par le client (config.pageOrder) ; hero et
   // footer restent toujours en premier/dernier.
-  const SECTIONS_CONNUES = ['fairepart','hommage','shabbat','infos','video','rsvp'];
+  const SECTIONS_CONNUES = ['fairepart','hommage','shabbat','infos','video','rsvp','mur'];
   const customPages = Array.isArray(c.customPages) ? c.customPages : [];
   const customIds = customPages.map(p => p.id);
   let ordreMilieu = Array.isArray(c.pageOrder) ? c.pageOrder.filter(k => SECTIONS_CONNUES.includes(k) || customIds.includes(k)) : [];
@@ -48,10 +66,12 @@ module.exports = function renderSite(cfg, siteId) {
   const pageDefs = ['hero', ...ordreMilieu, 'footer'];
   const activePages = pageDefs.filter(k => {
     if (k === 'hero' || k === 'footer') return true;
+    if (k === 'mur') return murActif;
     if (SECTIONS_CONNUES.includes(k)) return s[k]?.enabled !== false;
     const pagePerso = customPages.find(p => p.id === k);
     return pagePerso ? pagePerso.enabled !== false : false;
   });
+  const idxMur = activePages.indexOf('mur');
 
   // Mapping musique : page index → track index. En mode "general", une
   // seule piste (music[0]) joue sur toutes les pages. En mode "parpage",
@@ -232,6 +252,29 @@ module.exports = function renderSite(cfg, siteId) {
         <p>Votre réponse a bien été enregistrée.<br>${id.firstName} a hâte de vous y voir.</p>
       </div>
     </form>
+  </div>
+</section>`,
+
+    mur: !murActif ? '' : `
+<!-- MUR DE PHOTOS -->
+<section id="mur">
+  <div class="container">
+    <div class="mur-head fade-in">
+      <div class="rsvp-tag">Souvenirs</div>
+      <h2 class="rsvp-title">${s.mur.titre}</h2>
+      <p class="rsvp-sub">${s.mur.message}</p>
+    </div>
+    <div class="mur-upload fade-in">
+      <label class="mur-upload-zone" id="murUploadZone">
+        <input type="file" id="murFileInput" accept="image/*,video/*" style="display:none">
+        <span id="murUploadText">📷 Ajouter une photo ou une vidéo</span>
+      </label>
+    </div>
+    <div class="mur-grid" id="murGrid">
+      ${(murMedias||[]).map(m => m.type==='video'
+        ? `<div class="mur-item"><video src="${m.url}" controls></video></div>`
+        : `<div class="mur-item"><img src="${m.url}" alt=""></div>`).join('')}
+    </div>
   </div>
 </section>`,
 
@@ -468,6 +511,14 @@ module.exports = function renderSite(cfg, siteId) {
   .show .rsvp-fields{display:none}
   .show .rsvp-success{display:block}
 
+  .mur-head{text-align:center;margin-bottom:36px}
+  .mur-upload{max-width:720px;margin:0 auto 40px}
+  .mur-upload-zone{display:flex;align-items:center;justify-content:center;gap:10px;padding:22px;border:2px dashed rgba(37,99,235,.3);cursor:pointer;font-family:'${t.fonts.heading}',sans-serif;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-deep);transition:all .2s}
+  .mur-upload-zone:hover{border-color:var(--gold-deep);background:rgba(37,99,235,.04)}
+  .mur-grid{max-width:960px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .mur-item{aspect-ratio:1;overflow:hidden;background:var(--cream-deep)}
+  .mur-item img,.mur-item video{width:100%;height:100%;object-fit:cover}
+
   footer{padding:80px 24px 56px;text-align:center}
   .footer-logo{width:140px;margin:0 auto 18px}
   .footer-name{font-family:'${t.fonts.heading}',sans-serif;font-size:18px;font-weight:800;letter-spacing:.08em;color:var(--ink);margin-bottom:8px;text-transform:uppercase}
@@ -528,9 +579,13 @@ ${id.bsd ? '<div class="bsd">בס"ד</div>' : ''}
       <span>Minutes</span><span class="gap"></span>
       <span>Secondes</span>
     </div>` : ''}
+    ${murActif && idxMur !== -1 ? `
+    <button type="button" class="btn-primary" onclick="deck.go(${idxMur})">
+      <span>Accéder au mur de photos</span><span>→</span>
+    </button>` : `
     <button type="button" class="btn-primary" onclick="deck.next()">
       <span>${s.hero.ctaText}</span><span>→</span>
-    </button>
+    </button>`}
   </div>
 </section>
 
@@ -619,6 +674,33 @@ function submitRsvp(e){
   .then(r=>r.json()).then(res=>{if(res.success){form.classList.add('show');form.closest('section')?.scrollTo({top:0,behavior:'smooth'});}else{btn.disabled=false;btn.querySelector('span').textContent='Envoyer ma réponse';alert('Erreur : '+(res.error||'réessayez'));}})
   .catch(()=>{btn.disabled=false;btn.querySelector('span').textContent='Envoyer ma réponse';alert('Erreur réseau.');});
   return false;
+}
+
+// Mur de photos : upload direct par les invités + affichage immédiat
+const murZone = document.getElementById('murUploadZone');
+if (murZone) {
+  const murInput = document.getElementById('murFileInput');
+  const murTexte = document.getElementById('murUploadText');
+  const murGrille = document.getElementById('murGrid');
+  murInput.addEventListener('change', () => {
+    const file = murInput.files[0];
+    if (!file) return;
+    const texteDepart = murTexte.textContent;
+    murTexte.textContent = 'Envoi en cours…';
+    const fd = new FormData();
+    fd.append('file', file);
+    fetch('/api/mur/${siteId}/upload', { method:'POST', body: fd })
+      .then(r=>r.json()).then(res => {
+        murTexte.textContent = texteDepart;
+        murInput.value = '';
+        if (!res.success) { alert('Erreur : ' + (res.error||'réessayez')); return; }
+        const item = document.createElement('div');
+        item.className = 'mur-item';
+        item.innerHTML = res.type === 'video' ? '<video src="'+res.url+'" controls></video>' : '<img src="'+res.url+'" alt="">';
+        murGrille.prepend(item);
+      })
+      .catch(() => { murTexte.textContent = texteDepart; alert('Erreur réseau.'); });
+  });
 }
 </script>
 </body>
