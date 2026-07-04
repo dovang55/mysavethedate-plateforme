@@ -711,7 +711,14 @@ async function ouvrirEditeur(){
   buildEventsList('shabbat');
   buildRsvpEvents();
 
-  document.getElementById('previewLink').href = '//' + currentSite.subdomain + '.mysavethedate.com';
+  // Aperçu affiché tout de suite (état déjà enregistré), avant même la
+  // première sauvegarde — toujours via /apercu/:id, qui fonctionne que le
+  // partage soit débloqué ou non.
+  const frame = document.getElementById('previewFrame');
+  document.getElementById('previewLoading').style.display = 'none';
+  frame.style.display = 'block';
+  frame.src = '/apercu/' + currentSite.id + '?embed=1&t=' + Date.now();
+  document.getElementById('previewLink').href = '/apercu/' + currentSite.id;
   setActiveEdNav('identite');
 }
 
@@ -935,8 +942,11 @@ document.getElementById('btnSave').addEventListener('click', async () => {
   const frame = document.getElementById('previewFrame');
   document.getElementById('previewLoading').style.display = 'none';
   frame.style.display = 'block';
-  frame.src = '//' + currentSite.subdomain + '.mysavethedate.com?' + Date.now();
-  document.getElementById('previewLink').href = '//' + currentSite.subdomain + '.mysavethedate.com';
+  // On prévisualise toujours via /apercu/:id (qui fonctionne même si le
+  // partage n'est pas encore débloqué), pas via le sous-domaine public qui,
+  // lui, ne répond qu'une fois le site actif.
+  frame.src = '/apercu/' + currentSite.id + '?embed=1&t=' + Date.now();
+  document.getElementById('previewLink').href = '/apercu/' + currentSite.id;
 });
 
 // ── Statistiques / réponses ───────────────────────────────────────────────

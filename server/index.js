@@ -700,6 +700,10 @@ app.get('/apercu/:id', async (req,res) => {
     const cfg = mergeConfig(site.config);
     const html = renderBarMitsva(cfg, site.id);
 
+    // Utilisé pour l'aperçu en direct dans l'éditeur (iframe) : pas besoin
+    // de la barre d'outils Personnaliser/Partager dans ce contexte-là.
+    if (req.query.embed) return res.send(html);
+
     const barreOutils = `
 <style>.deck{margin-top:56px !important;height:calc(100vh - 56px) !important;}</style>
 <div id="msd-preview-toolbar" style="position:fixed;top:0;left:0;right:0;height:56px;background:#0d1f3c;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:9999;font-family:'Inter',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.15)">
