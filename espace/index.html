@@ -439,7 +439,7 @@ a{color:inherit;text-decoration:none}
 
       <div class="ed-section" data-ed="musique">
         <div class="ed-title">Musique</div>
-        <div class="ed-sub">Jusqu'à 3 pistes audio, avec fondu enchaîné entre les pages</div>
+        <div class="ed-sub">Une musique générale pour tout le site, ou une piste différente par page</div>
         <div id="musicTracks"></div>
       </div>
 
@@ -814,6 +814,7 @@ function setActiveEdNav(key){
   document.querySelectorAll('.editor-nav-item').forEach(e=>e.classList.toggle('active',e.dataset.ed===key));
   document.querySelectorAll('.ed-section').forEach(e=>e.classList.toggle('active',e.dataset.ed===key));
   if (key==='stats') loadStats();
+  if (key==='musique') buildMusicTracks();
   naviguerApercuVers(key);
 }
 // Calcule l'index de la page (dans le deck de l'aperçu) correspondant à un
@@ -941,6 +942,7 @@ function buildPagesList(){
   });
   buildCustomPagesEditor();
   mettreAJourVisibiliteNav();
+  if (currentConfig.musicMode === 'parpage') buildMusicTracks();
 }
 function deplacerPage(depuis, vers){
   const arr = currentConfig.pageOrder;
@@ -1062,32 +1064,73 @@ function buildPalettePresets(){
 }
 
 // ── Musique ───────────────────────────────────────────────────────────────
+// Liste des pages actives (clé + libellé) dans l'ordre du deck, pour le
+// mode "musique par page" (même logique que calculerIndexPage/render.js).
+function pagesActivesPourMusique(){
+  const SECTIONS_CONNUES = ['fairepart','hommage','shabbat','infos','video','rsvp'];
+  const customPages = currentConfig.customPages || [];
+  const customIds = customPages.map(p => p.id);
+  let ordreMilieu = Array.isArray(currentConfig.pageOrder) ? currentConfig.pageOrder.filter(k => SECTIONS_CONNUES.includes(k) || customIds.includes(k)) : [];
+  SECTIONS_CONNUES.forEach(k => { if (!ordreMilieu.includes(k)) ordreMilieu.push(k); });
+  customIds.forEach(k => { if (!ordreMilieu.includes(k)) ordreMilieu.push(k); });
+  const activeMilieu = ordreMilieu.filter(k => {
+    if (SECTIONS_CONNUES.includes(k)) return currentConfig.sections?.[k]?.enabled !== false;
+    const cp = customPages.find(p => p.id === k);
+    return cp ? cp.enabled !== false : false;
+  });
+  return ['hero', ...activeMilieu, 'footer'].map(k => {
+    const cp = customPages.find(p => p.id === k);
+    const label = k==='hero' ? 'Hero' : k==='footer' ? 'Pied de page' : cp ? (cp.title||'Page personnalisée') : (NOMS_SECTIONS[k]||k);
+    return { key:k, label };
+  });
+}
+function carteMusique(track, titre){
+  const div = document.createElement('div');
+  div.className = 'music-track';
+  div.innerHTML = `<div class="music-track-header"><span class="music-track-label">${titre}</span></div>
+    <div class="field-group"><label>Fichier audio</label>
+      <div class="upload-zone"><input type="file" accept="audio/*" class="mt-file"><div class="upload-zone-text">${track.url?'✓ Fichier chargé':'Glisser un fichier audio'}</div></div>
+    </div>
+    <div class="field-row">
+      <div class="field-group"><label>Démarrer à (secondes)</label><input type="number" class="mt-start" min="0" value="${track.startAt||0}"></div>
+      <div class="field-group"><label>Boucler à partir de (secondes)</label><input type="number" class="mt-loop" min="0" value="${track.loopFrom||0}"></div>
+    </div>`;
+  div.querySelector('.mt-start').addEventListener('input', e => { track.startAt = parseInt(e.target.value)||0; declencherSauvegardeAuto(); });
+  div.querySelector('.mt-loop').addEventListener('input', e => { track.loopFrom = parseInt(e.target.value)||0; declencherSauvegardeAuto(); });
+  div.querySelector('.mt-file').addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) return;
+    const url = await uploaderFichier(file, 'music');
+    if (url) { track.url = url; div.querySelector('.upload-zone-text').textContent = '✓ ' + file.name; showToast('Musique envoyée'); declencherSauvegardeAuto(); }
+  });
+  return div;
+}
 function buildMusicTracks(){
   const wrap = document.getElementById('musicTracks');
   wrap.innerHTML = '';
   if (!currentConfig.music) currentConfig.music = [];
-  currentConfig.music.forEach((track,i) => {
-    const div = document.createElement('div');
-    div.className = 'music-track';
-    div.innerHTML = `<div class="music-track-header"><span class="music-track-label">Piste ${i+1} — ${track.label||''}</span></div>
-      <div class="field-group"><label>Nom de la piste</label><input type="text" class="mt-label" value="${track.label||''}"></div>
-      <div class="field-group"><label>Fichier audio</label>
-        <div class="upload-zone"><input type="file" accept="audio/*" class="mt-file"><div class="upload-zone-text">${track.url?'✓ Fichier chargé':'Glisser un fichier audio'}</div></div>
-      </div>
-      <div class="field-row">
-        <div class="field-group"><label>Démarrer à (secondes)</label><input type="number" class="mt-start" min="0" value="${track.startAt||0}"></div>
-        <div class="field-group"><label>Boucler à partir de (secondes)</label><input type="number" class="mt-loop" min="0" value="${track.loopFrom||0}"></div>
-      </div>`;
-    wrap.appendChild(div);
-    div.querySelector('.mt-label').addEventListener('input', e => { track.label = e.target.value; declencherSauvegardeAuto(); });
-    div.querySelector('.mt-start').addEventListener('input', e => { track.startAt = parseInt(e.target.value)||0; declencherSauvegardeAuto(); });
-    div.querySelector('.mt-loop').addEventListener('input', e => { track.loopFrom = parseInt(e.target.value)||0; declencherSauvegardeAuto(); });
-    div.querySelector('.mt-file').addEventListener('change', async e => {
-      const file = e.target.files[0]; if (!file) return;
-      const url = await uploaderFichier(file, 'music');
-      if (url) { track.url = url; div.querySelector('.upload-zone-text').textContent = '✓ ' + file.name; showToast('Musique envoyée'); declencherSauvegardeAuto(); }
-    });
+  if (!currentConfig.musicMode) currentConfig.musicMode = 'general';
+
+  const toggle = document.createElement('div');
+  toggle.style.cssText = 'display:flex;gap:8px;margin-bottom:20px';
+  toggle.innerHTML = `
+    <button type="button" class="btn-sm music-mode-btn" data-music-mode="general" style="flex:1">Musique générale</button>
+    <button type="button" class="btn-sm music-mode-btn" data-music-mode="parpage" style="flex:1">Musique par page</button>`;
+  wrap.appendChild(toggle);
+  toggle.querySelectorAll('.music-mode-btn').forEach(btn => {
+    btn.classList.toggle('primary', btn.dataset.musicMode === currentConfig.musicMode);
+    btn.addEventListener('click', () => { currentConfig.musicMode = btn.dataset.musicMode; declencherSauvegardeAuto(); buildMusicTracks(); });
   });
+
+  if (currentConfig.musicMode === 'parpage') {
+    pagesActivesPourMusique().forEach(page => {
+      let track = currentConfig.music.find(m => (m.pages||[]).includes(page.key));
+      if (!track) { track = { url:'', startAt:0, loopFrom:0, pages:[page.key], label:page.label }; currentConfig.music.push(track); }
+      wrap.appendChild(carteMusique(track, page.label));
+    });
+  } else {
+    if (!currentConfig.music[0]) currentConfig.music[0] = { url:'', startAt:0, loopFrom:0, pages:[], label:'Piste principale' };
+    wrap.appendChild(carteMusique(currentConfig.music[0], 'Piste principale (toutes les pages)'));
+  }
 }
 
 // ── Événements (faire-part / shabbat) ────────────────────────────────────

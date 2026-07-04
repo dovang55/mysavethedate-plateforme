@@ -53,12 +53,19 @@ module.exports = function renderSite(cfg, siteId) {
     return pagePerso ? pagePerso.enabled !== false : false;
   });
 
-  // Mapping musique : page index → track index
+  // Mapping musique : page index → track index. En mode "general", une
+  // seule piste (music[0]) joue sur toutes les pages. En mode "parpage",
+  // chaque piste précise les clés de page auxquelles elle s'applique.
+  const musicMode = c.musicMode === 'parpage' ? 'parpage' : 'general';
   const pageTrackMap = {};
   activePages.forEach((p, i) => {
+    if (musicMode === 'general') {
+      if ((c.music||[])[0]?.url) pageTrackMap[i] = 0;
+      return;
+    }
     (c.music || []).forEach((track, ti) => {
       if (!track.url) return;
-      if (track.pages && track.pages.includes(pageDefs.indexOf(p))) {
+      if ((track.pages||[]).includes(p)) {
         pageTrackMap[i] = ti;
       }
     });

@@ -110,10 +110,13 @@ module.exports = {
       createdByUrl: "https://guezdovan.com"
     }
   },
+  // "general" : une seule piste pour tout le site. "parpage" : une piste
+  // différente possible par page (voir music[].pages, qui référence alors
+  // les clés de page : hero, fairepart, hommage, shabbat, infos, video,
+  // rsvp, footer, ou l'id d'une page personnalisée).
+  musicMode: "general",
   music: [
-    { url: "", startAt: 0, loopFrom: 0, pages: [0,1,4,5,6,7], label: "Piste principale" },
-    { url: "", startAt: 0, loopFrom: 0, pages: [2],            label: "Hommage" },
-    { url: "", startAt: 0, loopFrom: 0, pages: [3],            label: "Shabbat" }
+    { url: "", startAt: 0, loopFrom: 0, pages: [], label: "Piste principale" }
   ],
   target: {
     date:     "2026-11-05",
