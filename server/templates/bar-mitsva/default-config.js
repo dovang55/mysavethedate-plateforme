@@ -116,9 +116,7 @@ module.exports = {
       message:    "Merci d'avoir été des nôtres ! Partagez vos photos et vidéos de la soirée."
     },
     footer: {
-      credit: "Bar Mitzvah · MMXXVI",
-      createdBy: "Dovan Guez",
-      createdByUrl: "https://guezdovan.com"
+      credit: "Bar Mitzvah · MMXXVI"
     }
   },
   // "general" : une seule piste pour tout le site. "parpage" : une piste

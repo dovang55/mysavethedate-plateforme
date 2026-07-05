@@ -566,6 +566,9 @@ module.exports = function renderSite(cfg, siteId, murMedias) {
   .footer-date{font-family:'${t.fonts.body}',sans-serif;color:var(--ink-soft);font-size:15px;margin-bottom:24px;font-weight:500}
   .footer-rule{width:40px;height:2px;background:var(--gold-deep);margin:18px auto}
   .footer-credit{font-family:'${t.fonts.heading}',sans-serif;font-size:8px;font-weight:700;letter-spacing:.65em;text-transform:uppercase;color:var(--bronze)}
+  .footer-brand-credit{display:inline-block;font-family:'${t.fonts.heading}',sans-serif;font-size:16px;font-weight:700;letter-spacing:.06em;color:var(--gold-deep);text-decoration:none;transition:opacity .2s}
+  .footer-brand-credit:hover{opacity:.7}
+  .footer-brand-credit strong{font-weight:900}
 
   .fade-in{opacity:0;transform:translateY(30px);transition:opacity 1.1s ease,transform 1.1s ease}
   .fade-in.in{opacity:1;transform:translateY(0)}
@@ -641,8 +644,7 @@ ${sectionsMilieuHTML}
     <div class="footer-rule"></div>
     <div class="footer-credit">${s.footer?.credit||''}</div>
     <div class="footer-rule"></div>
-    <div style="font-family:'${t.fonts.body}',serif;font-style:italic;font-size:14px;color:var(--ink-soft);margin-bottom:6px">Création &amp; développement</div>
-    <a href="${s.footer?.createdByUrl||'#'}" target="_blank" style="font-family:'${t.fonts.heading}',serif;font-size:13px;letter-spacing:.35em;text-transform:uppercase;color:var(--gold-deep);text-decoration:none">${s.footer?.createdBy||'Dovan Guez'}</a>
+    <a href="https://mysavethedate.com" target="_blank" class="footer-brand-credit">Créé avec <strong>MySaveTheDate</strong></a>
   </div>
 </footer>
 
