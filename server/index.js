@@ -204,6 +204,16 @@ const EVENT_TYPE_VERS_SLUG = {
   'Brit Mila':'brit-mila', 'Autre':'autre',
 };
 
+// "2026-11-05" → "jeudi 5 novembre 2026" (capitalisé), pour l'affichage dans
+// la ligne "Date" du faire-part.
+function formaterDateFr(iso){
+  if (!iso) return '';
+  try {
+    const texte = new Date(iso+'T12:00:00').toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    return texte.charAt(0).toUpperCase() + texte.slice(1);
+  } catch(e) { return ''; }
+}
+
 function construireConfigParDefaut(lead){
   const config = JSON.parse(JSON.stringify(defaultConfig));
   const eventType = EVENT_TYPE_VERS_SLUG[lead.eventType] || 'mariage';
@@ -297,6 +307,19 @@ function construireConfigParDefaut(lead){
       : `${sujetPrenom} a le plaisir de vous inviter`;
     config.sections.fairepart.inviteHe  = '';
     config.sections.fairepart.inviteSub = 'Nous serions heureux de célébrer ce moment avec vous.';
+    // Les lignes Date/Heure/Lieu et le mot de clôture par défaut
+    // (defaultConfig.js) sont écrits pour une Bar Mitsva ("L'office
+    // débutera…") — sans texte générique ici, un anniversaire ou un mariage
+    // affichait ce même vocabulaire religieux, ce qui n'a pas de sens.
+    const dateAffichee = formaterDateFr(lead.date);
+    config.sections.fairepart.events = [
+      { label:'Date', value: dateAffichee ? `Le ${dateAffichee}` : 'Date à venir' },
+      { label:'Heure', value: estMariage ? 'La cérémonie débutera à 16h00' : 'La fête débutera à 18h00' },
+      { label:'Lieu', value: lead.location || 'Nom du lieu', address:'', wazeUrl:'' }
+    ];
+    config.sections.fairepart.followup = estMariage
+      ? 'La cérémonie sera suivie d\'un cocktail et d\'un dîner'
+      : 'La soirée se poursuivra autour d\'un cocktail dînatoire';
     config.sections.rsvp.events = [
       { id:'principal', name: estMariage ? 'Cérémonie & Réception' : libelleEvenement, date: lead.date || '' }
     ];

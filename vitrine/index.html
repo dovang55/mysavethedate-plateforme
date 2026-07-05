@@ -164,7 +164,7 @@ button{font-family:inherit;cursor:pointer}
    QUESTIONNAIRE OVERLAY
 ══════════════════════════════════════════ */
 .q-overlay{position:fixed;inset:0;z-index:500;display:none;flex-direction:column;background:#fff}
-.q-overlay.open{display:flex;animation:fadeIn .25s ease}
+.q-overlay.open{display:flex;animation:fadeIn .25s ease forwards}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
 /* Q Top bar */
@@ -273,10 +273,18 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
 .rdv-box-lbl{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.5em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
 .rdv-box-val{font-family:'Montserrat',sans-serif;font-weight:800;font-size:22px;color:var(--navy)}
 .summary-block{background:#fff;border:1px solid rgba(13,31,60,.1);padding:28px;border-radius:6px;margin-bottom:32px;text-align:left}
-.gen-loading{max-width:420px;margin:0 auto 24px}
-.gen-loading-bar{height:6px;background:rgba(13,31,60,.08);border-radius:3px;overflow:hidden;margin-bottom:12px}
-.gen-loading-fill{height:100%;width:0%;background:var(--gold);border-radius:3px;transition:width .4s ease}
-.gen-loading-text{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--navy);opacity:.7}
+.gen-loading-bar{height:6px;background:rgba(13,31,60,.08);border-radius:3px;overflow:hidden}
+.gen-loading-fill{height:100%;width:0%;background:var(--gold);border-radius:3px;transition:width .3s linear}
+.gen-spinner{width:56px;height:56px;border:3px solid rgba(13,31,60,.1);border-top-color:var(--gold);border-radius:50%;margin:0 auto;animation:genSpin 1s linear infinite}
+@keyframes genSpin{to{transform:rotate(360deg)}}
+.gen-steps{text-align:left;max-width:360px;margin:32px auto 0;display:flex;flex-direction:column;gap:16px}
+.gen-step{display:flex;align-items:center;gap:12px;font-family:'Inter',sans-serif;font-size:14px;color:rgba(13,31,60,.32);transition:color .3s;font-weight:500}
+.gen-step.active{color:var(--navy);font-weight:700}
+.gen-step.done{color:var(--navy)}
+.gen-step-dot{width:20px;height:20px;border-radius:50%;border:2px solid rgba(13,31,60,.15);flex-shrink:0;display:grid;place-items:center;transition:all .3s;font-size:11px;color:#fff}
+.gen-step.active .gen-step-dot{border-color:var(--gold);background:var(--gold)}
+.gen-step.done .gen-step-dot{border-color:#22c55e;background:#22c55e}
+.gen-step.done .gen-step-dot::after{content:'✓'}
 .summary-title{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.5em;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
 .summary-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:9px 0;border-bottom:1px solid rgba(13,31,60,.06)}
 .summary-row:last-child{border-bottom:none}
@@ -781,7 +789,27 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
         </div>
       </div>
 
-      <!-- ── STEP 7 : Success ── -->
+      <!-- ── STEP 7 : Chargement (dure toujours ~12s, pour laisser le temps de
+           "sentir" que le faire-part se construit) ── -->
+      <div class="q-step">
+        <div class="q-inner" style="text-align:center;max-width:560px">
+          <div class="gen-spinner"></div>
+          <h2 class="q-h" style="margin-top:28px">Création de votre<br>faire-part…</h2>
+          <p class="q-sub" style="text-align:center;margin:0 auto 8px">Quelques instants, on prépare tout pour vous.</p>
+          <div class="gen-steps" id="genSteps">
+            <div class="gen-step"><span class="gen-step-dot"></span><span>Analyse de vos réponses</span></div>
+            <div class="gen-step"><span class="gen-step-dot"></span><span>Choix des couleurs et des polices</span></div>
+            <div class="gen-step"><span class="gen-step-dot"></span><span>Mise en page de vos sections</span></div>
+            <div class="gen-step"><span class="gen-step-dot"></span><span>Génération de l'aperçu en direct</span></div>
+            <div class="gen-step"><span class="gen-step-dot"></span><span>Dernières finitions</span></div>
+          </div>
+          <div class="gen-loading-bar" style="max-width:360px;margin:28px auto 0">
+            <div class="gen-loading-fill" id="bigLoadingFill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP 8 : Success ── -->
       <div class="q-step">
         <div class="q-inner success-wrap">
           <div class="success-icon">
@@ -797,10 +825,6 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
             <div class="summary-row"><span class="summary-k">Convives</span><span class="summary-v" id="sGuests">—</span></div>
             <div class="summary-row"><span class="summary-k">Style</span><span class="summary-v" id="sStyle">—</span></div>
           </div>
-          <div class="gen-loading" id="genLoading" style="display:none">
-            <div class="gen-loading-bar"><div class="gen-loading-fill" id="genLoadingFill"></div></div>
-            <div class="gen-loading-text" id="genLoadingText">Préparation de votre style…</div>
-          </div>
           <a class="btn-qnext" id="btnAccesEspace" href="#" style="display:none;margin:0 auto 14px;text-decoration:none">Prévisualiser mon faire-part →</a>
           <button class="btn-qnext" style="margin:0 auto" onclick="closeQ()">Fermer ✕</button>
         </div>
@@ -813,7 +837,7 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
 <script>
 /* ══ STATE ══ */
 let step = 0;
-const STEPS = 8;
+const STEPS = 9; // + écran de chargement + écran de succès
 const S = {
   eventType:'', date:'', location:'', guests:150, colorPreset:'', budget:'',
   // Palette personnalisée (uniquement si colorPreset==='custom')
@@ -837,7 +861,7 @@ function closeQ(){ document.getElementById('qOverlay').classList.remove('open');
 function setStep(n){
   step = n;
   document.getElementById('qRail').style.transform = `translateX(-${n * 100}%)`;
-  const nbEtapesContenu = STEPS - 1; // le dernier "step" est l'écran de succès, pas une étape à remplir
+  const nbEtapesContenu = STEPS - 2; // les 2 derniers "steps" (chargement + succès) ne sont pas des étapes à remplir
   const display = Math.min(n+1, nbEtapesContenu);
   const pct = Math.round((n/STEPS)*100);
   document.getElementById('qStepLabel').textContent = `Étape ${display} sur ${nbEtapesContenu}`;
@@ -946,6 +970,36 @@ function chk5(){
 /* ══ SUBMIT ══ */
 const NOMS_PALETTES = { 'bleu-blanc':'Bleu & Blanc', 'noir-blanc':'Noir & Blanc', 'emeraude':'Émeraude', 'bordeaux':'Bordeaux', 'terracotta':'Terracotta', 'custom':'Personnalisé' };
 
+// Écran de chargement dédié : dure toujours entre 11 et 14 secondes (même
+// si le serveur répond plus vite), pour laisser le temps de "sentir" que le
+// faire-part se construit, avec des étapes détaillées qui s'allument
+// progressivement.
+function lancerEcranChargement(){
+  return new Promise(resolve => {
+    const etapes = [...document.querySelectorAll('#genSteps .gen-step')];
+    const fill = document.getElementById('bigLoadingFill');
+    const dureeTotale = 11000 + Math.random()*3000;
+    const dureeParEtape = dureeTotale / etapes.length;
+    function activerEtape(idx){
+      etapes.forEach((e,k) => { e.classList.toggle('active', k===idx); e.classList.toggle('done', k<idx); });
+    }
+    fill.style.width = '0%';
+    activerEtape(0);
+    const debut = Date.now();
+    const minuteur = setInterval(() => {
+      const ecoule = Date.now() - debut;
+      fill.style.width = Math.min(100, (ecoule/dureeTotale)*100) + '%';
+      activerEtape(Math.min(etapes.length-1, Math.floor(ecoule/dureeParEtape)));
+      if (ecoule >= dureeTotale) {
+        clearInterval(minuteur);
+        etapes.forEach(e => { e.classList.remove('active'); e.classList.add('done'); });
+        fill.style.width = '100%';
+        resolve();
+      }
+    }, 150);
+  });
+}
+
 async function submit(){
   S.guests = document.getElementById('gSlider').value;
   S.firstName = document.getElementById('fFirst').value.trim();
@@ -962,57 +1016,24 @@ async function submit(){
   document.getElementById('sGuests').textContent = S.guests + ' personnes';
   document.getElementById('sStyle').textContent  = NOMS_PALETTES[S.colorPreset] || S.colorPreset;
 
-  next(); // Go to success screen
+  setStep(STEPS-2); // écran de chargement
 
-  // Barre de progression factice pendant la génération : donne un retour
-  // visuel le temps que /api/apercu réponde, au lieu de laisser l'utilisateur
-  // devant un écran figé sans bouton.
-  const messages = [
-    'Préparation de votre style…',
-    'Mise en page de votre faire-part…',
-    'Génération des couleurs et polices…',
-    'Presque terminé…'
-  ];
-  const genLoading = document.getElementById('genLoading');
-  const genFill    = document.getElementById('genLoadingFill');
-  const genTexte   = document.getElementById('genLoadingText');
-  const btn        = document.getElementById('btnAccesEspace');
-  let pct = 0, msgIdx = 0;
-  genLoading.style.display = 'block';
-  btn.style.display = 'none';
-  genFill.style.width = '0%';
-  genTexte.textContent = messages[0];
-  const minuteurProgres = setInterval(() => {
-    if (pct >= 90) return;
-    pct = Math.min(90, pct + Math.random()*8 + 4);
-    genFill.style.width = pct + '%';
-    const nouvelIdx = Math.min(messages.length-1, Math.floor(pct / (90/messages.length)));
-    if (nouvelIdx !== msgIdx) { msgIdx = nouvelIdx; genTexte.textContent = messages[msgIdx]; }
-  }, 400);
+  // Génère tout de suite un vrai aperçu du faire-part, sans compte — en
+  // parallèle de l'écran de chargement, qui dure toujours son temps complet
+  // quelle que soit la vitesse de la réponse.
+  const requete = fetch('/api/apercu', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify(S)
+  }).then(r=>r.json()).catch(() => ({ error:true }));
 
-  // Génère tout de suite un vrai aperçu du faire-part, sans compte
-  try {
-    const r = await fetch('/api/apercu', {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify(S)
-    });
-    const data = await r.json();
-    clearInterval(minuteurProgres);
-    genFill.style.width = '100%';
-    genTexte.textContent = 'C\'est prêt !';
-    if (!data.error && data.id) {
-      setTimeout(() => {
-        genLoading.style.display = 'none';
-        btn.href = '/apercu/' + data.id;
-        btn.style.display = 'flex';
-      }, 500);
-    } else {
-      genLoading.style.display = 'none';
-    }
-  } catch(e){
-    clearInterval(minuteurProgres);
-    genLoading.style.display = 'none';
+  const [data] = await Promise.all([requete, lancerEcranChargement()]);
+
+  setStep(STEPS-1); // écran de succès
+  if (!data.error && data.id) {
+    const btn = document.getElementById('btnAccesEspace');
+    btn.href = '/apercu/' + data.id;
+    btn.style.display = 'flex';
   }
 }
 
