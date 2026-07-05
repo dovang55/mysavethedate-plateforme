@@ -531,9 +531,6 @@ a{color:inherit;text-decoration:none}
 
     <div class="editor-preview">
       <div class="preview-bar">
-        <div class="preview-dot" style="background:#ff5f57"></div>
-        <div class="preview-dot" style="background:#febc2e"></div>
-        <div class="preview-dot" style="background:#28c840"></div>
         <span id="statutSauvegarde" style="font-family:'Inter',sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,236,224,.4);margin-left:8px">Aperçu</span>
         <a id="previewLink" href="#" target="_blank" style="margin-left:auto;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,236,224,.4)">Ouvrir ↗</a>
       </div>
@@ -1322,13 +1319,32 @@ function carteMusique(track, titre){
     <div class="field-row">
       <div class="field-group"><label>Démarrer à (secondes)</label><input type="number" class="mt-start" min="0" value="${track.startAt||0}"></div>
       <div class="field-group"><label>Boucler à partir de (secondes)</label><input type="number" class="mt-loop" min="0" value="${track.loopFrom||0}"></div>
-    </div>`;
+    </div>
+    <button type="button" class="btn-sm mt-supprimer" style="margin-top:6px;display:${track.url?'inline-block':'none'}">✕ Supprimer cette musique</button>`;
   div.querySelector('.mt-start').addEventListener('input', e => { track.startAt = parseInt(e.target.value)||0; declencherSauvegardeAuto(); });
   div.querySelector('.mt-loop').addEventListener('input', e => { track.loopFrom = parseInt(e.target.value)||0; declencherSauvegardeAuto(); });
   div.querySelector('.mt-file').addEventListener('change', async e => {
     const file = e.target.files[0]; if (!file) return;
     const url = await uploaderFichier(file, 'music');
-    if (url) { track.url = url; div.querySelector('.upload-zone-text').textContent = '✓ ' + file.name; showToast('Musique envoyée'); declencherSauvegardeAuto(); }
+    if (url) {
+      track.url = url;
+      div.querySelector('.upload-zone-text').textContent = '✓ ' + file.name;
+      div.querySelector('.mt-supprimer').style.display = 'inline-block';
+      showToast('Musique envoyée');
+      declencherSauvegardeAuto();
+    }
+  });
+  div.querySelector('.mt-supprimer').addEventListener('click', () => {
+    track.url = '';
+    track.startAt = 0;
+    track.loopFrom = 0;
+    div.querySelector('.upload-zone-text').textContent = 'Glisser un fichier audio';
+    div.querySelector('.mt-start').value = 0;
+    div.querySelector('.mt-loop').value = 0;
+    div.querySelector('.mt-file').value = '';
+    div.querySelector('.mt-supprimer').style.display = 'none';
+    showToast('Musique supprimée');
+    declencherSauvegardeAuto();
   });
   return div;
 }

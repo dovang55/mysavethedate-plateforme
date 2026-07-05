@@ -400,6 +400,9 @@ app.use('/admin', express.static(path.join(__dirname,'..','admin')));
 app.get(['/admin','/admin/'], (req,res) => {
   res.sendFile(path.join(__dirname,'..','admin','index.html'));
 });
+app.get(['/admin/dashboard','/admin/dashboard/'], (req,res) => {
+  res.sendFile(path.join(__dirname,'..','admin','dashboard.html'));
+});
 
 // ─── Serve espace (espace client — connexion + éditeur self-service) ────────
 app.use('/espace', express.static(path.join(__dirname,'..','espace')));
@@ -471,6 +474,104 @@ app.put('/api/admin/sites/:id', requireAdmin, async (req,res) => {
 // Delete site
 app.delete('/api/admin/sites/:id', requireAdmin, async (req,res) => {
   const { error } = await supabase.from('msd_sites').delete().eq('id',req.params.id);
+  if(error) return res.status(500).json({error:error.message});
+  res.json({success:true});
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN API — Dashboard BOSS (clients, prospects, stats globales)
+// Page dédiée (admin/dashboard.html), indépendante de l'éditeur de sites
+// ci-dessus : routes en lecture seule + une action de suppression de compte.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Récupère tous les comptes Supabase Auth (l'API admin pagine par lots).
+async function listerTousLesComptes(){
+  let page = 1, tous = [];
+  while(true){
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage:1000 });
+    if(error) throw error;
+    tous = tous.concat(data.users);
+    if(data.users.length < 1000) break;
+    page += 1;
+  }
+  return tous;
+}
+
+app.get('/api/admin/dashboard', requireAdmin, async (req,res) => {
+  try {
+    const [comptes, sitesRes, leadsRes, rsvpRes, videosRes, murRes] = await Promise.all([
+      listerTousLesComptes(),
+      supabase.from('msd_sites').select('id,subdomain,template,active,config,user_id,created_at').order('created_at',{ascending:false}),
+      supabase.from('msd_leads').select('*').order('created_at',{ascending:false}),
+      supabase.from('msd_rsvp').select('id,site_id'),
+      supabase.from('msd_videos').select('id,site_id'),
+      supabase.from('msd_mur_medias').select('id,site_id'),
+    ]);
+    if (sitesRes.error) throw sitesRes.error;
+    if (leadsRes.error) throw leadsRes.error;
+
+    const sites  = sitesRes.data||[];
+    const leads  = leadsRes.data||[];
+    const rsvp   = rsvpRes.data||[];
+    const videos = videosRes.data||[];
+    const mur    = murRes.data||[];
+
+    // Nombre de lignes par site_id (RSVP / vidéos / mur), pour éviter le
+    // N+1 (une requête par site) sur des tables qui restent petites.
+    const compterParSite = (lignes) => lignes.reduce((acc,l)=>{ acc[l.site_id]=(acc[l.site_id]||0)+1; return acc; },{});
+    const nbRsvp   = compterParSite(rsvp);
+    const nbVideos = compterParSite(videos);
+    const nbMur    = compterParSite(mur);
+
+    // Retrouve le lead d'origine d'un site (téléphone, budget…), utile car
+    // ces infos ne sont pas stockées dans msd_sites lui-même.
+    const leadParSite = {};
+    leads.forEach(l => { if(l.site_id) leadParSite[l.site_id] = l; });
+
+    const sitesEnrichis = sites.map(s => ({
+      id: s.id, subdomain: s.subdomain, template: s.template, active: s.active,
+      createdAt: s.created_at, userId: s.user_id,
+      firstName: s.config?.identity?.firstName||'', lastName: s.config?.identity?.lastName||'',
+      eventType: s.config?.identity?.eventType||'',
+      rsvpCount: nbRsvp[s.id]||0, videosCount: nbVideos[s.id]||0, murCount: nbMur[s.id]||0,
+      leadPhone: leadParSite[s.id]?.phone||'', leadBudget: leadParSite[s.id]?.budget||'',
+    }));
+
+    // Un compte peut avoir plusieurs faire-part.
+    const sitesParUser = {};
+    sitesEnrichis.forEach(s => { if(s.userId){ (sitesParUser[s.userId] = sitesParUser[s.userId]||[]).push(s); } });
+
+    const clients = comptes.map(u => ({
+      userId: u.id, email: u.email, createdAt: u.created_at,
+      firstName: u.user_metadata?.firstName||'', lastName: u.user_metadata?.lastName||'',
+      sites: sitesParUser[u.id]||[],
+    }));
+
+    const sitesOrphelins = sitesEnrichis.filter(s => !s.userId);
+
+    const stats = {
+      totalComptes: comptes.length,
+      totalSites: sites.length,
+      sitesActifs: sites.filter(s=>s.active).length,
+      sitesInactifs: sites.filter(s=>!s.active).length,
+      totalLeads: leads.length,
+      totalRsvp: rsvp.length,
+      totalVideos: videos.length,
+      totalMur: mur.length,
+      revenuEstime: sites.filter(s=>s.active && s.user_id).length * PRIX_PARTAGE_EUROS,
+    };
+
+    res.json({ stats, clients, sitesOrphelins, leads });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Supprime un compte client (Supabase Auth). Ses sites ne sont pas
+// supprimés : ils deviennent orphelins (user_id repasse à NULL, cf.
+// ON DELETE SET NULL dans supabase-setup.sql).
+app.delete('/api/admin/dashboard/comptes/:userId', requireAdmin, async (req,res) => {
+  const { error } = await supabase.auth.admin.deleteUser(req.params.userId);
   if(error) return res.status(500).json({error:error.message});
   res.json({success:true});
 });

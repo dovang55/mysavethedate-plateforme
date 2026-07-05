@@ -193,6 +193,7 @@ a{color:inherit;text-decoration:none}
     <button class="btn-sm primary" id="btnSave">Sauvegarder</button>
   </div>
   <button class="btn-sm" id="btnBackList" style="display:none">← Sites</button>
+  <a class="btn-sm" href="/admin/dashboard.html">Tableau de bord</a>
   <button class="btn-sm danger" id="logoutBtn">Déconnexion</button>
 </div>
 
@@ -463,9 +464,6 @@ a{color:inherit;text-decoration:none}
     <!-- Preview -->
     <div class="editor-preview">
       <div class="preview-bar">
-        <div class="preview-dot" style="background:#ff5f57"></div>
-        <div class="preview-dot" style="background:#febc2e"></div>
-        <div class="preview-dot" style="background:#28c840"></div>
         <span style="font-family:'Italiana',serif;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:rgba(244,236,224,.4);margin-left:8px">Aperçu</span>
         <a id="previewLink" href="#" target="_blank" style="margin-left:auto;font-family:'Italiana',serif;font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(244,236,224,.4)">Ouvrir ↗</a>
       </div>
@@ -544,6 +542,9 @@ async function tryLogin(){
     document.getElementById('appBody').style.display='flex';
     const sites = await r.json();
     renderSitesList(sites);
+    // Ouverture directe d'un site via lien externe (ex: depuis le dashboard) : /admin/#open=ID
+    const hashMatch = location.hash.match(/open=([\w-]+)/);
+    if(hashMatch) openEditor(hashMatch[1]);
   } catch { document.getElementById('loginErr').textContent='Erreur réseau.'; document.getElementById('loginErr').classList.add('show'); document.getElementById('loginBtn').disabled=false; }
 }
 
