@@ -273,6 +273,10 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
 .rdv-box-lbl{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.5em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
 .rdv-box-val{font-family:'Montserrat',sans-serif;font-weight:800;font-size:22px;color:var(--navy)}
 .summary-block{background:#fff;border:1px solid rgba(13,31,60,.1);padding:28px;border-radius:6px;margin-bottom:32px;text-align:left}
+.gen-loading{max-width:420px;margin:0 auto 24px}
+.gen-loading-bar{height:6px;background:rgba(13,31,60,.08);border-radius:3px;overflow:hidden;margin-bottom:12px}
+.gen-loading-fill{height:100%;width:0%;background:var(--gold);border-radius:3px;transition:width .4s ease}
+.gen-loading-text{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--navy);opacity:.7}
 .summary-title{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.5em;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
 .summary-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:9px 0;border-bottom:1px solid rgba(13,31,60,.06)}
 .summary-row:last-child{border-bottom:none}
@@ -767,6 +771,10 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
             <div class="summary-row"><span class="summary-k">Convives</span><span class="summary-v" id="sGuests">—</span></div>
             <div class="summary-row"><span class="summary-k">Style</span><span class="summary-v" id="sStyle">—</span></div>
           </div>
+          <div class="gen-loading" id="genLoading" style="display:none">
+            <div class="gen-loading-bar"><div class="gen-loading-fill" id="genLoadingFill"></div></div>
+            <div class="gen-loading-text" id="genLoadingText">Préparation de votre style…</div>
+          </div>
           <a class="btn-qnext" id="btnAccesEspace" href="#" style="display:none;margin:0 auto 14px;text-decoration:none">Prévisualiser mon faire-part →</a>
           <button class="btn-qnext" style="margin:0 auto" onclick="closeQ()">Fermer ✕</button>
         </div>
@@ -906,6 +914,32 @@ async function submit(){
 
   next(); // Go to success screen
 
+  // Barre de progression factice pendant la génération : donne un retour
+  // visuel le temps que /api/apercu réponde, au lieu de laisser l'utilisateur
+  // devant un écran figé sans bouton.
+  const messages = [
+    'Préparation de votre style…',
+    'Mise en page de votre faire-part…',
+    'Génération des couleurs et polices…',
+    'Presque terminé…'
+  ];
+  const genLoading = document.getElementById('genLoading');
+  const genFill    = document.getElementById('genLoadingFill');
+  const genTexte   = document.getElementById('genLoadingText');
+  const btn        = document.getElementById('btnAccesEspace');
+  let pct = 0, msgIdx = 0;
+  genLoading.style.display = 'block';
+  btn.style.display = 'none';
+  genFill.style.width = '0%';
+  genTexte.textContent = messages[0];
+  const minuteurProgres = setInterval(() => {
+    if (pct >= 90) return;
+    pct = Math.min(90, pct + Math.random()*8 + 4);
+    genFill.style.width = pct + '%';
+    const nouvelIdx = Math.min(messages.length-1, Math.floor(pct / (90/messages.length)));
+    if (nouvelIdx !== msgIdx) { msgIdx = nouvelIdx; genTexte.textContent = messages[msgIdx]; }
+  }, 400);
+
   // Génère tout de suite un vrai aperçu du faire-part, sans compte
   try {
     const r = await fetch('/api/apercu', {
@@ -914,12 +948,22 @@ async function submit(){
       body: JSON.stringify(S)
     });
     const data = await r.json();
+    clearInterval(minuteurProgres);
+    genFill.style.width = '100%';
+    genTexte.textContent = 'C\'est prêt !';
     if (!data.error && data.id) {
-      const btn = document.getElementById('btnAccesEspace');
-      btn.href = '/apercu/' + data.id;
-      btn.style.display = 'flex';
+      setTimeout(() => {
+        genLoading.style.display = 'none';
+        btn.href = '/apercu/' + data.id;
+        btn.style.display = 'flex';
+      }, 500);
+    } else {
+      genLoading.style.display = 'none';
     }
-  } catch(e){ /* ignore — the UX is not blocked */ }
+  } catch(e){
+    clearInterval(minuteurProgres);
+    genLoading.style.display = 'none';
+  }
 }
 
 /* ══ MOCKUP COUNTDOWN ══ */
