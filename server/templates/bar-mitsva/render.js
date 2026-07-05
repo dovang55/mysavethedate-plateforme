@@ -341,6 +341,7 @@ module.exports = function renderSite(cfg, siteId, murMedias) {
 <meta charset="utf-8">
 <title>${c.meta?.title||id.firstName+' '+id.lastName}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="${c.meta?.favicon || '/assets/favicon.svg'}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="${construireUrlPolices(t)}" rel="stylesheet">
