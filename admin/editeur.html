@@ -214,7 +214,7 @@ a{color:inherit;text-decoration:none}
     <!-- Editor Nav -->
     <div class="editor-sidebar">
       <div style="padding:16px 18px;border-bottom:1px solid var(--border);font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px;color:var(--ink-s)" id="edSiteName">—</div>
-      ${['identite','design','hero','fairepart','hommage','shabbat','infos','video','rsvp','musique','stats','parametres'].map(k=>`<div class="editor-nav-item" data-ed="${k}">${{identite:'Identité',design:'Design & Couleurs',hero:'Page Hero',fairepart:'Faire-part',hommage:'Hommage',shabbat:'Shabbat',infos:'Informations',video:'Vidéo',rsvp:'RSVP',musique:'Musique',stats:'Stats & RSVP',parametres:'Paramètres'}[k]}</div>`).join('')}
+      <div id="editorNav"></div>
     </div>
 
     <!-- Editor Main -->
@@ -619,7 +619,17 @@ document.getElementById('btnBackList').addEventListener('click', async ()=>{
   renderSitesList(await r.json());
 });
 
-// Nav
+// Nav — le menu latéral est généré ici (et non écrit en dur dans le HTML)
+// pour éviter d'afficher du code JS brut si jamais le navigateur ne
+// l'exécute pas comme prévu.
+const NAV_ITEMS = {
+  identite:'Identité', design:'Design & Couleurs', hero:'Page Hero', fairepart:'Faire-part',
+  hommage:'Hommage', shabbat:'Shabbat', infos:'Informations', video:'Vidéo',
+  rsvp:'RSVP', musique:'Musique', stats:'Stats & RSVP', parametres:'Paramètres',
+};
+document.getElementById('editorNav').innerHTML = Object.entries(NAV_ITEMS)
+  .map(([k,label]) => `<div class="editor-nav-item" data-ed="${k}">${label}</div>`).join('');
+
 document.querySelectorAll('.editor-nav-item').forEach(el => {
   el.addEventListener('click', () => setActiveEdNav(el.dataset.ed));
 });
