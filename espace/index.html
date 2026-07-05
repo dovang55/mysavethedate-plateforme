@@ -1285,7 +1285,7 @@ function buildEventsList(section){
         <div class="field-group"><label>Label</label><input type="text" class="ev-label" value="${ev.label||''}"></div>
         <div class="field-group"><label>Valeur</label><input type="text" class="ev-value" value="${ev.value||''}"></div>
       </div>
-      <div class="field-group"><label>Adresse (optionnel)</label><input type="text" class="ev-address" value="${ev.address||''}"></div>`;
+      <div class="field-group"><label>Info en plus (optionnel)</label><input type="text" class="ev-address" value="${ev.address||''}"></div>`;
     wrap.appendChild(div);
     const maj = () => { events[i] = { label:div.querySelector('.ev-label').value, value:div.querySelector('.ev-value').value, address:div.querySelector('.ev-address').value }; declencherSauvegardeAuto(); };
     div.querySelectorAll('input').forEach(el => el.addEventListener('input', maj));
