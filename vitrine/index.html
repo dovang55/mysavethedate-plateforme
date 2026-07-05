@@ -224,6 +224,8 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
 .style-card h4{font-family:'Montserrat',sans-serif;font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;margin-bottom:7px}
 .style-card p{font-family:'Inter',sans-serif;font-size:12px;color:var(--grey);line-height:1.45}
 .palette-swatch{height:44px;border-radius:6px;margin-bottom:12px}
+.upload-zone-vitrine{padding:28px;border:2px dashed rgba(13,31,60,.18);border-radius:6px;text-align:center;cursor:pointer;font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--navy);transition:all .2s;margin-bottom:32px}
+.upload-zone-vitrine:hover{border-color:var(--gold);background:rgba(201,169,110,.05)}
 
 /* Budget */
 .budget-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:44px}
@@ -751,6 +753,84 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
               <p>Vos invités confirment leur présence directement en ligne.</p>
             </div>
           </div>
+
+          <div id="infosSousQuestion" style="display:none;margin:-8px 0 32px">
+            <p class="q-sub" style="margin-bottom:14px">Quelle information complémentaire voulez-vous ajouter ?</p>
+            <div class="style-grid" id="infosCategorieGrid" style="grid-template-columns:repeat(2,1fr);margin-bottom:0">
+              <div class="style-card" data-cat="visa" onclick="pickInfosCategorie(this)">
+                <h4>Visa / Formalités</h4>
+                <p>Démarches administratives pour les invités qui voyagent.</p>
+              </div>
+              <div class="style-card" data-cat="hebergement" onclick="pickInfosCategorie(this)">
+                <h4>Hébergement &amp; Transport</h4>
+                <p>Hôtels, navettes, parking…</p>
+              </div>
+              <div class="style-card" data-cat="tenue" onclick="pickInfosCategorie(this)">
+                <h4>Tenue / Dress code</h4>
+                <p>Style vestimentaire souhaité.</p>
+              </div>
+              <div class="style-card" data-cat="cadeaux" onclick="pickInfosCategorie(this)">
+                <h4>Liste de mariage / Cadeaux</h4>
+                <p>Lien vers votre cagnotte ou liste.</p>
+              </div>
+              <div class="style-card" data-cat="custom" onclick="pickInfosCategorie(this)" style="grid-column:span 2">
+                <h4>Personnalisé</h4>
+                <p>Rédigez vous-même le contenu de cette page.</p>
+              </div>
+            </div>
+            <div id="infosCustomFields" style="display:none;margin-top:20px">
+              <div class="q-field">
+                <label class="q-lbl">Titre</label>
+                <input type="text" class="q-inp" id="infosCustomTitre" placeholder="Ex. Informations pratiques" oninput="chkInfosCustom()">
+              </div>
+              <div class="q-field">
+                <label class="q-lbl">Sous-titre</label>
+                <input type="text" class="q-inp" id="infosCustomSousTitre" placeholder="Ex. À savoir" oninput="chkInfosCustom()">
+              </div>
+              <div class="q-field">
+                <label class="q-lbl">Texte</label>
+                <textarea class="q-inp" id="infosCustomTexte" rows="3" placeholder="Votre message…" oninput="chkInfosCustom()"></textarea>
+              </div>
+              <div class="q-field">
+                <label class="q-lbl">Texte du bouton (optionnel)</label>
+                <input type="text" class="q-inp" id="infosCustomBoutonTexte" placeholder="Ex. En savoir plus" oninput="chkInfosCustom()">
+              </div>
+              <div class="q-field">
+                <label class="q-lbl">Lien du bouton (optionnel)</label>
+                <input type="text" class="q-inp" id="infosCustomBoutonUrl" placeholder="https://…" oninput="chkInfosCustom()">
+              </div>
+            </div>
+          </div>
+
+          <div class="q-nav">
+            <button class="btn-qprev" onclick="prev()">← Précédent</button>
+            <button class="btn-qnext" onclick="next()">Suivant →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STEP : Musique ── -->
+      <div class="q-step">
+        <div class="q-inner">
+          <div class="q-eye">Étape 7 · La musique</div>
+          <h2 class="q-h">Une musique pour<br>votre faire-part ?</h2>
+          <p class="q-sub">Une bande-son discrète peut accompagner la lecture — entièrement optionnel.</p>
+          <div class="style-grid" id="musicChoiceGrid" style="grid-template-columns:repeat(2,1fr)">
+            <div class="style-card sel" data-choice="non" onclick="pickMusicChoice(this)">
+              <h4>Pas de musique</h4>
+              <p>Je préfère sans, ou je verrai plus tard depuis mon espace.</p>
+            </div>
+            <div class="style-card" data-choice="oui" onclick="pickMusicChoice(this)">
+              <h4>Oui, j'ai un fichier</h4>
+              <p>Importer un morceau (mp3, etc.) dès maintenant.</p>
+            </div>
+          </div>
+          <div id="musicUploadWrap" style="display:none">
+            <div class="upload-zone-vitrine" id="musicUploadZone" onclick="document.getElementById('musicFileInput').click()">
+              <input type="file" id="musicFileInput" accept="audio/*" style="display:none" onchange="chkMusicFile()">
+              <span id="musicUploadText">🎵 Choisir un fichier audio</span>
+            </div>
+          </div>
           <div class="q-nav">
             <button class="btn-qprev" onclick="prev()">← Précédent</button>
             <button class="btn-qnext" onclick="next()">Suivant →</button>
@@ -761,7 +841,7 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
       <!-- ── STEP 6 : Coordonnées ── -->
       <div class="q-step">
         <div class="q-inner">
-          <div class="q-eye">Étape 7 · Vous, l'organisateur·rice</div>
+          <div class="q-eye">Étape 8 · Vous, l'organisateur·rice</div>
           <h2 class="q-h">Et vous,<br>qui êtes-vous ?</h2>
           <p class="q-sub">Vos coordonnées à vous (pas celles du sujet du faire-part) — confidentielles, jamais partagées.</p>
           <div class="q-row">
@@ -837,11 +917,15 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
 <script>
 /* ══ STATE ══ */
 let step = 0;
-const STEPS = 9; // + écran de chargement + écran de succès
+const STEPS = 10; // + écran de chargement + écran de succès
 const S = {
   eventType:'', date:'', location:'', guests:150, colorPreset:'', budget:'',
   // Palette personnalisée (uniquement si colorPreset==='custom')
   customType:'uni', customColor1:'#c9a96e', customColor2:'#0d1f3c',
+  // Sous-question "informations complémentaires" (si pages.infos===true)
+  infosCategorie:'', infosCustom:{title:'',subtitle:'',body:'',ctaText:'',ctaUrl:''},
+  // Musique (fichier importé directement dans le questionnaire)
+  wantMusic:false, musicFile:null,
   // Le sujet du faire-part (l'enfant, les mariés, la personne fêtée…) — pas
   // forcément la même personne que l'organisateur qui remplit le formulaire.
   subjectFirstName:'', subjectSecondFirstName:'', subjectLastName:'', subjectExtra:'',
@@ -919,6 +1003,37 @@ function chkSujet(){
 function togglePage(el){
   el.classList.toggle('sel');
   S.pages[el.dataset.page] = el.classList.contains('sel');
+  if (el.dataset.page === 'infos') {
+    document.getElementById('infosSousQuestion').style.display = S.pages.infos ? 'block' : 'none';
+  }
+}
+function pickInfosCategorie(el){
+  document.querySelectorAll('#infosCategorieGrid .style-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  S.infosCategorie = el.dataset.cat;
+  document.getElementById('infosCustomFields').style.display = (S.infosCategorie === 'custom') ? 'block' : 'none';
+}
+function chkInfosCustom(){
+  S.infosCustom = {
+    title:    document.getElementById('infosCustomTitre').value.trim(),
+    subtitle: document.getElementById('infosCustomSousTitre').value.trim(),
+    body:     document.getElementById('infosCustomTexte').value.trim(),
+    ctaText:  document.getElementById('infosCustomBoutonTexte').value.trim(),
+    ctaUrl:   document.getElementById('infosCustomBoutonUrl').value.trim(),
+  };
+}
+
+/* ══ STEP – Musique ══ */
+function pickMusicChoice(el){
+  document.querySelectorAll('#musicChoiceGrid .style-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  S.wantMusic = el.dataset.choice === 'oui';
+  document.getElementById('musicUploadWrap').style.display = S.wantMusic ? 'block' : 'none';
+}
+function chkMusicFile(){
+  const f = document.getElementById('musicFileInput').files[0];
+  S.musicFile = f || null;
+  document.getElementById('musicUploadText').textContent = f ? ('✓ ' + f.name) : '🎵 Choisir un fichier audio';
 }
 
 /* ══ STEP 3 – Date & Lieu ══ */
@@ -1020,12 +1135,24 @@ async function submit(){
 
   // Génère tout de suite un vrai aperçu du faire-part, sans compte — en
   // parallèle de l'écran de chargement, qui dure toujours son temps complet
-  // quelle que soit la vitesse de la réponse.
+  // quelle que soit la vitesse de la réponse. musicFile est un objet File,
+  // impossible à envoyer en JSON : on l'exclut du corps et on l'upload à
+  // part une fois le site créé (voir plus bas).
+  const { musicFile, ...corpsEnvoye } = S;
   const requete = fetch('/api/apercu', {
     method:'POST',
     headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify(S)
-  }).then(r=>r.json()).catch(() => ({ error:true }));
+    body: JSON.stringify(corpsEnvoye)
+  }).then(r=>r.json()).then(async data => {
+    if (!data.error && data.id && S.wantMusic && S.musicFile) {
+      try {
+        const fd = new FormData();
+        fd.append('file', S.musicFile);
+        await fetch('/api/apercu/' + data.id + '/musique', { method:'POST', body: fd });
+      } catch(e) { /* pas bloquant — ajoutable depuis l'espace client ensuite */ }
+    }
+    return data;
+  }).catch(() => ({ error:true }));
 
   const [data] = await Promise.all([requete, lancerEcranChargement()]);
 

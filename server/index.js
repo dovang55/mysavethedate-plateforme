@@ -204,6 +204,31 @@ const EVENT_TYPE_VERS_SLUG = {
   'Brit Mila':'brit-mila', 'Autre':'autre',
 };
 
+// Contenus prédéfinis pour la page "Informations complémentaires", proposés
+// comme sous-question du questionnaire dès que cette page est cochée.
+const INFOS_PRESETS = {
+  visa: {
+    title: 'Informations complémentaires', subtitle: 'Demande de VISA',
+    body: "Depuis le 1er Août 2024, il est obligatoire pour les touristes souhaitant se rendre en Israel de remplir le formulaire ETA suivant :",
+    ctaText: 'Faire une demande de visa — Site officiel', ctaUrl: 'https://israel-eta.piba.gov.il/',
+  },
+  hebergement: {
+    title: 'Où loger et comment venir ?', subtitle: 'Hébergement & Transport',
+    body: "Nous vous conseillons de réserver votre hébergement et votre transport à l'avance. N'hésitez pas à nous contacter pour des recommandations d'hôtels ou d'options de navette.",
+    ctaText: '', ctaUrl: '',
+  },
+  tenue: {
+    title: "Comment s'habiller ?", subtitle: 'Tenue de soirée',
+    body: "Nous vous invitons à venir dans une tenue élégante, adaptée à l'occasion.",
+    ctaText: '', ctaUrl: '',
+  },
+  cadeaux: {
+    title: 'Une pensée pour nous ?', subtitle: 'Liste de mariage',
+    body: "Votre présence est le plus beau des cadeaux. Si vous souhaitez néanmoins nous gâter, voici où trouver notre liste.",
+    ctaText: 'Voir la liste de cadeaux', ctaUrl: '',
+  },
+};
+
 // "2026-11-05" → "jeudi 5 novembre 2026" (capitalisé), pour l'affichage dans
 // la ligne "Date" du faire-part.
 function formaterDateFr(iso){
@@ -336,6 +361,20 @@ function construireConfigParDefaut(lead){
     });
   }
   config.pageOrder = SECTIONS_REORDONNABLES.filter(cle => cle === 'fairepart' || config.sections[cle]?.enabled !== false);
+
+  // Sous-question "Informations complémentaires" (posée si la page infos a
+  // été cochée) : remplace le contenu par défaut (visa) par le sujet choisi.
+  if (lead.infosCategorie === 'custom' && lead.infosCustom) {
+    Object.assign(config.sections.infos, {
+      title:    lead.infosCustom.title || config.sections.infos.title,
+      subtitle: lead.infosCustom.subtitle || '',
+      body:     lead.infosCustom.body || '',
+      ctaText:  lead.infosCustom.ctaText || '',
+      ctaUrl:   lead.infosCustom.ctaUrl || '',
+    });
+  } else if (INFOS_PRESETS[lead.infosCategorie]) {
+    Object.assign(config.sections.infos, INFOS_PRESETS[lead.infosCategorie]);
+  }
 
   return config;
 }
@@ -488,6 +527,34 @@ app.post('/api/apercu', async (req,res) => {
     res.json({ id: site.id });
   } catch(err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Musique choisie dans le questionnaire (juste après /api/apercu, donc pas
+// encore de compte à ce stade) : upload public, mais limité au site qui
+// vient d'être créé (identifié par son UUID aléatoire, même principe que
+// l'upload public du mur de photos).
+app.post('/api/apercu/:id/musique', upload.single('file'), async (req,res) => {
+  const tmpPath = req.file?.path;
+  try {
+    const { data:site } = await supabase.from('msd_sites').select('id,config').eq('id',req.params.id).single();
+    if (!site) return res.status(404).json({error:'Site introuvable'});
+    if (!req.file) return res.status(400).json({error:'Aucun fichier'});
+    const ext = path.extname(req.file.originalname).toLowerCase() || '.mp3';
+    const nomFichier = `${site.id}/musique-questionnaire-${Date.now()}${ext}`;
+    const buffer = fs.readFileSync(tmpPath);
+    const { error:upErr } = await supabase.storage.from(BUCKET_MEDIA).upload(nomFichier, buffer, { contentType: req.file.mimetype, upsert:true });
+    if (upErr) throw upErr;
+    const { data:urlData } = supabase.storage.from(BUCKET_MEDIA).getPublicUrl(nomFichier);
+    const cfg = mergeConfig(site.config);
+    cfg.musicMode = 'general';
+    cfg.music[0] = { url: urlData.publicUrl, startAt:0, loopFrom:0, pages:[], label:'Piste principale' };
+    await supabase.from('msd_sites').update({ config: cfg }).eq('id', site.id);
+    res.json({ success:true, url: urlData.publicUrl });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  } finally {
+    if (tmpPath && fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
   }
 });
 

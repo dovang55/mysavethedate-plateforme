@@ -199,7 +199,7 @@ module.exports = function renderSite(cfg, siteId, murMedias) {
       <h3 class="info-title">${s.infos.title}</h3>
       <p class="info-subtitle">${s.infos.subtitle}</p>
       <p class="info-body">${s.infos.body}</p>
-      <a class="info-cta" href="${s.infos.ctaUrl}" target="_blank"><span>${s.infos.ctaText}</span><span style="font-size:14px">→</span></a>
+      ${s.infos.ctaUrl ? `<a class="info-cta" href="${s.infos.ctaUrl}" target="_blank"><span>${s.infos.ctaText}</span><span style="font-size:14px">→</span></a>` : ''}
     </div>
   </div>
 </section>`,
