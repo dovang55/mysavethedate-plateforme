@@ -394,20 +394,22 @@ function getSubdomain(req) {
 // domaine "classique" (validation HTTP, Let's Encrypt) par sous-domaine via
 // l'API Dokploy, dès qu'un site devient actif. C'est exactement l'action
 // qu'on ferait à la main dans Dokploy → Domains → Add Domain.
-const DOKPLOY_API_URL = process.env.DOKPLOY_API_URL || '';
-const DOKPLOY_API_KEY = process.env.DOKPLOY_API_KEY || '';
-const DOKPLOY_APP_ID  = process.env.DOKPLOY_APP_ID  || '';
+const DOKPLOY_API_URL   = process.env.DOKPLOY_API_URL   || '';
+const DOKPLOY_API_KEY   = process.env.DOKPLOY_API_KEY   || '';
+const DOKPLOY_APP_ID    = process.env.DOKPLOY_APP_ID    || '';
+const DOKPLOY_SERVER_IP = process.env.DOKPLOY_SERVER_IP || '';
 
 async function creerDomaineDokploy(subdomain) {
   if (!DOKPLOY_API_URL || !DOKPLOY_API_KEY || !DOKPLOY_APP_ID) {
     console.warn('⚠️  DOKPLOY_API_URL / DOKPLOY_API_KEY / DOKPLOY_APP_ID manquants — sous-domaine non enregistré automatiquement dans Dokploy.');
     return;
   }
+  const host = `${subdomain}.mysavethedate.com`;
   const r = await fetch(`${DOKPLOY_API_URL}/domain.create`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': DOKPLOY_API_KEY },
     body: JSON.stringify({
-      host: `${subdomain}.mysavethedate.com`,
+      host,
       path: '/',
       port: 3000,
       https: true,
@@ -419,6 +421,23 @@ async function creerDomaineDokploy(subdomain) {
   if (!r.ok) {
     const detail = await r.text().catch(() => '');
     throw new Error(`Dokploy domain.create a échoué (${r.status}) : ${detail}`);
+  }
+
+  // domain.create ne fait qu'enregistrer l'entrée : sans cette étape, Traefik
+  // ne route rien et ne demande pas le certificat tant qu'un humain n'a pas
+  // cliqué "Validate" à la main dans Dokploy (constaté en testant).
+  if (!DOKPLOY_SERVER_IP) {
+    console.warn('⚠️  DOKPLOY_SERVER_IP manquant — validation Let\'s Encrypt non déclenchée automatiquement pour ' + host + '.');
+    return;
+  }
+  const rv = await fetch(`${DOKPLOY_API_URL}/domain.validateDomain`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': DOKPLOY_API_KEY },
+    body: JSON.stringify({ domain: host, serverIp: DOKPLOY_SERVER_IP }),
+  });
+  if (!rv.ok) {
+    const detail = await rv.text().catch(() => '');
+    throw new Error(`Dokploy domain.validateDomain a échoué (${rv.status}) : ${detail}`);
   }
 }
 
