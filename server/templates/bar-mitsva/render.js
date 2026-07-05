@@ -66,9 +66,13 @@ module.exports = function renderSite(cfg, siteId, murMedias) {
   SECTIONS_CONNUES.forEach(k => { if (!ordreMilieu.includes(k)) ordreMilieu.push(k); });
   customIds.forEach(k => { if (!ordreMilieu.includes(k)) ordreMilieu.push(k); });
   const pageDefs = ['hero', ...ordreMilieu, 'footer'];
+  // Une fois le mur de photos actif, il remplace toutes les autres pages du
+  // milieu (faire-part, hommage, etc.) : seuls le hero, le mur et le pied de
+  // page restent dans le deck.
   const activePages = pageDefs.filter(k => {
     if (k === 'hero' || k === 'footer') return true;
-    if (k === 'mur') return murActif;
+    if (murActif) return k === 'mur';
+    if (k === 'mur') return false;
     if (SECTIONS_CONNUES.includes(k)) return s[k]?.enabled !== false;
     const pagePerso = customPages.find(p => p.id === k);
     return pagePerso ? pagePerso.enabled !== false : false;
@@ -302,7 +306,11 @@ module.exports = function renderSite(cfg, siteId, murMedias) {
 </section>`;
   });
 
-  const sectionsMilieuHTML = ordreMilieu.map(k => sectionsHTML[k] || customSectionsHTML[k] || '').join('');
+  // On se base sur activePages (et non ordreMilieu) : ordreMilieu contient
+  // toujours toutes les clés connues, activePages ne garde que celles qui
+  // doivent réellement apparaître (gère aussi le remplacement total par le
+  // mur de photos une fois actif).
+  const sectionsMilieuHTML = activePages.filter(k => k!=='hero' && k!=='footer').map(k => sectionsHTML[k] || customSectionsHTML[k] || '').join('');
 
   return `<!doctype html>
 <html lang="${c.meta?.lang||'fr'}">

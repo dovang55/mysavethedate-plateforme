@@ -850,8 +850,12 @@ function calculerIndexPage(cle){
   let ordreMilieu = Array.isArray(currentConfig.pageOrder) ? currentConfig.pageOrder.filter(k => SECTIONS_CONNUES.includes(k) || customIds.includes(k)) : [];
   SECTIONS_CONNUES.forEach(k => { if (!ordreMilieu.includes(k)) ordreMilieu.push(k); });
   customIds.forEach(k => { if (!ordreMilieu.includes(k)) ordreMilieu.push(k); });
+  // Une fois le mur de photos actif, il remplace toutes les autres pages du
+  // milieu (même règle que côté rendu, voir render.js).
+  const murActif = murEstActifCoteEditeur();
   const activeMilieu = ordreMilieu.filter(k => {
-    if (k === 'mur') return murEstActifCoteEditeur();
+    if (murActif) return k === 'mur';
+    if (k === 'mur') return false;
     if (SECTIONS_CONNUES.includes(k)) return currentConfig.sections?.[k]?.enabled !== false;
     const cp = customPages.find(p => p.id === k);
     return cp ? cp.enabled !== false : false;
