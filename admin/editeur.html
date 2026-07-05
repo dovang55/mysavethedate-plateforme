@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>MySaveTheDate — Admin</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f0f5ff;--paper:#ffffff;--border:rgba(30,64,175,.15);
+  --gold:#2563eb;--gold-l:#3b82f6;--ink:#0d1f3c;--ink-s:#1e3a8a;
+  --cream:#e8f0fe;--sidebar:220px;--topbar:56px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--ink);background:var(--bg);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+a{color:inherit;text-decoration:none}
+
+/* LOGIN */
+.login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999}
+.login-box{background:var(--paper);border:none;padding:52px 44px;width:400px;text-align:center;position:relative;box-shadow:0 20px 60px rgba(13,31,60,.12);border-top:4px solid var(--gold)}
+.login-logo{font-family:'Montserrat',sans-serif;font-size:22px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);margin-bottom:6px}
+.login-sub{font-family:'Inter',sans-serif;font-size:13px;font-weight:400;color:var(--ink-s);margin-bottom:32px}
+.login-box input{width:100%;border:none;border-bottom:2px solid var(--border);padding:10px 0;font-family:'Inter',sans-serif;font-size:16px;font-weight:600;text-align:center;letter-spacing:.15em;background:transparent;outline:none;color:var(--ink);margin-bottom:24px}
+.login-box input:focus{border-bottom-color:var(--gold)}
+.btn-dark{background:var(--ink);color:#fff;border:none;padding:14px 28px;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.35em;text-transform:uppercase;cursor:pointer;transition:background .2s;width:100%}
+.btn-dark:hover{background:var(--gold)}
+.login-err{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:#dc2626;margin-top:12px;display:none}
+.login-err.show{display:block}
+
+/* TOPBAR */
+.topbar{height:var(--topbar);background:var(--ink);border-bottom:none;display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
+.topbar-title{font-family:'Montserrat',sans-serif;font-size:15px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;flex:1;color:#fff}
+.topbar-title span{color:#93c5fd;font-family:'Montserrat',sans-serif;font-weight:400}
+.btn-sm{padding:7px 16px;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;border:2px solid var(--border);background:transparent;cursor:pointer;transition:all .2s;color:var(--ink-s);border-radius:3px}
+.btn-sm:hover{border-color:var(--gold);color:var(--gold)}
+.btn-sm.primary{background:var(--gold);color:#fff;border-color:var(--gold)}
+.btn-sm.primary:hover{background:#1d4ed8;border-color:#1d4ed8}
+.btn-sm.danger:hover{border-color:#dc2626;color:#dc2626}
+.topbar .btn-sm{border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.75);background:transparent}
+.topbar .btn-sm:hover{border-color:#fff;color:#fff}
+.topbar .btn-sm.primary{background:var(--gold);color:#fff;border-color:var(--gold)}
+.topbar .btn-sm.primary:hover{background:#1d4ed8;border-color:#1d4ed8}
+.topbar .btn-sm.danger:hover{border-color:#f87171;color:#f87171}
+
+/* LAYOUT */
+.app-body{display:flex;flex:1;overflow:hidden}
+.sidebar{width:var(--sidebar);border-right:1px solid var(--border);background:var(--paper);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+
+/* VIEWS */
+.view{display:none;flex:1;overflow:hidden}
+.view.active{display:flex;flex-direction:column}
+
+/* ── SITES LIST ── */
+#view-sites{overflow-y:auto;padding:28px}
+.sites-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.sites-header h2{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink)}
+.sites-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.site-card{background:var(--paper);border:1px solid var(--border);border-left:4px solid var(--gold);padding:22px 20px;cursor:pointer;transition:all .2s;position:relative}
+.site-card:hover{box-shadow:0 8px 28px rgba(13,31,60,.1);transform:translateY(-2px)}
+.site-card-sub{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.site-card-name{font-family:'Montserrat',sans-serif;font-weight:800;font-size:18px;color:var(--ink)}
+.site-card-date{font-size:12px;font-weight:500;color:var(--ink-s);margin-top:6px}
+.site-card-status{position:absolute;top:14px;right:14px;width:8px;height:8px;border-radius:50%;background:#22c55e}
+.site-card-status.inactive{background:#ef4444}
+.site-card-actions{display:flex;gap:8px;margin-top:16px}
+
+/* ── EDITOR ── */
+#view-editor{flex-direction:row;overflow:hidden}
+.editor-sidebar{width:200px;border-right:1px solid var(--border);background:var(--paper);overflow-y:auto;flex-shrink:0}
+.editor-nav-item{padding:12px 18px;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;cursor:pointer;border-left:3px solid transparent;transition:all .15s;color:var(--ink-s)}
+.editor-nav-item:hover{color:var(--ink);background:rgba(37,99,235,.05)}
+.editor-nav-item.active{color:var(--gold);border-left-color:var(--gold);background:rgba(37,99,235,.07)}
+.editor-main{flex:1;overflow-y:auto;padding:28px 32px;max-width:700px}
+.editor-preview{width:380px;border-left:1px solid var(--border);background:#060f1e;display:flex;flex-direction:column;flex-shrink:0}
+.preview-bar{height:38px;background:#030811;display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0}
+.preview-dot{width:10px;height:10px;border-radius:50%}
+.preview-iframe-wrap{flex:1;overflow:hidden;position:relative}
+.preview-iframe-wrap iframe{width:200%;height:200%;transform:scale(.5);transform-origin:top left;border:none;pointer-events:none}
+.preview-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-family:'Inter',sans-serif;font-size:12px;font-weight:500}
+
+/* EDITOR SECTIONS */
+.ed-section{display:none}
+.ed-section.active{display:block}
+.ed-title{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;color:var(--ink)}
+.ed-sub{font-family:'Inter',sans-serif;font-size:13px;font-weight:400;color:var(--ink-s);margin-bottom:28px}
+.field-group{margin-bottom:28px}
+.field-group > label,.field-label{display:block;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-s);margin-bottom:8px}
+.field-group input[type=text],
+.field-group input[type=url],
+.field-group input[type=number],
+.field-group input[type=date],
+.field-group input[type=time],
+.field-group select,
+.field-group textarea{width:100%;border:1px solid var(--border);background:var(--paper);padding:10px 12px;font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--ink);outline:none;transition:border-color .2s;border-radius:4px}
+.field-group input:focus,.field-group select:focus,.field-group textarea:focus{border-color:var(--gold)}
+.field-group textarea{resize:vertical;min-height:80px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.toggle-label{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--ink-s)}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:#cbd5e1;border-radius:24px;cursor:pointer;transition:.3s}
+.toggle-slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle input:checked + .toggle-slider{background:var(--gold)}
+.toggle input:checked + .toggle-slider::before{transform:translateX(20px)}
+
+/* COLOR PALETTE */
+.palette-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.preset-btn{padding:10px;border:2px solid transparent;cursor:pointer;text-align:center;border-radius:6px;transition:border-color .2s}
+.preset-btn.active,.preset-btn:hover{border-color:var(--gold)}
+.preset-swatch{height:32px;border-radius:4px;margin-bottom:6px}
+.preset-name{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--ink-s)}
+.color-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.color-field{display:flex;align-items:center;gap:10px}
+.color-field input[type=color]{width:40px;height:36px;border:1px solid var(--border);padding:2px;background:var(--paper);cursor:pointer;border-radius:4px}
+.color-field input[type=text]{flex:1;border:1px solid var(--border);padding:8px 10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;background:var(--paper);outline:none;border-radius:4px}
+.color-field input[type=text]:focus{border-color:var(--gold)}
+.color-field-label{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--ink-s);margin-bottom:4px}
+
+/* MUSIC TRACKS */
+.music-track{background:var(--cream);border:1px solid var(--border);padding:16px;margin-bottom:12px;border-radius:6px}
+.music-track-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.music-track-label{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--gold)}
+
+/* EVENTS LIST */
+.event-item{background:var(--cream);border:1px solid var(--border);padding:16px;margin-bottom:10px;border-radius:6px}
+.event-item-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;cursor:pointer}
+.event-item-title{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-s)}
+
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed var(--border);padding:24px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative;background:var(--paper);border-radius:6px}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--gold)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-zone-text{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--ink-s)}
+.upload-preview{max-width:100%;max-height:120px;margin:10px auto 0;display:block}
+.upload-audio-name{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-top:8px}
+
+/* RSVP events */
+.rsvp-event-item{background:var(--cream);border:1px solid var(--border);padding:14px 16px;margin-bottom:10px;border-radius:6px}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:24px}
+.stat-box{background:var(--paper);border:1px solid var(--border);padding:18px;text-align:center;border-radius:6px}
+.stat-num{font-family:'Montserrat',sans-serif;font-size:34px;font-weight:800;color:var(--gold);line-height:1}
+.stat-lbl{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-s);margin-top:4px}
+
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse;background:var(--paper);border:1px solid var(--border)}
+.data-table th{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-s);padding:12px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+.data-table td{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;padding:10px 14px;border-bottom:1px solid rgba(30,64,175,.08);vertical-align:top}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(37,99,235,.03)}
+.badge{padding:2px 8px;font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;border-radius:3px}
+.badge.oui{background:rgba(34,197,94,.12);color:#15803d}
+.badge.non{background:rgba(13,31,60,.06);color:var(--ink-s)}
+
+/* NEW SITE MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(13,31,60,.6);z-index:200;display:flex;align-items:center;justify-content:center;display:none}
+.modal-overlay.show{display:flex}
+.modal{background:var(--paper);border:none;border-top:4px solid var(--gold);padding:40px;width:500px;max-width:95vw;position:relative;box-shadow:0 30px 80px rgba(13,31,60,.2)}
+.modal-title{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:24px;color:var(--ink)}
+.modal-actions{display:flex;gap:10px;margin-top:24px;justify-content:flex-end}
+
+/* Toasts */
+.toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--ink);color:#fff;padding:14px 22px;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.35em;text-transform:uppercase;opacity:0;transition:opacity .3s,transform .3s;transform:translateY(8px);pointer-events:none;border-radius:4px}
+.toast.show{opacity:1;transform:translateY(0)}
+
+.divider{height:1px;background:var(--border);margin:24px 0}
+.section-title{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
+.help-text{font-family:'Inter',sans-serif;font-size:12px;font-weight:400;color:var(--ink-s);margin-top:6px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">MySaveTheDate</div>
+    <div class="login-sub">Plateforme de faire-parts en ligne</div>
+    <input type="password" id="pwInput" placeholder="Mot de passe admin" autocomplete="current-password">
+    <button class="btn-dark" id="loginBtn">Entrer</button>
+    <div class="login-err" id="loginErr">Mot de passe incorrect.</div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar" id="topbar" style="display:none">
+  <div class="topbar-title">MySaveThe<span>Date</span></div>
+  <div id="editorActions" style="display:none;gap:8px;display:none">
+    <button class="btn-sm" id="btnPreview">⟳ Aperçu</button>
+    <button class="btn-sm primary" id="btnSave">Sauvegarder</button>
+  </div>
+  <button class="btn-sm" id="btnBackList" style="display:none">← Sites</button>
+  <a class="btn-sm" href="/admin/">Tableau de bord</a>
+  <button class="btn-sm danger" id="logoutBtn">Déconnexion</button>
+</div>
+
+<!-- APP BODY -->
+<div class="app-body" id="appBody" style="display:none">
+
+  <!-- SITES VIEW -->
+  <div class="view active" id="view-sites" style="display:block;overflow-y:auto;padding:28px">
+    <div class="sites-header">
+      <h2>Tous les sites</h2>
+      <button class="btn-sm primary" id="btnNewSite">+ Nouveau faire-part</button>
+    </div>
+    <div class="sites-grid" id="sitesGrid"><p style="font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--ink-s)">Chargement…</p></div>
+  </div>
+
+  <!-- EDITOR VIEW -->
+  <div class="view" id="view-editor">
+    <!-- Editor Nav -->
+    <div class="editor-sidebar">
+      <div style="padding:16px 18px;border-bottom:1px solid var(--border);font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px;color:var(--ink-s)" id="edSiteName">—</div>
+      ${['identite','design','hero','fairepart','hommage','shabbat','infos','video','rsvp','musique','stats','parametres'].map(k=>`<div class="editor-nav-item" data-ed="${k}">${{identite:'Identité',design:'Design & Couleurs',hero:'Page Hero',fairepart:'Faire-part',hommage:'Hommage',shabbat:'Shabbat',infos:'Informations',video:'Vidéo',rsvp:'RSVP',musique:'Musique',stats:'Stats & RSVP',parametres:'Paramètres'}[k]}</div>`).join('')}
+    </div>
+
+    <!-- Editor Main -->
+    <div class="editor-main" id="editorMain">
+
+      <!-- IDENTITÉ -->
+      <div class="ed-section active" data-ed="identite">
+        <div class="ed-title">Identité</div>
+        <div class="ed-sub">Informations principales du faire-part</div>
+        <div class="field-row">
+          <div class="field-group"><label>Prénom</label><input type="text" data-path="identity.firstName" placeholder="Ethan"></div>
+          <div class="field-group"><label>Nom</label><input type="text" data-path="identity.lastName" placeholder="Haziza"></div>
+        </div>
+        <div class="field-group"><label>Nom hébreu</label><input type="text" data-path="identity.hebrewName" placeholder="איתן יצחק"></div>
+        <div class="field-group"><label>Type d'événement</label>
+          <select data-path="identity.eventType">
+            <option value="bar-mitsva">Bar Mitsva</option>
+            <option value="bat-mitsva">Bat Mitsva</option>
+            <option value="mariage">Mariage</option>
+            <option value="anniversaire">Anniversaire</option>
+          </select>
+        </div>
+        <div class="field-group"><label>Titre de la page (onglet)</label><input type="text" data-path="meta.title"></div>
+        <div class="field-group"><label>Logo (URL ou upload)</label>
+          <div class="upload-zone" id="logoZone">
+            <input type="file" accept="image/*" id="logoFile">
+            <div class="upload-zone-text">Glisser le logo ici ou cliquer</div>
+            <img id="logoPreview" class="upload-preview" style="display:none">
+          </div>
+          <input type="url" data-path="identity.logo" id="logoUrl" placeholder="https://…" style="margin-top:8px;width:100%;border:1px solid var(--border);padding:8px 10px;font-family:'Cormorant Garamond',serif;font-size:14px;background:var(--paper);outline:none">
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Afficher בס"ד en haut à droite</span>
+          <label class="toggle"><input type="checkbox" data-path="identity.bsd"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- DESIGN -->
+      <div class="ed-section" data-ed="design">
+        <div class="ed-title">Design & Couleurs</div>
+        <div class="ed-sub">Personnalisez la palette de couleurs</div>
+        <div class="section-title">Presets</div>
+        <div class="palette-presets" id="palettePresets"></div>
+        <div class="divider"></div>
+        <div class="section-title">Couleurs personnalisées</div>
+        <div class="color-grid" id="colorGrid"></div>
+        <div class="divider"></div>
+        <div class="section-title">Typographie</div>
+        <div class="field-row">
+          <div class="field-group"><label>Police titres</label>
+            <select data-path="theme.fonts.heading">
+              <option value="Italiana">Italiana (défaut)</option>
+              <option value="Playfair Display">Playfair Display</option>
+              <option value="Cinzel">Cinzel</option>
+              <option value="Cormorant Garamond">Cormorant Garamond</option>
+            </select>
+          </div>
+          <div class="field-group"><label>Police corps</label>
+            <select data-path="theme.fonts.body">
+              <option value="Cormorant Garamond">Cormorant Garamond (défaut)</option>
+              <option value="EB Garamond">EB Garamond</option>
+              <option value="Lora">Lora</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- HERO -->
+      <div class="ed-section" data-ed="hero">
+        <div class="ed-title">Page Hero</div>
+        <div class="ed-sub">La première page avec le compte à rebours</div>
+        <div class="field-group"><label>Texte eyebrow (au-dessus du logo)</label><input type="text" data-path="sections.hero.eyebrow" placeholder="Bar Mitsva"></div>
+        <div class="toggle-row">
+          <span class="toggle-label">Afficher le compte à rebours</span>
+          <label class="toggle"><input type="checkbox" data-path="sections.hero.showCountdown"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="field-group" style="margin-top:16px"><label>Texte du bouton</label><input type="text" data-path="sections.hero.ctaText" placeholder="Voir le faire-part"></div>
+        <div class="divider"></div>
+        <div class="section-title">Date cible du compte à rebours</div>
+        <div class="field-row">
+          <div class="field-group"><label>Date</label><input type="date" data-path="target.date"></div>
+          <div class="field-group"><label>Heure</label><input type="time" data-path="target.time"></div>
+        </div>
+        <div class="field-group"><label>Fuseau horaire (ex: +02:00)</label><input type="text" data-path="target.timezone" placeholder="+02:00"></div>
+      </div>
+
+      <!-- FAIRE-PART -->
+      <div class="ed-section" data-ed="fairepart">
+        <div class="ed-title">Faire-part</div>
+        <div class="ed-sub">La carte d'invitation principale</div>
+        <div class="toggle-row">
+          <span class="toggle-label">Section active</span>
+          <label class="toggle"><input type="checkbox" data-path="sections.fairepart.enabled"><span class="toggle-slider"></span></label>
+        </div>
+        <div style="margin-top:16px">
+          <div class="field-group"><label>Bénédiction d'ouverture</label><textarea data-path="sections.fairepart.blessing" rows="2"></textarea></div>
+          <div class="field-row">
+            <div class="field-group"><label>Tag cérémonie</label><input type="text" data-path="sections.fairepart.ceremonyTag" placeholder="Cérémonie"></div>
+            <div class="field-group"><label>Nom cérémonie</label><input type="text" data-path="sections.fairepart.ceremonyName" placeholder="Mise des Téfilines"></div>
+          </div>
+          <div class="field-group"><label>Verset hébreu</label><input type="text" data-path="sections.fairepart.ceremonyHe"></div>
+          <div class="field-group"><label>Ligne famille / invitation</label><textarea data-path="sections.fairepart.familyLine" rows="2" placeholder="Annaelle et Jonathan Haziza, Ava et Aaron, ont le plaisir de vous convier…"></textarea></div>
+          <div class="field-group"><label>Nom hébreu du bar-mitsva</label><input type="text" data-path="sections.fairepart.inviteHe" placeholder="איתן יצחק"></div>
+          <div class="field-group"><label>Texte de présentation</label><textarea data-path="sections.fairepart.inviteSub" rows="2"></textarea></div>
+          <div class="field-group"><label>Photo (URL ou upload)</label>
+            <div class="upload-zone"><input type="file" accept="image/*" data-upload-to="sections.fairepart.photo"><div class="upload-zone-text">Photo principale</div></div>
+            <input type="url" data-path="sections.fairepart.photo" placeholder="https://…" style="margin-top:6px;width:100%;border:1px solid var(--border);padding:8px;font-family:'Cormorant Garamond',serif;font-size:14px;background:var(--paper);outline:none">
+          </div>
+          <div class="divider"></div>
+          <div class="section-title">Détails de l'événement</div>
+          <div id="fairepart-events"></div>
+          <button class="btn-sm" id="addFairePartEvent" style="margin-top:8px">+ Ajouter une ligne</button>
+          <div class="divider"></div>
+          <div class="field-group"><label>Texte de clôture</label><input type="text" data-path="sections.fairepart.followup" placeholder="L'office sera suivi d'une réception"></div>
+        </div>
+      </div>
+
+      <!-- HOMMAGE -->
+      <div class="ed-section" data-ed="hommage">
+        <div class="ed-title">Hommage</div>
+        <div class="ed-sub">Section dédiée à la mémoire</div>
+        <div class="toggle-row">
+          <span class="toggle-label">Section active</span>
+          <label class="toggle"><input type="checkbox" data-path="sections.hommage.enabled"><span class="toggle-slider"></span></label>
+        </div>
+        <div style="margin-top:16px">
+          <div class="field-group"><label>Titre</label><input type="text" data-path="sections.hommage.title"></div>
+          <div class="field-group"><label>Texte (Entrée = saut de ligne)</label><textarea data-path="sections.hommage.text" rows="6"></textarea></div>
+          <div class="field-group"><label>Photo</label>
+            <div class="upload-zone"><input type="file" accept="image/*" data-upload-to="sections.hommage.photo"><div class="upload-zone-text">Photo des grands-parents</div></div>
+            <input type="url" data-path="sections.hommage.photo" placeholder="https://…" style="margin-top:6px;width:100%;border:1px solid var(--border);padding:8px;font-family:'Cormorant Garamond',serif;font-size:14px;background:var(--paper);outline:none">
+          </div>
+        </div>
+      </div>
+
+      <!-- SHABBAT -->
+      <div class="ed-section" data-ed="shabbat">
+        <div class="ed-title">Shabbat Bar Mitsva</div>
+        <div class="ed-sub">Section fond sombre pour la parasha</div>
+        <div class="toggle-row">
+          <span class="toggle-label">Section active</span>
+          <label class="toggle"><input type="checkbox" data-path="sections.shabbat.enabled"><span class="toggle-slider"></span></label>
+        </div>
+        <div style="margin-top:16px">
+          <div class="field-row">
+            <div class="field-group"><label>Tag</label><input type="text" data-path="sections.shabbat.tag"></div>
+            <div class="field-group"><label>Parasha</label><input type="text" data-path="sections.shabbat.parasha"></div>
+          </div>
+          <div class="field-group"><label>Parasha en hébreu</label><input type="text" data-path="sections.shabbat.parashaHe"></div>
+          <div class="field-group"><label>Introduction</label><textarea data-path="sections.shabbat.intro" rows="3"></textarea></div>
+          <div class="field-group"><label>Photo / Séfer Torah</label>
+            <div class="upload-zone"><input type="file" accept="image/*" data-upload-to="sections.shabbat.photo"><div class="upload-zone-text">Photo</div></div>
+            <input type="url" data-path="sections.shabbat.photo" placeholder="https://…" style="margin-top:6px;width:100%;border:1px solid var(--border);padding:8px;font-family:'Cormorant Garamond',serif;font-size:14px;background:var(--paper);outline:none">
+          </div>
+          <div class="divider"></div>
+          <div class="section-title">Détails Shabbat</div>
+          <div id="shabbat-events"></div>
+          <button class="btn-sm" id="addShabbatEvent" style="margin-top:8px">+ Ajouter une ligne</button>
+          <div class="divider"></div>
+          <div class="field-group"><label>Texte de clôture</label><input type="text" data-path="sections.shabbat.followup"></div>
+        </div>
+      </div>
+
+      <!-- INFOS -->
+      <div class="ed-section" data-ed="infos">
+        <div class="ed-title">Informations</div>
+        <div class="ed-sub">Bloc d'informations pratiques (visa, hébergement…)</div>
+        <div class="toggle-row">
+          <span class="toggle-label">Section active</span>
+          <label class="toggle"><input type="checkbox" data-path="sections.infos.enabled"><span class="toggle-slider"></span></label>
+        </div>
+        <div style="margin-top:16px">
+          <div class="field-group"><label>Titre</label><input type="text" data-path="sections.infos.title"></div>
+          <div class="field-group"><label>Sous-titre</label><input type="text" data-path="sections.infos.subtitle"></div>
+          <div class="field-group"><label>Texte</label><textarea data-path="sections.infos.body" rows="4"></textarea></div>
+          <div class="field-group"><label>Texte du bouton CTA</label><input type="text" data-path="sections.infos.ctaText"></div>
+          <div class="field-group"><label>URL du bouton CTA</label><input type="url" data-path="sections.infos.ctaUrl"></div>
+        </div>
+      </div>
+
+      <!-- VIDEO -->
+      <div class="ed-section" data-ed="video">
+        <div class="ed-title">Vidéo surprise</div>
+        <div class="ed-sub">Invitation à envoyer une vidéo</div>
+        <div class="toggle-row">
+          <span class="toggle-label">Section active</span>
+          <label class="toggle"><input type="checkbox" data-path="sections.video.enabled"><span class="toggle-slider"></span></label>
+        </div>
+        <div style="margin-top:16px">
+          <div class="field-group"><label>Titre (sans le prénom)</label><input type="text" data-path="sections.video.title" placeholder="Une vidéo pour"></div>
+          <div class="field-group"><label>Texte descriptif (Entrée = saut de ligne)</label><textarea data-path="sections.video.text" rows="4"></textarea></div>
+        </div>
+      </div>
+
+      <!-- RSVP -->
+      <div class="ed-section" data-ed="rsvp">
+        <div class="ed-title">Formulaire RSVP</div>
+        <div class="ed-sub">Configuration du formulaire de réponse</div>
+        <div class="toggle-row">
+          <span class="toggle-label">Section active</span>
+          <label class="toggle"><input type="checkbox" data-path="sections.rsvp.enabled"><span class="toggle-slider"></span></label>
+        </div>
+        <div style="margin-top:16px">
+          <div class="field-group"><label>Date limite de réponse</label><input type="text" data-path="sections.rsvp.deadline" placeholder="1er octobre 2026"></div>
+          <div class="divider"></div>
+          <div class="section-title">Événements dans le formulaire</div>
+          <div id="rsvp-events"></div>
+          <button class="btn-sm" id="addRsvpEvent" style="margin-top:8px">+ Ajouter un événement</button>
+        </div>
+      </div>
+
+      <!-- MUSIQUE -->
+      <div class="ed-section" data-ed="musique">
+        <div class="ed-title">Musique</div>
+        <div class="ed-sub">3 pistes audio avec fondu enchaîné</div>
+        <div id="musicTracks"></div>
+      </div>
+
+      <!-- STATS -->
+      <div class="ed-section" data-ed="stats">
+        <div class="ed-title">Stats & Réponses RSVP</div>
+        <div class="ed-sub">Toutes les réponses reçues pour ce site</div>
+        <div class="stats-row" id="statsRow"></div>
+        <button class="btn-sm" id="exportRsvpBtn" style="margin-bottom:16px">⬇ Exporter CSV</button>
+        <div style="overflow-x:auto" id="rsvpTableWrap"><p style="font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--ink-s)">Chargement…</p></div>
+        <div class="divider"></div>
+        <div class="section-title">Vidéos reçues</div>
+        <div id="videosWrap"><p style="font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--ink-s)">Chargement…</p></div>
+      </div>
+
+      <!-- PARAMÈTRES -->
+      <div class="ed-section" data-ed="parametres">
+        <div class="ed-title">Paramètres</div>
+        <div class="ed-sub">Configuration du site</div>
+        <div class="field-group"><label>Sous-domaine</label><input type="text" id="paramSubdomain" placeholder="ethan-haziza"><div class="help-text">URL : ethan-haziza.mysavethedate.fr</div></div>
+        <div class="field-group"><label>Crédit footer</label><input type="text" data-path="sections.footer.credit" placeholder="Bar Mitzvah · MMXXVI"></div>
+        <div class="toggle-row">
+          <span class="toggle-label">Site actif (visible)</span>
+          <label class="toggle"><input type="checkbox" id="paramActive"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="divider"></div>
+        <button class="btn-sm danger" id="btnDeleteSite" style="margin-top:8px">Supprimer ce site</button>
+      </div>
+
+    </div><!-- /editor-main -->
+
+    <!-- Preview -->
+    <div class="editor-preview">
+      <div class="preview-bar">
+        <span style="font-family:'Italiana',serif;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:rgba(244,236,224,.4);margin-left:8px">Aperçu</span>
+        <a id="previewLink" href="#" target="_blank" style="margin-left:auto;font-family:'Italiana',serif;font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(244,236,224,.4)">Ouvrir ↗</a>
+      </div>
+      <div class="preview-iframe-wrap">
+        <div class="preview-loading" id="previewLoading">Sauvegardez pour voir l'aperçu</div>
+        <iframe id="previewFrame" style="display:none"></iframe>
+      </div>
+    </div>
+
+  </div><!-- /view-editor -->
+</div>
+
+<!-- NEW SITE MODAL -->
+<div class="modal-overlay" id="newSiteModal">
+  <div class="modal">
+    <div class="modal-title">Nouveau faire-part</div>
+    <div class="field-group"><label>Sous-domaine</label><input type="text" id="newSubdomain" placeholder="prenom-nom"><div class="help-text">URL finale : prenom-nom.mysavethedate.fr</div></div>
+    <div class="field-row">
+      <div class="field-group"><label>Prénom</label><input type="text" id="newFirstName" placeholder="Ethan"></div>
+      <div class="field-group"><label>Nom</label><input type="text" id="newLastName" placeholder="Haziza"></div>
+    </div>
+    <div class="field-group"><label>Type d'événement</label>
+      <select id="newEventType">
+        <option value="bar-mitsva">Bar Mitsva</option>
+        <option value="bat-mitsva">Bat Mitsva</option>
+        <option value="mariage">Mariage</option>
+        <option value="anniversaire">Anniversaire</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-sm" id="cancelNewSite">Annuler</button>
+      <button class="btn-sm primary" id="confirmNewSite">Créer le site</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let adminKey = '';
+let currentSite = null;
+let currentConfig = null;
+let saveTimer = null;
+
+// ── Color presets ────────────────────────────────────────────────────────────
+const PRESETS = {
+  'bleu-blanc':   { label:'Bleu & Blanc',   cream:'#f0f5ff',creamWarm:'#e8f0fe',creamDeep:'#dbeafe',paper:'#ffffff',gold:'#2563eb',goldBright:'#3b82f6',goldDeep:'#1d4ed8',bronze:'#1e3a8a',ink:'#0d1f3c',inkSoft:'#475569' },
+  'bleu-marine':  { label:'Marine Foncé',   cream:'#e8eaf6',creamWarm:'#eef0fa',creamDeep:'#c5cae9',paper:'#f5f6fe',gold:'#3f51b5',goldBright:'#5c6bc0',goldDeep:'#283593',bronze:'#1a237e',ink:'#0d0d2b',inkSoft:'#303f9f' },
+  'noir-blanc':   { label:'Noir & Blanc',   cream:'#f5f5f5',creamWarm:'#fafafa',creamDeep:'#e8e8e8',paper:'#ffffff',gold:'#1a1a1a',goldBright:'#333333',goldDeep:'#0d0d0d',bronze:'#555555',ink:'#111111',inkSoft:'#444444' },
+  'bleu-or':      { label:'Bleu & Or',      cream:'#f0f5ff',creamWarm:'#e8f0fe',creamDeep:'#dbeafe',paper:'#ffffff',gold:'#d97706',goldBright:'#f59e0b',goldDeep:'#b45309',bronze:'#1e3a8a',ink:'#0d1f3c',inkSoft:'#475569' }
+};
+
+const COLOR_LABELS = {
+  cream:'Crème', creamWarm:'Crème chaud', creamDeep:'Crème profond', paper:'Papier',
+  gold:'Or', goldBright:'Or clair', goldDeep:'Or profond', bronze:'Bronze',
+  ink:'Encre', inkSoft:'Encre douce'
+};
+
+// ── Login ────────────────────────────────────────────────────────────────────
+document.getElementById('loginBtn').addEventListener('click', tryLogin);
+document.getElementById('pwInput').addEventListener('keydown', e => e.key==='Enter' && tryLogin());
+const saved = sessionStorage.getItem('msdAdminKey');
+if(saved) { document.getElementById('pwInput').value=saved; tryLogin(); }
+
+async function tryLogin(){
+  const pw = document.getElementById('pwInput').value.trim();
+  if(!pw) return;
+  document.getElementById('loginBtn').disabled=true;
+  try {
+    const r = await fetch('/api/admin/sites', {headers:{'x-admin-key':pw}});
+    if(r.status===401){ document.getElementById('loginErr').classList.add('show'); document.getElementById('loginBtn').disabled=false; document.getElementById('pwInput').value=''; return; }
+    adminKey=pw; sessionStorage.setItem('msdAdminKey',pw);
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('topbar').style.display='flex';
+    document.getElementById('appBody').style.display='flex';
+    const sites = await r.json();
+    renderSitesList(sites);
+    // Ouverture directe d'un site via lien externe (ex: depuis le dashboard) : /admin/#open=ID
+    const hashMatch = location.hash.match(/open=([\w-]+)/);
+    if(hashMatch) openEditor(hashMatch[1]);
+  } catch { document.getElementById('loginErr').textContent='Erreur réseau.'; document.getElementById('loginErr').classList.add('show'); document.getElementById('loginBtn').disabled=false; }
+}
+
+document.getElementById('logoutBtn').addEventListener('click', ()=>{ sessionStorage.removeItem('msdAdminKey'); location.reload(); });
+
+// ── Sites list ────────────────────────────────────────────────────────────────
+function renderSitesList(sites) {
+  const grid = document.getElementById('sitesGrid');
+  if(!sites.length){ grid.innerHTML='<p style="font-family:\'Cormorant Garamond\',serif;font-style:italic;color:var(--ink-s)">Aucun faire-part pour l\'instant. Créez-en un !</p>'; return; }
+  grid.innerHTML = sites.map(s => `
+    <div class="site-card" data-id="${s.id}">
+      <div class="site-card-status ${s.active?'':'inactive'}"></div>
+      <div class="site-card-sub">${s.subdomain}.mysavethedate.fr</div>
+      <div class="site-card-name">${s.config?.identity?.firstName||''} ${s.config?.identity?.lastName||''}</div>
+      <div class="site-card-date">${new Date(s.created_at).toLocaleDateString('fr-FR')}</div>
+      <div class="site-card-actions">
+        <button class="btn-sm primary" data-open="${s.id}">Modifier</button>
+        <a class="btn-sm" href="//${s.subdomain}.mysavethedate.fr" target="_blank">Voir ↗</a>
+      </div>
+    </div>`).join('');
+  grid.querySelectorAll('[data-open]').forEach(btn => btn.addEventListener('click', e=>{ e.stopPropagation(); openEditor(btn.dataset.open); }));
+  grid.querySelectorAll('.site-card').forEach(c => c.addEventListener('click', ()=>openEditor(c.dataset.id)));
+}
+
+// ── New site ──────────────────────────────────────────────────────────────────
+document.getElementById('btnNewSite').addEventListener('click', ()=>document.getElementById('newSiteModal').classList.add('show'));
+document.getElementById('cancelNewSite').addEventListener('click', ()=>document.getElementById('newSiteModal').classList.remove('show'));
+document.getElementById('confirmNewSite').addEventListener('click', async ()=>{
+  const sub = document.getElementById('newSubdomain').value.trim().toLowerCase().replace(/\s+/g,'-');
+  if(!sub){ showToast('Sous-domaine requis'); return; }
+  const cfg = { identity:{ firstName:document.getElementById('newFirstName').value.trim(), lastName:document.getElementById('newLastName').value.trim(), eventType:document.getElementById('newEventType').value }, meta:{ title:`${document.getElementById('newFirstName').value} ${document.getElementById('newLastName').value}` } };
+  const r = await apiFetch('/api/admin/sites',{method:'POST',body:JSON.stringify({subdomain:sub,config:cfg})});
+  const data = await r.json();
+  if(data.error){ showToast('Erreur: '+data.error); return; }
+  document.getElementById('newSiteModal').classList.remove('show');
+  openEditor(data.id);
+});
+
+// ── Editor ────────────────────────────────────────────────────────────────────
+async function openEditor(id) {
+  const r = await apiFetch('/api/admin/sites/'+id);
+  const site = await r.json();
+  currentSite = site;
+  currentConfig = JSON.parse(JSON.stringify(site.config));
+
+  document.getElementById('view-sites').style.display='none';
+  document.getElementById('view-editor').style.display='flex';
+  document.getElementById('btnBackList').style.display='';
+  document.getElementById('editorActions').style.display='flex';
+  document.getElementById('edSiteName').textContent = `${currentConfig.identity?.firstName||''} ${currentConfig.identity?.lastName||''}`;
+
+  populateFields();
+  buildColorGrid();
+  buildPalettePresets();
+  buildMusicTracks();
+  buildEventsList('fairepart');
+  buildEventsList('shabbat');
+  buildRsvpEvents();
+  loadStats();
+
+  // Preview link
+  document.getElementById('previewLink').href = '//' + site.subdomain + '.mysavethedate.fr';
+  setActiveEdNav('identite');
+}
+
+document.getElementById('btnBackList').addEventListener('click', async ()=>{
+  document.getElementById('view-sites').style.display='block';
+  document.getElementById('view-editor').style.display='none';
+  document.getElementById('btnBackList').style.display='none';
+  document.getElementById('editorActions').style.display='none';
+  const r = await apiFetch('/api/admin/sites');
+  renderSitesList(await r.json());
+});
+
+// Nav
+document.querySelectorAll('.editor-nav-item').forEach(el => {
+  el.addEventListener('click', () => setActiveEdNav(el.dataset.ed));
+});
+function setActiveEdNav(key) {
+  document.querySelectorAll('.editor-nav-item').forEach(e=>e.classList.toggle('active',e.dataset.ed===key));
+  document.querySelectorAll('.ed-section').forEach(e=>e.classList.toggle('active',e.dataset.ed===key));
+  if(key==='stats') loadStats();
+}
+
+// Populate all fields from currentConfig
+function populateFields(){
+  document.querySelectorAll('[data-path]').forEach(el => {
+    const val = getPath(currentConfig, el.dataset.path);
+    if(val===undefined||val===null) return;
+    if(el.type==='checkbox') el.checked = !!val;
+    else el.value = val;
+  });
+  // Special
+  document.getElementById('paramSubdomain').value = currentSite.subdomain||'';
+  document.getElementById('paramActive').checked = currentSite.active!==false;
+  // Logo preview
+  if(currentConfig.identity?.logo){ document.getElementById('logoPreview').src=currentConfig.identity.logo; document.getElementById('logoPreview').style.display='block'; }
+}
+
+// Live edit — bind all fields
+document.querySelectorAll('[data-path]').forEach(el => {
+  el.addEventListener('input', ()=>{ setPath(currentConfig, el.dataset.path, el.type==='checkbox'?el.checked:el.value); scheduleSave(); });
+  el.addEventListener('change', ()=>{ setPath(currentConfig, el.dataset.path, el.type==='checkbox'?el.checked:el.value); scheduleSave(); });
+});
+
+function scheduleSave(){ if(saveTimer) clearTimeout(saveTimer); saveTimer=setTimeout(()=>{}, 300); }
+
+// Save
+document.getElementById('btnSave').addEventListener('click', saveAll);
+async function saveAll(){
+  if(!currentSite) return;
+  const body = { config: currentConfig, active: document.getElementById('paramActive').checked };
+  const newSub = document.getElementById('paramSubdomain').value.trim();
+  if(newSub && newSub!==currentSite.subdomain) body.subdomain=newSub;
+  const r = await apiFetch('/api/admin/sites/'+currentSite.id,{method:'PUT',body:JSON.stringify(body)});
+  const data = await r.json();
+  if(data.error){ showToast('Erreur: '+data.error); return; }
+  currentSite=data;
+  showToast('✓ Sauvegardé');
+  // Refresh preview
+  const frame = document.getElementById('previewFrame');
+  document.getElementById('previewLoading').style.display='none';
+  frame.style.display='block';
+  frame.src = '//' + currentSite.subdomain + '.mysavethedate.fr?' + Date.now();
+}
+
+// Preview button
+document.getElementById('btnPreview').addEventListener('click', ()=>saveAll());
+
+// ── Color grid ────────────────────────────────────────────────────────────────
+function buildColorGrid(){
+  const grid = document.getElementById('colorGrid');
+  grid.innerHTML = '';
+  Object.entries(COLOR_LABELS).forEach(([key,label])=>{
+    const val = currentConfig.theme?.colors?.[key]||'#000000';
+    const div=document.createElement('div');
+    div.innerHTML=`<div class="color-field-label">${label}</div><div class="color-field"><input type="color" value="${val}" data-color="${key}"><input type="text" value="${val}" data-color-text="${key}"></div>`;
+    grid.appendChild(div);
+  });
+  grid.querySelectorAll('[data-color]').forEach(el=>{
+    el.addEventListener('input',()=>{
+      const k=el.dataset.color, v=el.value;
+      if(!currentConfig.theme) currentConfig.theme={colors:{}};
+      if(!currentConfig.theme.colors) currentConfig.theme.colors={};
+      currentConfig.theme.colors[k]=v;
+      grid.querySelector(`[data-color-text="${k}"]`).value=v;
+      scheduleSave();
+    });
+  });
+  grid.querySelectorAll('[data-color-text]').forEach(el=>{
+    el.addEventListener('input',()=>{
+      const k=el.dataset.colorText, v=el.value;
+      currentConfig.theme.colors[k]=v;
+      grid.querySelector(`[data-color="${k}"]`).value=v;
+      scheduleSave();
+    });
+  });
+}
+
+function buildPalettePresets(){
+  const wrap=document.getElementById('palettePresets'); wrap.innerHTML='';
+  Object.entries(PRESETS).forEach(([id,p])=>{
+    const btn=document.createElement('div'); btn.className='preset-btn'; btn.dataset.preset=id;
+    btn.innerHTML=`<div class="preset-swatch" style="background:linear-gradient(135deg,${p.goldDeep},${p.gold},${p.cream})"></div><div class="preset-name">${p.label}</div>`;
+    btn.addEventListener('click',()=>applyPreset(id));
+    wrap.appendChild(btn);
+  });
+}
+function applyPreset(id){
+  const p=PRESETS[id];
+  if(!currentConfig.theme) currentConfig.theme={colors:{}};
+  Object.entries(p).forEach(([k,v])=>{ if(k!=='label') currentConfig.theme.colors[k]=v; });
+  buildColorGrid();
+  scheduleSave();
+}
+
+// ── Music tracks ──────────────────────────────────────────────────────────────
+function buildMusicTracks(){
+  const wrap=document.getElementById('musicTracks'); wrap.innerHTML='';
+  (currentConfig.music||[]).forEach((track,i)=>{
+    const div=document.createElement('div'); div.className='music-track';
+    div.innerHTML=`<div class="music-track-header"><span class="music-track-label">Piste ${i+1} — ${track.label||''}</span></div>
+    <div class="field-group"><label>Nom de la piste</label><input type="text" class="mt-label" value="${track.label||''}" placeholder="Ex: Hommage"></div>
+    <div class="field-group"><label>Fichier audio (upload ou URL)</label>
+      <div class="upload-zone"><input type="file" accept="audio/*" class="mt-file"><div class="upload-zone-text">${track.url?'✓ Fichier chargé':'Glisser un fichier audio'}</div></div>
+      <input type="url" class="mt-url" value="${track.url||''}" placeholder="https://…" style="margin-top:6px;width:100%;border:1px solid var(--border);padding:8px;font-family:'Cormorant Garamond',serif;font-size:14px;background:var(--paper);outline:none">
+    </div>
+    <div class="field-row">
+      <div class="field-group"><label>Démarrer à (secondes)</label><input type="number" class="mt-start" min="0" value="${track.startAt||0}"></div>
+      <div class="field-group"><label>Boucler à partir de (secondes)</label><input type="number" class="mt-loop" min="0" value="${track.loopFrom||0}"></div>
+    </div>
+    <div class="field-group"><label>Pages assignées (indices séparés par virgule)</label><input type="text" class="mt-pages" value="${(track.pages||[]).join(',')}"></div>`;
+    wrap.appendChild(div);
+
+    // Bind
+    div.querySelector('.mt-label').addEventListener('input', e=>{ track.label=e.target.value; scheduleSave(); });
+    div.querySelector('.mt-url').addEventListener('input', e=>{ track.url=e.target.value; scheduleSave(); });
+    div.querySelector('.mt-start').addEventListener('input', e=>{ track.startAt=parseInt(e.target.value)||0; scheduleSave(); });
+    div.querySelector('.mt-loop').addEventListener('input', e=>{ track.loopFrom=parseInt(e.target.value)||0; scheduleSave(); });
+    div.querySelector('.mt-pages').addEventListener('input', e=>{ track.pages=e.target.value.split(',').map(n=>parseInt(n.trim())).filter(n=>!isNaN(n)); scheduleSave(); });
+
+    // File upload
+    div.querySelector('.mt-file').addEventListener('change', async e=>{
+      const file=e.target.files[0]; if(!file) return;
+      const fd=new FormData(); fd.append('file',file); fd.append('siteId',currentSite.id); fd.append('type','music');
+      const r=await fetch('/api/admin/upload-media',{method:'POST',headers:{'x-admin-key':adminKey},body:fd});
+      const data=await r.json();
+      if(data.url){ track.url=data.url; div.querySelector('.mt-url').value=data.url; div.querySelector('.upload-zone-text').textContent='✓ '+file.name; scheduleSave(); showToast('Musique uploadée'); }
+    });
+  });
+}
+
+// ── Events lists ──────────────────────────────────────────────────────────────
+function buildEventsList(section){
+  const wrap=document.getElementById(section+'-events'); wrap.innerHTML='';
+  const events=currentConfig.sections?.[section]?.events||[];
+  events.forEach((ev,i)=>{
+    const div=document.createElement('div'); div.className='event-item';
+    div.innerHTML=`<div class="event-item-header"><span class="event-item-title">Ligne ${i+1}</span><button class="btn-sm danger" data-del>✕</button></div>
+    <div class="field-row">
+      <div class="field-group"><label>Label</label><input type="text" class="ev-label" value="${ev.label||''}"></div>
+      <div class="field-group"><label>Valeur</label><input type="text" class="ev-value" value="${ev.value||''}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field-group"><label>Italique/hébreu</label><input type="text" class="ev-valuehe" value="${ev.valueHe||ev.valueItalic||''}"></div>
+      <div class="field-group"><label>Adresse</label><input type="text" class="ev-address" value="${ev.address||''}"></div>
+    </div>
+    <div class="field-group"><label>Lien Waze</label><input type="url" class="ev-waze" value="${ev.wazeUrl||''}"></div>`;
+    wrap.appendChild(div);
+
+    const update=()=>{
+      events[i]={ label:div.querySelector('.ev-label').value, value:div.querySelector('.ev-value').value, valueHe:div.querySelector('.ev-valuehe').value, address:div.querySelector('.ev-address').value, wazeUrl:div.querySelector('.ev-waze').value };
+      scheduleSave();
+    };
+    div.querySelectorAll('input').forEach(el=>el.addEventListener('input',update));
+    div.querySelector('[data-del]').addEventListener('click',()=>{ events.splice(i,1); buildEventsList(section); scheduleSave(); });
+  });
+}
+document.getElementById('addFairePartEvent').addEventListener('click',()=>{ currentConfig.sections.fairepart.events.push({label:'',value:'',valueHe:'',address:'',wazeUrl:''}); buildEventsList('fairepart'); });
+document.getElementById('addShabbatEvent').addEventListener('click',()=>{ currentConfig.sections.shabbat.events.push({label:'',value:'',valueHe:'',address:'',wazeUrl:''}); buildEventsList('shabbat'); });
+
+// ── RSVP events ───────────────────────────────────────────────────────────────
+function buildRsvpEvents(){
+  const wrap=document.getElementById('rsvp-events'); wrap.innerHTML='';
+  const events=currentConfig.sections?.rsvp?.events||[];
+  events.forEach((ev,i)=>{
+    const div=document.createElement('div'); div.className='rsvp-event-item';
+    div.innerHTML=`<div class="field-row">
+      <div class="field-group"><label>Identifiant (unique)</label><input type="text" class="re-id" value="${ev.id||''}"></div>
+      <div class="field-group"><label>Nom affiché</label><input type="text" class="re-name" value="${ev.name||''}"></div>
+    </div>
+    <div class="field-group"><label>Date affichée</label><input type="text" class="re-date" value="${ev.date||''}"></div>
+    <button class="btn-sm danger" data-del style="margin-top:6px">Supprimer</button>`;
+    wrap.appendChild(div);
+    const update=()=>{ events[i]={id:div.querySelector('.re-id').value,name:div.querySelector('.re-name').value,date:div.querySelector('.re-date').value}; scheduleSave(); };
+    div.querySelectorAll('input').forEach(el=>el.addEventListener('input',update));
+    div.querySelector('[data-del]').addEventListener('click',()=>{ events.splice(i,1); buildRsvpEvents(); scheduleSave(); });
+  });
+}
+document.getElementById('addRsvpEvent').addEventListener('click',()=>{ if(!currentConfig.sections.rsvp.events) currentConfig.sections.rsvp.events=[]; currentConfig.sections.rsvp.events.push({id:'ev'+Date.now(),name:'',date:''}); buildRsvpEvents(); });
+
+// ── Logo upload ───────────────────────────────────────────────────────────────
+document.getElementById('logoFile').addEventListener('change', async e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const fd=new FormData(); fd.append('file',file); fd.append('siteId',currentSite.id); fd.append('type','logo');
+  const r=await fetch('/api/admin/upload-media',{method:'POST',headers:{'x-admin-key':adminKey},body:fd});
+  const data=await r.json();
+  if(data.url){ setPath(currentConfig,'identity.logo',data.url); document.getElementById('logoUrl').value=data.url; document.getElementById('logoPreview').src=data.url; document.getElementById('logoPreview').style.display='block'; scheduleSave(); showToast('Logo uploadé'); }
+});
+document.getElementById('logoUrl').addEventListener('input', e=>{ document.getElementById('logoPreview').src=e.target.value; document.getElementById('logoPreview').style.display=e.target.value?'block':'none'; });
+
+// Photo upload zones
+document.querySelectorAll('[data-upload-to]').forEach(input=>{
+  input.addEventListener('change', async e=>{
+    const file=e.target.files[0]; if(!file||!currentSite) return;
+    const fd=new FormData(); fd.append('file',file); fd.append('siteId',currentSite.id); fd.append('type','photo');
+    const r=await fetch('/api/admin/upload-media',{method:'POST',headers:{'x-admin-key':adminKey},body:fd});
+    const data=await r.json();
+    if(data.url){ const path=input.dataset.uploadTo; setPath(currentConfig,path,data.url); const sibling=input.closest('.field-group').querySelector('[data-path="'+path+'"]'); if(sibling) sibling.value=data.url; scheduleSave(); showToast('Photo uploadée'); }
+  });
+});
+
+// ── Stats & RSVP ──────────────────────────────────────────────────────────────
+async function loadStats(){
+  if(!currentSite) return;
+  const [rsvpR,vidR]=await Promise.all([
+    apiFetch('/api/admin/sites/'+currentSite.id+'/rsvp'),
+    apiFetch('/api/admin/sites/'+currentSite.id+'/videos')
+  ]);
+  const rsvps=await rsvpR.json();
+  const videos=await vidR.json();
+  renderStats(rsvps, videos);
+}
+
+function renderStats(rsvps, videos){
+  const events=currentConfig.sections?.rsvp?.events||[];
+  const statsRow=document.getElementById('statsRow');
+
+  let statsHTML=`<div class="stat-box"><div class="stat-num">${rsvps.length}</div><div class="stat-lbl">Réponses</div></div>`;
+  events.forEach(ev=>{
+    const present=rsvps.filter(r=>r.data?.[ev.id]?.presence==='oui');
+    const adults=present.reduce((s,r)=>s+(r.data?.[ev.id]?.adults||0),0);
+    const children=present.reduce((s,r)=>s+(r.data?.[ev.id]?.children||0),0);
+    statsHTML+=`<div class="stat-box"><div class="stat-num">${adults+children}</div><div class="stat-lbl">Présents ${ev.name.split(' ')[0]}</div></div>`;
+    statsHTML+=`<div class="stat-box"><div class="stat-num">${adults}</div><div class="stat-lbl">Adultes ${ev.name.split(' ')[0]}</div></div>`;
+    statsHTML+=`<div class="stat-box"><div class="stat-num">${children}</div><div class="stat-lbl">Enfants ${ev.name.split(' ')[0]}</div></div>`;
+  });
+  statsHTML+=`<div class="stat-box"><div class="stat-num">${videos.length}</div><div class="stat-lbl">Vidéos</div></div>`;
+  statsRow.innerHTML=statsHTML;
+
+  // RSVP table
+  const rsvpWrap=document.getElementById('rsvpTableWrap');
+  if(!rsvps.length){ rsvpWrap.innerHTML='<p style="font-family:\'Cormorant Garamond\',serif;font-style:italic;color:var(--ink-s)">Aucune réponse reçue.</p>'; }
+  else {
+    const evCols=events.map(ev=>`<th>${ev.name.split('&')[0].trim()}</th><th>Ad.</th><th>Enf.</th>`).join('');
+    const rows=rsvps.map(r=>{
+      const evTds=events.map(ev=>`<td><span class="badge ${r.data?.[ev.id]?.presence||'non'}">${r.data?.[ev.id]?.presence==='oui'?'✓':'✗'}</span></td><td>${r.data?.[ev.id]?.adults||0}</td><td>${r.data?.[ev.id]?.children||0}</td>`).join('');
+      return `<tr><td>${r.nom||''} ${r.prenom||''}</td>${evTds}<td style="font-style:italic;font-size:14px;color:var(--ink-s);max-width:150px">${r.message||'—'}</td><td style="font-size:12px;color:var(--ink-s);white-space:nowrap">${new Date(r.created_at).toLocaleDateString('fr-FR')}</td><td><button class="btn-sm danger" onclick="delRsvp('${r.id}',this)">✕</button></td></tr>`;
+    }).join('');
+    rsvpWrap.innerHTML=`<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Nom</th>${evCols}<th>Message</th><th>Date</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  // Export CSV
+  document.getElementById('exportRsvpBtn').onclick=()=>exportCSV(rsvps,events);
+
+  // Videos
+  const vidWrap=document.getElementById('videosWrap');
+  if(!videos.length){ vidWrap.innerHTML='<p style="font-family:\'Cormorant Garamond\',serif;font-style:italic;color:var(--ink-s)">Aucune vidéo reçue.</p>'; }
+  else {
+    vidWrap.innerHTML=`<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>De</th><th>Message</th><th>Date</th><th></th></tr></thead><tbody>
+    ${videos.map(v=>`<tr><td>${v.name||''}</td><td style="font-style:italic;font-size:14px;max-width:200px">${v.message||'—'}</td><td style="font-size:12px;white-space:nowrap">${new Date(v.created_at).toLocaleDateString('fr-FR')}</td><td style="display:flex;gap:6px"><a class="btn-sm" href="${v.video_url}" target="_blank">Voir</a><button class="btn-sm danger" onclick="delVideo('${v.id}',this)">✕</button></td></tr>`).join('')}
+    </tbody></table></div>`;
+  }
+}
+
+window.delRsvp = async (id,btn)=>{
+  if(!confirm('Supprimer?')) return;
+  await apiFetch('/api/admin/rsvp/'+id,{method:'DELETE'});
+  btn.closest('tr').remove(); loadStats();
+};
+window.delVideo = async (id,btn)=>{
+  if(!confirm('Supprimer?')) return;
+  await apiFetch('/api/admin/videos/'+id,{method:'DELETE'});
+  btn.closest('tr').remove(); loadStats();
+};
+
+function exportCSV(rsvps,events){
+  if(!rsvps.length) return;
+  const headers=['Nom','Prénom',...events.flatMap(e=>[e.name+' présent',e.name+' adultes',e.name+' enfants']),'Message','Date'];
+  const rows=rsvps.map(r=>[r.nom,r.prenom,...events.flatMap(e=>[r.data?.[e.id]?.presence||'non',r.data?.[e.id]?.adults||0,r.data?.[e.id]?.children||0]),r.message,new Date(r.created_at).toLocaleDateString('fr-FR')].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';'));
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent([headers.join(';'),...rows].join('\n'));
+  a.download='rsvp-'+currentSite.subdomain+'.csv'; a.click();
+}
+
+// ── Delete site ───────────────────────────────────────────────────────────────
+document.getElementById('btnDeleteSite').addEventListener('click', async ()=>{
+  if(!confirm('Supprimer définitivement ce site et toutes ses données ?')) return;
+  await apiFetch('/api/admin/sites/'+currentSite.id,{method:'DELETE'});
+  document.getElementById('btnBackList').click();
+  showToast('Site supprimé');
+});
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+function apiFetch(url,opts={}){
+  return fetch(url,{ ...opts, headers:{ 'Content-Type':'application/json','x-admin-key':adminKey,...(opts.headers||{}) } });
+}
+function getPath(obj,path){ return path.split('.').reduce((o,k)=>o?.[k],obj); }
+function setPath(obj,path,val){ const keys=path.split('.'); let cur=obj; for(let i=0;i<keys.length-1;i++){ if(!cur[keys[i]])cur[keys[i]]={}; cur=cur[keys[i]]; } cur[keys[keys.length-1]]=val; }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+</script>
+</body>
+</html>

@@ -396,13 +396,17 @@ app.get(['/','/?'], (req,res,next) => {
 });
 
 // ─── Serve admin (HTML public — auth gérée côté client JS) ──────────────────
+// /admin = tableau de bord BOSS (vue d'ensemble clients/prospects/stats).
+// /admin/editeur = l'éditeur de sites (création/modification d'un faire-part).
 app.use('/admin', express.static(path.join(__dirname,'..','admin')));
 app.get(['/admin','/admin/'], (req,res) => {
   res.sendFile(path.join(__dirname,'..','admin','index.html'));
 });
-app.get(['/admin/dashboard','/admin/dashboard/'], (req,res) => {
-  res.sendFile(path.join(__dirname,'..','admin','dashboard.html'));
+app.get(['/admin/editeur','/admin/editeur/'], (req,res) => {
+  res.sendFile(path.join(__dirname,'..','admin','editeur.html'));
 });
+// Ancienne URL du tableau de bord, conservée pour ne pas casser un lien existant.
+app.get(['/admin/dashboard','/admin/dashboard/'], (req,res) => res.redirect('/admin/'));
 
 // ─── Serve espace (espace client — connexion + éditeur self-service) ────────
 app.use('/espace', express.static(path.join(__dirname,'..','espace')));
