@@ -157,6 +157,12 @@ a{color:inherit;text-decoration:none}
 .crop-canvas-wrap img{display:block;max-width:100%}
 .crop-ratios{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .crop-modal-footer{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border)}
+
+.template-choice{border:2px solid var(--border);border-radius:8px;padding:16px;cursor:pointer;transition:border-color .2s;margin-bottom:10px}
+.template-choice:hover{border-color:var(--gold);background:rgba(37,99,235,.04)}
+.template-choice h4{font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:var(--ink);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.template-choice p{font-family:'Inter',sans-serif;font-size:12px;color:var(--ink-s)}
+.template-badge{display:inline-block;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);background:rgba(37,99,235,.08);padding:4px 10px;border-radius:4px;margin-bottom:12px}
 .upload-preview{max-width:100%;max-height:120px;margin:10px auto 0;display:block}
 
 .rsvp-event-item{background:var(--cream);border:1px solid var(--border);padding:14px 16px;margin-bottom:10px;border-radius:6px}
@@ -579,6 +585,29 @@ a{color:inherit;text-decoration:none}
     <div class="crop-modal-footer">
       <button class="btn-sm" id="cropCancel">Annuler</button>
       <button class="btn-sm primary" id="cropConfirm">Valider</button>
+    </div>
+  </div>
+</div>
+
+<div class="crop-modal" id="templateModal">
+  <div class="crop-modal-inner" style="width:min(520px,92vw)">
+    <div class="crop-modal-header">
+      <span>Choisir un modèle de page</span>
+      <button type="button" id="templateModalClose">✕</button>
+    </div>
+    <div class="crop-modal-body">
+      <div class="template-choice" data-type="texte-photo">
+        <h4>Texte &amp; Photo</h4>
+        <p>Un titre, un texte et une photo — comme la page Hommage.</p>
+      </div>
+      <div class="template-choice" data-type="texte-seul">
+        <h4>Texte seul</h4>
+        <p>Un long message, sans photo — idéal pour un mot ou une citation.</p>
+      </div>
+      <div class="template-choice" data-type="programme">
+        <h4>Programme</h4>
+        <p>Une liste d'étapes (label + valeur) — idéal pour un déroulé de soirée.</p>
+      </div>
     </div>
   </div>
 </div>
@@ -1063,13 +1092,32 @@ function deplacerPage(depuis, vers){
 
 // ── Pages personnalisées ─────────────────────────────────────────────────
 document.getElementById('btnAjouterPage').addEventListener('click', () => {
+  document.getElementById('templateModal').classList.add('show');
+});
+document.getElementById('templateModalClose').addEventListener('click', () => {
+  document.getElementById('templateModal').classList.remove('show');
+});
+document.getElementById('templateModal').addEventListener('click', e => {
+  if (e.target.id === 'templateModal') document.getElementById('templateModal').classList.remove('show');
+});
+document.querySelectorAll('.template-choice').forEach(el => {
+  el.addEventListener('click', () => {
+    creerPagePersonnalisee(el.dataset.type);
+    document.getElementById('templateModal').classList.remove('show');
+  });
+});
+const NOMS_TEMPLATES_PAGE = { 'texte-photo':'Texte & Photo', 'texte-seul':'Texte seul', 'programme':'Programme' };
+function creerPagePersonnalisee(type){
   if (!currentConfig.customPages) currentConfig.customPages = [];
   const id = 'custom-' + Date.now();
-  currentConfig.customPages.push({ id, tag:'Page', title:'Nouvelle page', text:'', photo:'', enabled:true });
+  const page = { id, type, tag:'Page', title:'Nouvelle page', text:'', enabled:true };
+  if (type === 'texte-photo') page.photo = '';
+  if (type === 'programme') page.events = [];
+  currentConfig.customPages.push(page);
   currentConfig.pageOrder.push(id);
   buildPagesList();
   declencherSauvegardeAuto();
-});
+}
 function supprimerPagePersonnalisee(id){
   currentConfig.customPages = (currentConfig.customPages||[]).filter(p => p.id !== id);
   currentConfig.pageOrder = (currentConfig.pageOrder||[]).filter(k => k !== id);
@@ -1082,13 +1130,12 @@ function buildCustomPagesEditor(){
   const pages = currentConfig.customPages || [];
   if (!pages.length) { wrap.innerHTML = '<div class="ed-sub" style="margin:0">Aucune page personnalisée pour le moment.</div>'; return; }
   pages.forEach(p => {
+    if (!p.type) p.type = 'texte-photo'; // pages créées avant l'ajout des modèles
     const div = document.createElement('div');
     div.className = 'custom-page-card';
     div.style.cssText = 'border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px';
-    div.innerHTML = `
-      <div class="field-group"><label>Tag (petit texte au-dessus du titre)</label><input type="text" data-cp-field="tag" value="${p.tag||''}"></div>
-      <div class="field-group"><label>Titre</label><input type="text" data-cp-field="title" value="${p.title||''}"></div>
-      <div class="field-group"><label>Texte</label><textarea rows="4" data-cp-field="text">${p.text||''}</textarea></div>
+
+    const champPhoto = `
       <div class="field-group"><label>Photo</label>
         <div class="photo-upload" data-cp-photo-wrap>
           <input type="file" accept="image/*" style="display:none">
@@ -1096,46 +1143,87 @@ function buildCustomPagesEditor(){
           <div class="photo-upload-zone"><div class="upload-zone-text">Photo</div></div>
           <button type="button" class="btn-sm photo-upload-recadrer" style="display:none;margin-top:8px">Recadrer</button>
         </div>
-      </div>
-      <button type="button" class="btn-sm" data-cp-supprimer style="margin-top:6px">Supprimer cette page</button>`;
+      </div>`;
+    const champTexte = (label) => `<div class="field-group"><label>${label}</label><textarea rows="${p.type==='texte-seul'?8:4}" data-cp-field="text">${p.text||''}</textarea></div>`;
+
+    div.innerHTML = `
+      <div class="template-badge">Modèle : ${NOMS_TEMPLATES_PAGE[p.type]||p.type}</div>
+      <div class="field-group"><label>Tag (petit texte au-dessus du titre)</label><input type="text" data-cp-field="tag" value="${p.tag||''}"></div>
+      <div class="field-group"><label>Titre</label><input type="text" data-cp-field="title" value="${p.title||''}"></div>
+      ${p.type==='texte-photo' ? champTexte('Texte') + champPhoto : ''}
+      ${p.type==='texte-seul' ? champTexte('Texte') : ''}
+      ${p.type==='programme' ? champTexte("Texte d'introduction (optionnel)") + '<div class="section-title" style="margin-top:8px">Étapes du programme</div><div data-cp-events></div><button type="button" class="btn-sm" data-cp-add-event style="margin-top:8px">+ Ajouter une étape</button>' : ''}
+      <button type="button" class="btn-sm" data-cp-supprimer style="margin-top:16px">Supprimer cette page</button>`;
     wrap.appendChild(div);
+
     div.querySelectorAll('[data-cp-field]').forEach(el => {
       el.addEventListener('focus', () => naviguerApercuVers(p.id));
       el.addEventListener('input', () => { p[el.dataset.cpField] = el.value; declencherSauvegardeAuto(); if (el.dataset.cpField==='title') buildPagesList(); });
     });
-    const cpPhotoWrap = div.querySelector('[data-cp-photo-wrap]');
-    cpPhotoWrap.__afficherApercu = url => {
-      const thumb = cpPhotoWrap.querySelector('.photo-upload-thumb');
-      const zone = cpPhotoWrap.querySelector('.photo-upload-zone');
-      const btn = cpPhotoWrap.querySelector('.photo-upload-recadrer');
-      if (url) { thumb.src = url; thumb.style.display = 'block'; zone.style.display = 'none'; btn.style.display = 'inline-block'; }
-      else { thumb.style.display = 'none'; zone.style.display = 'block'; btn.style.display = 'none'; }
-    };
-    const cpInput = cpPhotoWrap.querySelector('input[type=file]');
-    cpPhotoWrap.querySelector('.photo-upload-zone').addEventListener('click', () => cpInput.click());
-    cpPhotoWrap.querySelector('.photo-upload-thumb').addEventListener('click', () => cpInput.click());
-    cpInput.addEventListener('change', () => {
-      const file = cpInput.files[0]; if (!file) return;
-      ouvrirRecadrage(file, async blob => {
-        const url = await uploaderFichier(blob, 'photo');
-        if (url) { p.photo = url; cpPhotoWrap.__afficherApercu(url); showToast('Photo envoyée'); declencherSauvegardeAuto(); }
-        cpInput.value = '';
-      });
-    });
-    cpPhotoWrap.querySelector('.photo-upload-recadrer').addEventListener('click', async e => {
-      e.stopPropagation();
-      if (!p.photo) return;
-      try {
-        const r = await fetch(p.photo);
-        const blob = await r.blob();
-        ouvrirRecadrage(blob, async nouveauBlob => {
-          const nouvelleUrl = await uploaderFichier(nouveauBlob, 'photo');
-          if (nouvelleUrl) { p.photo = nouvelleUrl; cpPhotoWrap.__afficherApercu(nouvelleUrl); showToast('Photo mise à jour'); declencherSauvegardeAuto(); }
+
+    if (p.type === 'texte-photo') {
+      const cpPhotoWrap = div.querySelector('[data-cp-photo-wrap]');
+      cpPhotoWrap.__afficherApercu = url => {
+        const thumb = cpPhotoWrap.querySelector('.photo-upload-thumb');
+        const zone = cpPhotoWrap.querySelector('.photo-upload-zone');
+        const btn = cpPhotoWrap.querySelector('.photo-upload-recadrer');
+        if (url) { thumb.src = url; thumb.style.display = 'block'; zone.style.display = 'none'; btn.style.display = 'inline-block'; }
+        else { thumb.style.display = 'none'; zone.style.display = 'block'; btn.style.display = 'none'; }
+      };
+      const cpInput = cpPhotoWrap.querySelector('input[type=file]');
+      cpPhotoWrap.querySelector('.photo-upload-zone').addEventListener('click', () => cpInput.click());
+      cpPhotoWrap.querySelector('.photo-upload-thumb').addEventListener('click', () => cpInput.click());
+      cpInput.addEventListener('change', () => {
+        const file = cpInput.files[0]; if (!file) return;
+        ouvrirRecadrage(file, async blob => {
+          const url = await uploaderFichier(blob, 'photo');
+          if (url) { p.photo = url; cpPhotoWrap.__afficherApercu(url); showToast('Photo envoyée'); declencherSauvegardeAuto(); }
+          cpInput.value = '';
         });
-      } catch(err) { showToast('Impossible de charger la photo actuelle'); }
-    });
-    cpPhotoWrap.__afficherApercu(p.photo);
+      });
+      cpPhotoWrap.querySelector('.photo-upload-recadrer').addEventListener('click', async e => {
+        e.stopPropagation();
+        if (!p.photo) return;
+        try {
+          const r = await fetch(p.photo);
+          const blob = await r.blob();
+          ouvrirRecadrage(blob, async nouveauBlob => {
+            const nouvelleUrl = await uploaderFichier(nouveauBlob, 'photo');
+            if (nouvelleUrl) { p.photo = nouvelleUrl; cpPhotoWrap.__afficherApercu(nouvelleUrl); showToast('Photo mise à jour'); declencherSauvegardeAuto(); }
+          });
+        } catch(err) { showToast('Impossible de charger la photo actuelle'); }
+      });
+      cpPhotoWrap.__afficherApercu(p.photo);
+    }
+
+    if (p.type === 'programme') {
+      if (!p.events) p.events = [];
+      buildCustomPageEvents(div, p);
+      div.querySelector('[data-cp-add-event]').addEventListener('click', () => {
+        p.events.push({ label:'', value:'' });
+        buildCustomPageEvents(div, p);
+        declencherSauvegardeAuto();
+      });
+    }
+
     div.querySelector('[data-cp-supprimer]').addEventListener('click', () => supprimerPagePersonnalisee(p.id));
+  });
+}
+function buildCustomPageEvents(carteDiv, p){
+  const wrap = carteDiv.querySelector('[data-cp-events]');
+  wrap.innerHTML = '';
+  p.events.forEach((ev,i) => {
+    const div = document.createElement('div');
+    div.className = 'event-item';
+    div.innerHTML = `<div class="event-item-header"><span class="event-item-title">Étape ${i+1}</span><button class="btn-sm" data-del type="button">✕</button></div>
+      <div class="field-row">
+        <div class="field-group"><label>Label</label><input type="text" class="ev-label" value="${ev.label||''}"></div>
+        <div class="field-group"><label>Valeur</label><input type="text" class="ev-value" value="${ev.value||''}"></div>
+      </div>`;
+    wrap.appendChild(div);
+    const maj = () => { p.events[i] = { label:div.querySelector('.ev-label').value, value:div.querySelector('.ev-value').value }; declencherSauvegardeAuto(); };
+    div.querySelectorAll('input').forEach(el => el.addEventListener('input', maj));
+    div.querySelector('[data-del]').addEventListener('click', () => { p.events.splice(i,1); buildCustomPageEvents(carteDiv, p); declencherSauvegardeAuto(); });
   });
 }
 

@@ -303,15 +303,27 @@ module.exports = function renderSite(cfg, siteId, murMedias) {
   const customSectionsHTML = {};
   customPages.forEach(p => {
     if (p.enabled === false) { customSectionsHTML[p.id] = ''; return; }
+    const type = p.type || 'texte-photo'; // pages créées avant l'ajout des modèles
+    let corps;
+    if (type === 'texte-seul') {
+      corps = `<p class="hommage-text">${(p.text||'').replace(/\n/g,'<br>')}</p>`;
+    } else if (type === 'programme') {
+      corps = `
+      ${p.text ? `<p class="hommage-text" style="margin-bottom:36px">${p.text.replace(/\n/g,'<br>')}</p>` : ''}
+      <div class="event-details" style="text-align:left;max-width:480px;margin:0 auto">${evRows(p.events||[])}</div>`;
+    } else { // 'texte-photo'
+      corps = `
+      ${photoSlot(p.photo, 'Photo', 'max-width:420px')}
+      <p class="hommage-text">${(p.text||'').replace(/\n/g,'<br>')}</p>`;
+    }
     customSectionsHTML[p.id] = `
-<!-- PAGE PERSONNALISÉE : ${p.title||''} -->
+<!-- PAGE PERSONNALISÉE (${type}) : ${p.title||''} -->
 <section class="hommage">
   <div class="container">
     <div class="hommage-card fade-in">
       <div class="hommage-tag">${p.tag||'Page'}</div>
       <h2 class="hommage-title">${p.title||''}</h2>
-      ${photoSlot(p.photo, 'Photo', 'max-width:420px')}
-      <p class="hommage-text">${(p.text||'').replace(/\n/g,'<br>')}</p>
+      ${corps}
     </div>
   </div>
 </section>`;
