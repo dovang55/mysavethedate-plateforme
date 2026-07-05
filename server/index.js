@@ -93,7 +93,77 @@ const PRESETS_COULEUR = {
   'bleu-marine': { cream:'#e8eaf6',creamWarm:'#eef0fa',creamDeep:'#c5cae9',paper:'#f5f6fe',gold:'#3f51b5',goldBright:'#5c6bc0',goldDeep:'#283593',bronze:'#1a237e',ink:'#0d0d2b',inkSoft:'#303f9f' },
   'noir-blanc':  { cream:'#f5f5f5',creamWarm:'#fafafa',creamDeep:'#e8e8e8',paper:'#ffffff',gold:'#1a1a1a',goldBright:'#333333',goldDeep:'#0d0d0d',bronze:'#555555',ink:'#111111',inkSoft:'#444444' },
   'bleu-or':     { cream:'#f0f5ff',creamWarm:'#e8f0fe',creamDeep:'#dbeafe',paper:'#ffffff',gold:'#d97706',goldBright:'#f59e0b',goldDeep:'#b45309',bronze:'#1e3a8a',ink:'#0d1f3c',inkSoft:'#475569' },
+  'emeraude':    { cream:'#eefbf3',creamWarm:'#e0f6e9',creamDeep:'#c6ecd6',paper:'#ffffff',gold:'#0f7a4e',goldBright:'#14a366',goldDeep:'#0a5c3a',bronze:'#0d4a30',ink:'#0a2a1c',inkSoft:'#3a6b52' },
+  'bordeaux':    { cream:'#f7ecec',creamWarm:'#f2dede',creamDeep:'#e8c4c4',paper:'#fffafa',gold:'#7a1f2b',goldBright:'#a02c3b',goldDeep:'#5c1620',bronze:'#4a1119',ink:'#2b0d12',inkSoft:'#6b3038' },
+  'terracotta':  { cream:'#fdf3ec',creamWarm:'#fae6d6',creamDeep:'#f0cba8',paper:'#fffaf5',gold:'#c1622d',goldBright:'#de7d43',goldDeep:'#9c4a20',bronze:'#7a3a19',ink:'#3d1f0d',inkSoft:'#6b4128' },
 };
+
+// ── Génération d'une palette complète à partir d'une ou deux couleurs
+// choisies librement (option "Personnalisé" du questionnaire) ────────────
+function hexVersHsl(hex) {
+  hex = (hex||'#c9a96e').replace('#','');
+  if (hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+  const r = parseInt(hex.slice(0,2),16)/255, g = parseInt(hex.slice(2,4),16)/255, b = parseInt(hex.slice(4,6),16)/255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
+  let h=0, s=0, l = (max+min)/2;
+  if (max!==min) {
+    const d = max-min;
+    s = l>0.5 ? d/(2-max-min) : d/(max+min);
+    if (max===r) h = (g-b)/d + (g<b?6:0);
+    else if (max===g) h = (b-r)/d + 2;
+    else h = (r-g)/d + 4;
+    h /= 6;
+  }
+  return { h:h*360, s:s*100, l:l*100 };
+}
+function hslVersHex(h,s,l) {
+  h/=360; s/=100; l/=100;
+  let r,g,b;
+  if (s===0) { r=g=b=l; }
+  else {
+    const hue2rgb = (p,q,t) => { if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; };
+    const q = l<0.5 ? l*(1+s) : l+s-l*s;
+    const p = 2*l-q;
+    r = hue2rgb(p,q,h+1/3); g = hue2rgb(p,q,h); b = hue2rgb(p,q,h-1/3);
+  }
+  const toHex = x => Math.round(Math.max(0,Math.min(1,x))*255).toString(16).padStart(2,'0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+// Une seule couleur choisie : elle devient l'accent ("gold"), le reste de
+// la palette (fonds clairs, encre) est dérivé automatiquement de sa teinte.
+function paletteDepuisCouleurUnique(hexAccent) {
+  const a = hexVersHsl(hexAccent);
+  return {
+    cream:      hslVersHex(a.h, Math.min(a.s,40), 96),
+    creamWarm:  hslVersHex(a.h, Math.min(a.s,45), 93),
+    creamDeep:  hslVersHex(a.h, Math.min(a.s,50), 87),
+    paper:      '#ffffff',
+    gold:       hexAccent,
+    goldBright: hslVersHex(a.h, a.s, Math.min(a.l+12,85)),
+    goldDeep:   hslVersHex(a.h, a.s, Math.max(a.l-15,10)),
+    bronze:     hslVersHex(a.h, Math.min(a.s+10,90), Math.max(a.l-25,15)),
+    ink:        hslVersHex(a.h, Math.min(a.s*0.6,30), 12),
+    inkSoft:    hslVersHex(a.h, Math.min(a.s*0.5,25), 35),
+  };
+}
+// Dégradé entre deux couleurs : la première sert d'accent, les fonds sont
+// dérivés d'un mélange des deux teintes (cohérent avec le dégradé de fond
+// existant, qui utilise déjà cream/creamWarm/creamDeep pour son linear-gradient).
+function paletteDepuisDegrade(hex1, hex2) {
+  const c1 = hexVersHsl(hex1), c2 = hexVersHsl(hex2);
+  return {
+    cream:      hslVersHex(c2.h, Math.min(c2.s,40), 95),
+    creamWarm:  hslVersHex(c1.h, Math.min(c1.s,45), 92),
+    creamDeep:  hslVersHex(c2.h, Math.min(c2.s,50), 86),
+    paper:      '#ffffff',
+    gold:       hex1,
+    goldBright: hslVersHex(c1.h, c1.s, Math.min(c1.l+12,85)),
+    goldDeep:   hslVersHex(c1.h, c1.s, Math.max(c1.l-15,10)),
+    bronze:     hslVersHex(c2.h, Math.min(c2.s+10,90), Math.max(c2.l-20,15)),
+    ink:        hslVersHex(c1.h, Math.min(c1.s*0.6,30), 12),
+    inkSoft:    hslVersHex(c1.h, Math.min(c1.s*0.5,25), 35),
+  };
+}
 // Correspond aux 3 cartes de style proposées dans le questionnaire vitrine
 const STYLE_VERS_PRESET = {
   'Élégant & Classique': 'bleu-or',
@@ -167,8 +237,16 @@ function construireConfigParDefaut(lead){
   const ligneLieu = (config.sections.fairepart.events||[]).find(e => e.label === 'Lieu');
   if (ligneLieu && lead.location) ligneLieu.value = lead.location;
 
-  const presetId = PRESETS_COULEUR[lead.colorPreset] ? lead.colorPreset : (STYLE_VERS_PRESET[lead.style] || 'bleu-blanc');
-  Object.assign(config.theme.colors, PRESETS_COULEUR[presetId]);
+  if (lead.colorPreset === 'custom' && lead.customColor1) {
+    const palette = (lead.customType === 'degrade' && lead.customColor2)
+      ? paletteDepuisDegrade(lead.customColor1, lead.customColor2)
+      : paletteDepuisCouleurUnique(lead.customColor1);
+    Object.assign(config.theme.colors, palette);
+    config.theme.background = { type: lead.customType === 'degrade' ? 'degrade' : 'uni', angle: 155 };
+  } else {
+    const presetId = PRESETS_COULEUR[lead.colorPreset] ? lead.colorPreset : (STYLE_VERS_PRESET[lead.style] || 'bleu-blanc');
+    Object.assign(config.theme.colors, PRESETS_COULEUR[presetId]);
+  }
 
   if (estBarMitsva) {
     // Le contenu par défaut (defaultConfig.js) est déjà écrit pour une Bar

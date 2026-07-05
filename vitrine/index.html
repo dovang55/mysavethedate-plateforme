@@ -666,20 +666,46 @@ input[type=range].q-range::-webkit-slider-thumb{-webkit-appearance:none;width:30
               <h4>Bleu &amp; Blanc</h4>
               <p>Élégant et intemporel.</p>
             </div>
-            <div class="style-card" data-val="bleu-marine" onclick="pickPalette(this)">
-              <div class="palette-swatch" style="background:linear-gradient(135deg,#283593,#3f51b5,#e8eaf6)"></div>
-              <h4>Marine Foncé</h4>
-              <p>Sophistiqué et profond.</p>
-            </div>
             <div class="style-card" data-val="noir-blanc" onclick="pickPalette(this)">
               <div class="palette-swatch" style="background:linear-gradient(135deg,#0d0d0d,#1a1a1a,#f5f5f5)"></div>
               <h4>Noir &amp; Blanc</h4>
               <p>Moderne et minimaliste.</p>
             </div>
-            <div class="style-card" data-val="bleu-or" onclick="pickPalette(this)">
-              <div class="palette-swatch" style="background:linear-gradient(135deg,#b45309,#d97706,#f0f5ff)"></div>
-              <h4>Bleu &amp; Or</h4>
-              <p>Chaleureux et festif.</p>
+            <div class="style-card" data-val="emeraude" onclick="pickPalette(this)">
+              <div class="palette-swatch" style="background:linear-gradient(135deg,#0a5c3a,#14a366,#eefbf3)"></div>
+              <h4>Émeraude</h4>
+              <p>Frais et naturel.</p>
+            </div>
+            <div class="style-card" data-val="bordeaux" onclick="pickPalette(this)">
+              <div class="palette-swatch" style="background:linear-gradient(135deg,#5c1620,#a02c3b,#f7ecec)"></div>
+              <h4>Bordeaux</h4>
+              <p>Riche et raffiné.</p>
+            </div>
+            <div class="style-card" data-val="terracotta" onclick="pickPalette(this)">
+              <div class="palette-swatch" style="background:linear-gradient(135deg,#9c4a20,#de7d43,#fdf3ec)"></div>
+              <h4>Terracotta</h4>
+              <p>Chaleureux et solaire.</p>
+            </div>
+            <div class="style-card" data-val="custom" id="paletteCustomCard" onclick="pickPalette(this)">
+              <div class="palette-swatch" id="customSwatchPreview" style="background:linear-gradient(135deg,#c9a96e,#0d1f3c)"></div>
+              <h4>Personnalisé</h4>
+              <p>Choisissez vos propres couleurs.</p>
+            </div>
+          </div>
+          <div id="customPaletteEditor" style="display:none;margin:-14px 0 32px;padding:20px;background:#fff;border:1px solid rgba(13,31,60,.1);border-radius:6px">
+            <div style="display:flex;gap:8px;margin-bottom:16px">
+              <button type="button" class="btn-qprev custom-type-btn sel" data-type="uni" onclick="pickCustomType(this)" style="flex:1;justify-content:center">Couleur unie</button>
+              <button type="button" class="btn-qprev custom-type-btn" data-type="degrade" onclick="pickCustomType(this)" style="flex:1;justify-content:center">Dégradé</button>
+            </div>
+            <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+              <div>
+                <label class="q-lbl" id="customColor1Label">Couleur</label><br>
+                <input type="color" id="customColor1" value="#c9a96e" oninput="majCustomPalette()" style="width:64px;height:44px;border:none;cursor:pointer">
+              </div>
+              <div id="customColor2Wrap" style="display:none">
+                <label class="q-lbl">Deuxième couleur</label><br>
+                <input type="color" id="customColor2" value="#0d1f3c" oninput="majCustomPalette()" style="width:64px;height:44px;border:none;cursor:pointer">
+              </div>
             </div>
           </div>
           <div class="q-nav">
@@ -790,6 +816,8 @@ let step = 0;
 const STEPS = 8;
 const S = {
   eventType:'', date:'', location:'', guests:150, colorPreset:'', budget:'',
+  // Palette personnalisée (uniquement si colorPreset==='custom')
+  customType:'uni', customColor1:'#c9a96e', customColor2:'#0d1f3c',
   // Le sujet du faire-part (l'enfant, les mariés, la personne fêtée…) — pas
   // forcément la même personne que l'organisateur qui remplit le formulaire.
   subjectFirstName:'', subjectSecondFirstName:'', subjectLastName:'', subjectExtra:'',
@@ -879,9 +907,31 @@ function chk2(){
 /* ══ STEP 4 – Palette de couleurs ══ */
 function pickPalette(el){
   document.querySelectorAll('#paletteGrid .style-card').forEach(c=>c.classList.remove('sel'));
-  el.classList.add('sel'); S.colorPreset = el.dataset.val; chk4();
+  el.classList.add('sel'); S.colorPreset = el.dataset.val;
+  document.getElementById('customPaletteEditor').style.display = (S.colorPreset === 'custom') ? 'block' : 'none';
+  if (S.colorPreset === 'custom') majCustomPalette();
+  chk4();
 }
-function chk4(){ document.getElementById('s4next').disabled = !S.colorPreset; }
+function pickCustomType(el){
+  document.querySelectorAll('.custom-type-btn').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+  S.customType = el.dataset.type;
+  document.getElementById('customColor2Wrap').style.display = (S.customType === 'degrade') ? 'block' : 'none';
+  document.getElementById('customColor1Label').textContent = (S.customType === 'degrade') ? 'Première couleur' : 'Couleur';
+  majCustomPalette();
+}
+function majCustomPalette(){
+  S.customColor1 = document.getElementById('customColor1').value;
+  S.customColor2 = document.getElementById('customColor2').value;
+  const preview = document.getElementById('customSwatchPreview');
+  preview.style.background = (S.customType === 'degrade')
+    ? `linear-gradient(135deg,${S.customColor1},${S.customColor2})`
+    : S.customColor1;
+}
+function chk4(){
+  const valide = S.colorPreset === 'custom' ? !!S.customColor1 : !!S.colorPreset;
+  document.getElementById('s4next').disabled = !valide;
+}
 
 /* ══ STEP 5 – Contact ══ */
 function chk5(){
@@ -894,7 +944,7 @@ function chk5(){
 }
 
 /* ══ SUBMIT ══ */
-const NOMS_PALETTES = { 'bleu-blanc':'Bleu & Blanc', 'bleu-marine':'Marine Foncé', 'noir-blanc':'Noir & Blanc', 'bleu-or':'Bleu & Or' };
+const NOMS_PALETTES = { 'bleu-blanc':'Bleu & Blanc', 'noir-blanc':'Noir & Blanc', 'emeraude':'Émeraude', 'bordeaux':'Bordeaux', 'terracotta':'Terracotta', 'custom':'Personnalisé' };
 
 async function submit(){
   S.guests = document.getElementById('gSlider').value;
