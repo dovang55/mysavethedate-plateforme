@@ -282,14 +282,20 @@ module.exports = function renderSite(cfg, siteId, murMedias) {
         : `<div class="mur-item" data-url="${m.url}" data-type="photo"><img src="${m.url}" alt=""></div>`).join('')}
     </div>
   </div>
-</section>
+</section>`,
+
+  };
+
+  // Placée EN DEHORS de #deck (et non dans sectionsHTML.mur) : #deck est
+  // animé via un transform CSS, qui casse le "position:fixed" de la
+  // lightbox si elle est un descendant (le fixed devient relatif à
+  // l'ancêtre transformé au lieu du viewport, la rendant invisible/hors-écran).
+  const murLightboxHTML = !murActif ? '' : `
 <div class="mur-lightbox" id="murLightbox">
   <button type="button" class="mur-lightbox-close" id="murLightboxClose">✕</button>
   <div class="mur-lightbox-content" id="murLightboxContent"></div>
   <a class="mur-lightbox-download" id="murLightboxDownload" href="#">⬇ Enregistrer sur mon appareil</a>
-</div>`,
-
-  };
+</div>`;
 
   // Pages personnalisées créées librement par le client : même habillage
   // visuel que la page "Hommage" (titre + texte + photo), pour rester
@@ -629,6 +635,7 @@ ${sectionsMilieuHTML}
 </footer>
 
 </div>
+${murLightboxHTML}
 
 <script>
 const SITE_ID = '${siteId}';
