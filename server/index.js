@@ -387,6 +387,41 @@ function getSubdomain(req) {
   return null;
 }
 
+// ─── Dokploy — enregistrement automatique du sous-domaine ──────────────────
+// Chaque client a son propre sous-domaine (ex: dupont.mysavethedate.com). Un
+// certificat wildcard nécessiterait une validation DNS que notre hébergeur DNS
+// ne permet pas d'automatiser dans Dokploy — à la place, on enregistre un
+// domaine "classique" (validation HTTP, Let's Encrypt) par sous-domaine via
+// l'API Dokploy, dès qu'un site devient actif. C'est exactement l'action
+// qu'on ferait à la main dans Dokploy → Domains → Add Domain.
+const DOKPLOY_API_URL = process.env.DOKPLOY_API_URL || '';
+const DOKPLOY_API_KEY = process.env.DOKPLOY_API_KEY || '';
+const DOKPLOY_APP_ID  = process.env.DOKPLOY_APP_ID  || '';
+
+async function creerDomaineDokploy(subdomain) {
+  if (!DOKPLOY_API_URL || !DOKPLOY_API_KEY || !DOKPLOY_APP_ID) {
+    console.warn('⚠️  DOKPLOY_API_URL / DOKPLOY_API_KEY / DOKPLOY_APP_ID manquants — sous-domaine non enregistré automatiquement dans Dokploy.');
+    return;
+  }
+  const r = await fetch(`${DOKPLOY_API_URL}/domain.create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': DOKPLOY_API_KEY },
+    body: JSON.stringify({
+      host: `${subdomain}.mysavethedate.com`,
+      path: '/',
+      port: 3000,
+      https: true,
+      certificateType: 'letsencrypt',
+      applicationId: DOKPLOY_APP_ID,
+      domainType: 'application',
+    }),
+  });
+  if (!r.ok) {
+    const detail = await r.text().catch(() => '');
+    throw new Error(`Dokploy domain.create a échoué (${r.status}) : ${detail}`);
+  }
+}
+
 // ─── Serve vitrine (site vitrine — page d'accueil publique) ─────────────────
 app.use('/vitrine', express.static(path.join(__dirname,'..','vitrine')));
 app.get(['/','/?'], (req,res,next) => {
@@ -460,18 +495,23 @@ app.post('/api/admin/sites', requireAdmin, async (req,res) => {
   const fullConfig = mergeConfig(config);
   const { data,error } = await supabase.from('msd_sites').insert({ subdomain, template, config: fullConfig, active: true }).select().single();
   if(error) return res.status(500).json({error:error.message});
+  creerDomaineDokploy(data.subdomain).catch(err => console.error('Dokploy domain.create échoué:', err.message));
   res.json(data);
 });
 
 // Update site config
 app.put('/api/admin/sites/:id', requireAdmin, async (req,res) => {
   const { config, active, subdomain } = req.body;
+  const { data:avant } = await supabase.from('msd_sites').select('subdomain,active').eq('id',req.params.id).single();
   const updates = {};
   if(config!==undefined) updates.config = config;
   if(active!==undefined) updates.active = active;
   if(subdomain!==undefined) updates.subdomain = subdomain;
   const { data,error } = await supabase.from('msd_sites').update(updates).eq('id',req.params.id).select().single();
   if(error) return res.status(500).json({error:error.message});
+  if(data.active && (data.subdomain!==avant?.subdomain || !avant?.active)) {
+    creerDomaineDokploy(data.subdomain).catch(err => console.error('Dokploy domain.create échoué:', err.message));
+  }
   res.json(data);
 });
 
@@ -719,6 +759,9 @@ app.put('/api/mon-compte/site/:id', requireClientAuth, chargerSiteDuClient, asyn
   if(subdomain!==undefined) updates.subdomain = subdomain;
   const { data, error } = await supabase.from('msd_sites').update(updates).eq('id',req.params.id).select().single();
   if(error) return res.status(500).json({error:error.message});
+  if(data.active && (data.subdomain!==req.site.subdomain || !req.site.active)) {
+    creerDomaineDokploy(data.subdomain).catch(err => console.error('Dokploy domain.create échoué:', err.message));
+  }
   res.json(data);
 });
 
@@ -734,6 +777,7 @@ app.get('/api/mon-compte/tarif', requireClientAuth, (req,res) => {
 app.post('/api/mon-compte/site/:id/payer', requireClientAuth, chargerSiteDuClient, async (req,res) => {
   const { data, error } = await supabase.from('msd_sites').update({ active:true }).eq('id',req.params.id).select().single();
   if(error) return res.status(500).json({error:error.message});
+  creerDomaineDokploy(data.subdomain).catch(err => console.error('Dokploy domain.create échoué:', err.message));
   res.json(data);
 });
 
@@ -989,6 +1033,7 @@ app.post('/api/lead', async (req,res) => {
     const { data:site, error:siteErr } = await supabase.from('msd_sites')
       .insert({ subdomain, template:'bar-mitsva', config, active:true }).select().single();
     if (siteErr) throw siteErr;
+    creerDomaineDokploy(subdomain).catch(err => console.error('Dokploy domain.create échoué:', err.message));
 
     // Compte Supabase Auth pour ce prospect (mot de passe aléatoire, jamais
     // communiqué : le client le définira lui-même via le lien ci-dessous).
