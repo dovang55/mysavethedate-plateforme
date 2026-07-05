@@ -5,6 +5,7 @@
 <title>Mon espace — MySaveTheDate</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" rel="stylesheet">
 <style>
 :root{
   --bg:#f0f5ff;--paper:#ffffff;--border:rgba(30,64,175,.15);
@@ -140,6 +141,22 @@ a{color:inherit;text-decoration:none}
 .upload-zone:hover{border-color:var(--gold)}
 .upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .upload-zone-text{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--ink-s)}
+
+/* Photo avec aperçu + recadrage */
+.photo-upload-zone{border:2px dashed var(--border);padding:24px;text-align:center;cursor:pointer;transition:border-color .2s;border-radius:6px;background:var(--paper)}
+.photo-upload-zone:hover{border-color:var(--gold)}
+.photo-upload-thumb{width:100%;max-height:180px;object-fit:cover;border-radius:6px;cursor:pointer;display:block;margin-bottom:8px;border:1px solid var(--border)}
+
+.crop-modal{display:none;position:fixed;inset:0;z-index:2000;background:rgba(13,31,60,.6);align-items:center;justify-content:center}
+.crop-modal.show{display:flex}
+.crop-modal-inner{background:#fff;border-radius:8px;width:min(560px,92vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+.crop-modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+.crop-modal-header button{border:none;background:transparent;font-size:16px;cursor:pointer;color:var(--ink-s)}
+.crop-modal-body{padding:16px 20px;overflow-y:auto}
+.crop-canvas-wrap{max-height:360px;overflow:hidden;background:#000;border-radius:6px}
+.crop-canvas-wrap img{display:block;max-width:100%}
+.crop-ratios{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.crop-modal-footer{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border)}
 .upload-preview{max-width:100%;max-height:120px;margin:10px auto 0;display:block}
 
 .rsvp-event-item{background:var(--cream);border:1px solid var(--border);padding:14px 16px;margin-bottom:10px;border-radius:6px}
@@ -359,7 +376,12 @@ a{color:inherit;text-decoration:none}
           <div class="field-group"><label>Ligne famille / invitation</label><textarea data-path="sections.fairepart.familyLine" rows="2"></textarea></div>
           <div class="field-group"><label>Texte de présentation</label><textarea data-path="sections.fairepart.inviteSub" rows="2"></textarea></div>
           <div class="field-group"><label>Photo</label>
-            <div class="upload-zone"><input type="file" accept="image/*" data-upload-to="sections.fairepart.photo"><div class="upload-zone-text">Photo principale</div></div>
+            <div class="photo-upload" data-path="sections.fairepart.photo">
+              <input type="file" accept="image/*" style="display:none">
+              <img class="photo-upload-thumb" style="display:none">
+              <div class="photo-upload-zone"><div class="upload-zone-text">Photo principale</div></div>
+              <button type="button" class="btn-sm photo-upload-recadrer" style="display:none;margin-top:8px">Recadrer</button>
+            </div>
           </div>
           <div class="divider"></div>
           <div class="section-title">Détails de l'événement</div>
@@ -377,7 +399,14 @@ a{color:inherit;text-decoration:none}
         <div style="margin-top:16px">
           <div class="field-group"><label>Titre</label><input type="text" data-path="sections.hommage.title"></div>
           <div class="field-group"><label>Texte</label><textarea data-path="sections.hommage.text" rows="6"></textarea></div>
-          <div class="field-group"><label>Photo</label><div class="upload-zone"><input type="file" accept="image/*" data-upload-to="sections.hommage.photo"><div class="upload-zone-text">Photo</div></div></div>
+          <div class="field-group"><label>Photo</label>
+            <div class="photo-upload" data-path="sections.hommage.photo">
+              <input type="file" accept="image/*" style="display:none">
+              <img class="photo-upload-thumb" style="display:none">
+              <div class="photo-upload-zone"><div class="upload-zone-text">Photo</div></div>
+              <button type="button" class="btn-sm photo-upload-recadrer" style="display:none;margin-top:8px">Recadrer</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -391,7 +420,14 @@ a{color:inherit;text-decoration:none}
             <div class="field-group"><label>Parasha</label><input type="text" data-path="sections.shabbat.parasha"></div>
           </div>
           <div class="field-group"><label>Introduction</label><textarea data-path="sections.shabbat.intro" rows="3"></textarea></div>
-          <div class="field-group"><label>Photo</label><div class="upload-zone"><input type="file" accept="image/*" data-upload-to="sections.shabbat.photo"><div class="upload-zone-text">Photo</div></div></div>
+          <div class="field-group"><label>Photo</label>
+            <div class="photo-upload" data-path="sections.shabbat.photo">
+              <input type="file" accept="image/*" style="display:none">
+              <img class="photo-upload-thumb" style="display:none">
+              <div class="photo-upload-zone"><div class="upload-zone-text">Photo</div></div>
+              <button type="button" class="btn-sm photo-upload-recadrer" style="display:none;margin-top:8px">Recadrer</button>
+            </div>
+          </div>
           <div class="divider"></div>
           <div class="section-title">Détails</div>
           <div id="shabbat-events"></div>
@@ -524,8 +560,32 @@ a{color:inherit;text-decoration:none}
 
 <div class="toast" id="toast"></div>
 
+<div class="crop-modal" id="cropModal">
+  <div class="crop-modal-inner">
+    <div class="crop-modal-header">
+      <span>Recadrer la photo</span>
+      <button type="button" id="cropClose">✕</button>
+    </div>
+    <div class="crop-modal-body">
+      <div class="crop-canvas-wrap"><img id="cropImage"></div>
+      <div class="crop-ratios">
+        <button type="button" class="btn-sm crop-ratio-btn" data-ratio="NaN">Libre</button>
+        <button type="button" class="btn-sm crop-ratio-btn primary" data-ratio="1">Carré 1:1</button>
+        <button type="button" class="btn-sm crop-ratio-btn" data-ratio="1.3333">4:3</button>
+        <button type="button" class="btn-sm crop-ratio-btn" data-ratio="0.75">3:4</button>
+        <button type="button" class="btn-sm crop-ratio-btn" data-ratio="1.7778">16:9</button>
+      </div>
+    </div>
+    <div class="crop-modal-footer">
+      <button class="btn-sm" id="cropCancel">Annuler</button>
+      <button class="btn-sm primary" id="cropConfirm">Valider</button>
+    </div>
+  </div>
+</div>
+
 <script src="/espace/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
 <script>
 // On protège la création du client Supabase : si la configuration serveur
 // est incomplète (variable d'environnement manquante en production, par
@@ -903,6 +963,7 @@ function populateFields(){
   document.getElementById('paramSubdomainHelp').textContent = 'URL finale : ' + (currentSite.subdomain||'…') + '.mysavethedate.com';
   document.getElementById('paramActive').checked = currentSite.active !== false;
   if (currentConfig.identity?.logo) { document.getElementById('logoPreview').src = currentConfig.identity.logo; document.getElementById('logoPreview').style.display='block'; }
+  rafraichirApercusPhotos();
 }
 
 document.querySelectorAll('[data-path]').forEach(el => {
@@ -1029,8 +1090,11 @@ function buildCustomPagesEditor(){
       <div class="field-group"><label>Titre</label><input type="text" data-cp-field="title" value="${p.title||''}"></div>
       <div class="field-group"><label>Texte</label><textarea rows="4" data-cp-field="text">${p.text||''}</textarea></div>
       <div class="field-group"><label>Photo</label>
-        <div class="upload-zone"><input type="file" accept="image/*" data-cp-photo>
-          <div class="upload-zone-text">${p.photo?'Changer la photo':'Photo'}</div>
+        <div class="photo-upload" data-cp-photo-wrap>
+          <input type="file" accept="image/*" style="display:none">
+          <img class="photo-upload-thumb" style="display:none">
+          <div class="photo-upload-zone"><div class="upload-zone-text">Photo</div></div>
+          <button type="button" class="btn-sm photo-upload-recadrer" style="display:none;margin-top:8px">Recadrer</button>
         </div>
       </div>
       <button type="button" class="btn-sm" data-cp-supprimer style="margin-top:6px">Supprimer cette page</button>`;
@@ -1039,11 +1103,38 @@ function buildCustomPagesEditor(){
       el.addEventListener('focus', () => naviguerApercuVers(p.id));
       el.addEventListener('input', () => { p[el.dataset.cpField] = el.value; declencherSauvegardeAuto(); if (el.dataset.cpField==='title') buildPagesList(); });
     });
-    div.querySelector('[data-cp-photo]').addEventListener('change', async e => {
-      const file = e.target.files[0]; if (!file) return;
-      const url = await uploaderFichier(file, 'photo');
-      if (url) { p.photo = url; showToast('Photo envoyée'); declencherSauvegardeAuto(); }
+    const cpPhotoWrap = div.querySelector('[data-cp-photo-wrap]');
+    cpPhotoWrap.__afficherApercu = url => {
+      const thumb = cpPhotoWrap.querySelector('.photo-upload-thumb');
+      const zone = cpPhotoWrap.querySelector('.photo-upload-zone');
+      const btn = cpPhotoWrap.querySelector('.photo-upload-recadrer');
+      if (url) { thumb.src = url; thumb.style.display = 'block'; zone.style.display = 'none'; btn.style.display = 'inline-block'; }
+      else { thumb.style.display = 'none'; zone.style.display = 'block'; btn.style.display = 'none'; }
+    };
+    const cpInput = cpPhotoWrap.querySelector('input[type=file]');
+    cpPhotoWrap.querySelector('.photo-upload-zone').addEventListener('click', () => cpInput.click());
+    cpPhotoWrap.querySelector('.photo-upload-thumb').addEventListener('click', () => cpInput.click());
+    cpInput.addEventListener('change', () => {
+      const file = cpInput.files[0]; if (!file) return;
+      ouvrirRecadrage(file, async blob => {
+        const url = await uploaderFichier(blob, 'photo');
+        if (url) { p.photo = url; cpPhotoWrap.__afficherApercu(url); showToast('Photo envoyée'); declencherSauvegardeAuto(); }
+        cpInput.value = '';
+      });
     });
+    cpPhotoWrap.querySelector('.photo-upload-recadrer').addEventListener('click', async e => {
+      e.stopPropagation();
+      if (!p.photo) return;
+      try {
+        const r = await fetch(p.photo);
+        const blob = await r.blob();
+        ouvrirRecadrage(blob, async nouveauBlob => {
+          const nouvelleUrl = await uploaderFichier(nouveauBlob, 'photo');
+          if (nouvelleUrl) { p.photo = nouvelleUrl; cpPhotoWrap.__afficherApercu(nouvelleUrl); showToast('Photo mise à jour'); declencherSauvegardeAuto(); }
+        });
+      } catch(err) { showToast('Impossible de charger la photo actuelle'); }
+    });
+    cpPhotoWrap.__afficherApercu(p.photo);
     div.querySelector('[data-cp-supprimer]').addEventListener('click', () => supprimerPagePersonnalisee(p.id));
   });
 }
@@ -1303,7 +1394,7 @@ document.querySelectorAll('.mur-force-btn').forEach(btn => {
 // ── Uploads (logo + photos) ───────────────────────────────────────────────
 async function uploaderFichier(file, type){
   const fd = new FormData();
-  fd.append('file', file);
+  fd.append('file', file, file.name || 'photo.jpg');
   fd.append('siteId', currentSite.id);
   fd.append('type', type);
   const { data:{ session } } = await supa.auth.getSession();
@@ -1317,13 +1408,98 @@ document.getElementById('logoFile').addEventListener('change', async e => {
   const url = await uploaderFichier(file, 'logo');
   if (url) { setPath(currentConfig,'identity.logo',url); document.getElementById('logoPreview').src=url; document.getElementById('logoPreview').style.display='block'; showToast('Logo envoyé'); declencherSauvegardeAuto(); }
 });
-document.querySelectorAll('[data-upload-to]').forEach(input => {
-  input.addEventListener('change', async e => {
-    const file = e.target.files[0]; if (!file) return;
-    const url = await uploaderFichier(file, 'photo');
-    if (url) { setPath(currentConfig, input.dataset.uploadTo, url); showToast('Photo envoyée'); declencherSauvegardeAuto(); }
+
+// ── Recadrage de photo (modale partagée par toutes les zones photo) ──────
+let cropperInstance = null;
+let cropCallback = null;
+function ouvrirRecadrage(fichierOuBlob, callback){
+  cropCallback = callback;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('cropImage');
+    img.src = e.target.result;
+    document.getElementById('cropModal').classList.add('show');
+    if (cropperInstance) cropperInstance.destroy();
+    cropperInstance = new Cropper(img, { viewMode:1, aspectRatio:1, autoCropArea:1, background:false });
+    document.querySelectorAll('.crop-ratio-btn').forEach(b => b.classList.toggle('primary', b.dataset.ratio==='1'));
+  };
+  reader.readAsDataURL(fichierOuBlob);
+}
+function fermerRecadrage(){
+  document.getElementById('cropModal').classList.remove('show');
+  if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
+  cropCallback = null;
+}
+document.querySelectorAll('.crop-ratio-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.crop-ratio-btn').forEach(b=>b.classList.remove('primary'));
+    btn.classList.add('primary');
+    const ratio = parseFloat(btn.dataset.ratio);
+    cropperInstance?.setAspectRatio(isNaN(ratio) ? NaN : ratio);
   });
 });
+document.getElementById('cropClose').addEventListener('click', fermerRecadrage);
+document.getElementById('cropCancel').addEventListener('click', fermerRecadrage);
+document.getElementById('cropConfirm').addEventListener('click', () => {
+  if (!cropperInstance || !cropCallback) return;
+  const cb = cropCallback;
+  cropperInstance.getCroppedCanvas({ maxWidth:1600, maxHeight:1600 }).toBlob(blob => {
+    fermerRecadrage();
+    cb(blob);
+  }, 'image/jpeg', 0.92);
+});
+
+// ── Zones photo (aperçu + recadrage) ──────────────────────────────────────
+function initialiserUploadPhoto(wrapper){
+  const chemin = wrapper.dataset.path;
+  const input = wrapper.querySelector('input[type=file]');
+  const thumb = wrapper.querySelector('.photo-upload-thumb');
+  const zone = wrapper.querySelector('.photo-upload-zone');
+  const btnRecadrer = wrapper.querySelector('.photo-upload-recadrer');
+
+  function afficherApercu(url){
+    if (url) {
+      thumb.src = url; thumb.style.display = 'block';
+      zone.style.display = 'none';
+      btnRecadrer.style.display = 'inline-block';
+    } else {
+      thumb.style.display = 'none';
+      zone.style.display = 'block';
+      btnRecadrer.style.display = 'none';
+    }
+  }
+  wrapper.__afficherApercu = afficherApercu;
+
+  zone.addEventListener('click', () => input.click());
+  thumb.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => {
+    const file = input.files[0]; if (!file) return;
+    ouvrirRecadrage(file, async blob => {
+      const url = await uploaderFichier(blob, 'photo');
+      if (url) { setPath(currentConfig, chemin, url); afficherApercu(url); showToast('Photo envoyée'); declencherSauvegardeAuto(); }
+      input.value = '';
+    });
+  });
+  btnRecadrer.addEventListener('click', async e => {
+    e.stopPropagation();
+    const urlActuelle = getPath(currentConfig, chemin);
+    if (!urlActuelle) return;
+    try {
+      const r = await fetch(urlActuelle);
+      const blob = await r.blob();
+      ouvrirRecadrage(blob, async nouveauBlob => {
+        const nouvelleUrl = await uploaderFichier(nouveauBlob, 'photo');
+        if (nouvelleUrl) { setPath(currentConfig, chemin, nouvelleUrl); afficherApercu(nouvelleUrl); showToast('Photo mise à jour'); declencherSauvegardeAuto(); }
+      });
+    } catch(err) { showToast('Impossible de charger la photo actuelle'); }
+  });
+}
+document.querySelectorAll('.photo-upload').forEach(initialiserUploadPhoto);
+function rafraichirApercusPhotos(){
+  document.querySelectorAll('.photo-upload').forEach(wrapper => {
+    if (wrapper.dataset.path) wrapper.__afficherApercu?.(getPath(currentConfig, wrapper.dataset.path));
+  });
+}
 
 // ── Sauvegarde automatique ────────────────────────────────────────────────
 // Toute modification (texte, couleur, page, événement, upload…) déclenche
