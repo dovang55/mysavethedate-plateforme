@@ -35,6 +35,8 @@ function construireUrlPolices(t) {
 function murEstActif(c) {
   const m = c.sections?.mur;
   if (!m || !m.achete) return false;
+  if (m.forceActif === true) return true;
+  if (m.forceActif === false) return false;
   let seuil;
   if (m.activeLe) {
     seuil = new Date(m.activeLe).getTime();

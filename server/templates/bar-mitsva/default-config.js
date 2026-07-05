@@ -108,10 +108,12 @@ module.exports = {
     // mais ne fonctionne que si le client a acheté l'option (achete=true)
     // et que la date de bascule est passée (voir murEstActif dans render.js).
     mur: {
-      achete:   false,
-      activeLe: "",   // "" = calculé automatiquement (lendemain de target.date), sinon date/heure ISO choisie par le client
-      titre:    "Mur de photos",
-      message:  "Merci d'avoir été des nôtres ! Partagez vos photos et vidéos de la soirée."
+      achete:     false,
+      activeLe:   "",   // "" = calculé automatiquement (lendemain de target.date), sinon date/heure ISO choisie par le client
+      // Bascule manuelle : null = automatique (selon activeLe), true = forcé actif, false = forcé inactif
+      forceActif: null,
+      titre:      "Mur de photos",
+      message:    "Merci d'avoir été des nôtres ! Partagez vos photos et vidéos de la soirée."
     },
     footer: {
       credit: "Bar Mitzvah · MMXXVI",

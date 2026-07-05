@@ -593,6 +593,8 @@ app.delete('/api/admin/rsvp/:id', requireAdmin, async (req,res) => {
 function murEstActif(cfg) {
   const m = cfg.sections?.mur;
   if (!m || !m.achete) return false;
+  if (m.forceActif === true) return true;
+  if (m.forceActif === false) return false;
   let seuil;
   if (m.activeLe) {
     seuil = new Date(m.activeLe).getTime();
