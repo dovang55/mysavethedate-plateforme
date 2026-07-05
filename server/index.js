@@ -776,8 +776,11 @@ function murEstActif(cfg) {
 app.post('/api/mur/:siteId/upload', upload.single('file'), async (req,res) => {
   const tmpPath = req.file?.path;
   try {
-    const { data:site } = await supabase.from('msd_sites').select('id,active,config').eq('id',req.params.siteId).single();
-    if(!site || !site.active) return res.status(404).json({error:'Site introuvable'});
+    // Pas de vérification de site.active ici : le mur doit pouvoir être testé
+    // depuis l'aperçu (/apercu/:id) avant même que le partage soit débloqué,
+    // comme le reste de l'éditeur.
+    const { data:site } = await supabase.from('msd_sites').select('id,config').eq('id',req.params.siteId).single();
+    if(!site) return res.status(404).json({error:'Site introuvable'});
     if(!murEstActif(mergeConfig(site.config))) return res.status(403).json({error:'Le mur de photos n\'est pas encore ouvert'});
     if(!req.file) return res.status(400).json({error:'Aucun fichier'});
     const estVideo = req.file.mimetype.startsWith('video/');
@@ -798,8 +801,8 @@ app.post('/api/mur/:siteId/upload', upload.single('file'), async (req,res) => {
 });
 
 app.get('/api/mur/:siteId/medias', async (req,res) => {
-  const { data:site } = await supabase.from('msd_sites').select('id,active,config').eq('id',req.params.siteId).single();
-  if(!site || !site.active) return res.status(404).json({error:'Site introuvable'});
+  const { data:site } = await supabase.from('msd_sites').select('id,config').eq('id',req.params.siteId).single();
+  if(!site) return res.status(404).json({error:'Site introuvable'});
   if(!murEstActif(mergeConfig(site.config))) return res.json([]);
   const { data,error } = await supabase.from('msd_mur_medias').select('id,type,url,created_at').eq('site_id',req.params.siteId).order('created_at',{ascending:false});
   if(error) return res.status(500).json({error:error.message});

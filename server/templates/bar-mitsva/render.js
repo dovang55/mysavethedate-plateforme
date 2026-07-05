@@ -646,6 +646,9 @@ const MUSIC_TRACKS = ${JSON.stringify(musicTracks.map(m=>({url:m.url,startAt:m.s
 const audios = MUSIC_TRACKS.map(m => {
   const a = new Audio(m.url); a.volume = 0; return a;
 });
+// Exposé pour permettre à l'éditeur (aperçu en iframe) de couper le son
+// sans casser le fondu enchaîné géré ci-dessous (muted est indépendant de volume).
+window.audios = audios;
 if (audios[0]) { audios[0].loop = false; audios[0].currentTime = MUSIC_TRACKS[0]?.startAt||0; }
 const loopHandlers = MUSIC_TRACKS.map((m,i) => () => {
   if(currentTrack===i){ audios[i].currentTime=m.loopFrom||0; audios[i].play().catch(()=>{}); }

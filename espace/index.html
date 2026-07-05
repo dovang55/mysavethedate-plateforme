@@ -501,6 +501,9 @@ a{color:inherit;text-decoration:none}
         <button class="preview-toggle-btn" id="btnDeviceDesktop" title="Aperçu ordinateur">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="13" rx="1.5"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
         </button>
+        <button class="preview-toggle-btn active" id="btnPreviewMute" title="Réactiver le son de l'aperçu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5L6 9H3v6h3l5 4V5z"/><line x1="16" y1="9" x2="22" y2="15"/><line x1="22" y1="9" x2="16" y2="15"/></svg>
+        </button>
       </div>
       <div class="preview-stage" id="previewStage">
         <div class="preview-loading" id="previewLoading">Sauvegardez pour voir l'aperçu</div>
@@ -818,7 +821,7 @@ async function ouvrirEditeur(){
   const frame = document.getElementById('previewFrame');
   document.getElementById('previewLoading').style.display = 'none';
   frame.style.display = 'block';
-  frame.onload = () => naviguerApercuVers(activeEdKey);
+  frame.onload = () => { naviguerApercuVers(activeEdKey); appliquerMuetApercu(); };
   frame.src = '/apercu/' + currentSite.id + '?embed=1&t=' + Date.now();
   document.getElementById('previewLink').href = '/apercu/' + currentSite.id;
   positionnerApercu();
@@ -869,6 +872,25 @@ function naviguerApercuVers(cle){
   const frame = document.getElementById('previewFrame');
   try { frame.contentWindow?.deck?.go(idx); } catch(_) { /* aperçu pas encore chargé */ }
 }
+
+// ── Coupure du son de l'aperçu ────────────────────────────────────────────
+// L'aperçu se recharge à chaque sauvegarde automatique : sans ça, la
+// musique repart depuis le début à chaque modification, ce qui devient vite
+// pénible. Coupé par défaut ; le bouton permet de réactiver le son pour
+// tester la musique quand on le souhaite vraiment.
+let apercuMuet = true;
+function appliquerMuetApercu(){
+  const frame = document.getElementById('previewFrame');
+  try {
+    (frame.contentWindow?.audios || []).forEach(a => { a.muted = apercuMuet; });
+  } catch(_) { /* aperçu pas encore chargé */ }
+}
+document.getElementById('btnPreviewMute').addEventListener('click', () => {
+  apercuMuet = !apercuMuet;
+  document.getElementById('btnPreviewMute').classList.toggle('active', apercuMuet);
+  document.getElementById('btnPreviewMute').title = apercuMuet ? "Réactiver le son de l'aperçu" : "Couper le son de l'aperçu";
+  appliquerMuetApercu();
+});
 
 function populateFields(){
   document.querySelectorAll('[data-path]').forEach(el => {
@@ -1346,7 +1368,7 @@ function rafraichirApercu(){
   // On prévisualise toujours via /apercu/:id (qui fonctionne même si le
   // partage n'est pas encore débloqué), pas via le sous-domaine public qui,
   // lui, ne répond qu'une fois le site actif.
-  frame.onload = () => naviguerApercuVers(activeEdKey);
+  frame.onload = () => { naviguerApercuVers(activeEdKey); appliquerMuetApercu(); };
   frame.src = '/apercu/' + currentSite.id + '?embed=1&t=' + Date.now();
   document.getElementById('previewLink').href = '/apercu/' + currentSite.id;
   positionnerApercu();
