@@ -278,11 +278,16 @@ module.exports = function renderSite(cfg, siteId, murMedias) {
     </div>
     <div class="mur-grid" id="murGrid">
       ${(murMedias||[]).map(m => m.type==='video'
-        ? `<div class="mur-item"><video src="${m.url}" controls></video></div>`
-        : `<div class="mur-item"><img src="${m.url}" alt=""></div>`).join('')}
+        ? `<div class="mur-item" data-url="${m.url}" data-type="video"><video src="${m.url}"></video><div class="mur-play-badge">▶</div></div>`
+        : `<div class="mur-item" data-url="${m.url}" data-type="photo"><img src="${m.url}" alt=""></div>`).join('')}
     </div>
   </div>
-</section>`,
+</section>
+<div class="mur-lightbox" id="murLightbox">
+  <button type="button" class="mur-lightbox-close" id="murLightboxClose">✕</button>
+  <div class="mur-lightbox-content" id="murLightboxContent"></div>
+  <a class="mur-lightbox-download" id="murLightboxDownload" href="#">⬇ Enregistrer sur mon appareil</a>
+</div>`,
 
   };
 
@@ -526,8 +531,16 @@ module.exports = function renderSite(cfg, siteId, murMedias) {
   .mur-upload-zone{display:flex;align-items:center;justify-content:center;gap:10px;padding:22px;border:2px dashed rgba(37,99,235,.3);cursor:pointer;font-family:'${t.fonts.heading}',sans-serif;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-deep);transition:all .2s}
   .mur-upload-zone:hover{border-color:var(--gold-deep);background:rgba(37,99,235,.04)}
   .mur-grid{max-width:960px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-  .mur-item{aspect-ratio:1;overflow:hidden;background:var(--cream-deep)}
-  .mur-item img,.mur-item video{width:100%;height:100%;object-fit:cover}
+  .mur-item{aspect-ratio:1;overflow:hidden;background:var(--cream-deep);position:relative;cursor:pointer}
+  .mur-item img,.mur-item video{width:100%;height:100%;object-fit:cover;pointer-events:none}
+  .mur-play-badge{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;background:rgba(0,0,0,.25)}
+
+  .mur-lightbox{display:none;position:fixed;inset:0;z-index:9998;background:rgba(10,10,10,.92);align-items:center;justify-content:center;flex-direction:column;padding:60px 20px}
+  .mur-lightbox.show{display:flex}
+  .mur-lightbox-content{max-width:min(90vw,900px);max-height:70vh;display:flex}
+  .mur-lightbox-content img,.mur-lightbox-content video{max-width:100%;max-height:70vh;margin:auto;object-fit:contain}
+  .mur-lightbox-close{position:absolute;top:20px;right:24px;width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.12);color:#fff;font-size:16px;cursor:pointer}
+  .mur-lightbox-download{margin-top:24px;padding:14px 28px;background:#fff;color:#111;font-family:'${t.fonts.heading}',sans-serif;font-size:10px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;text-decoration:none;cursor:pointer}
 
   footer{padding:80px 24px 56px;text-align:center}
   .footer-logo{width:140px;margin:0 auto 18px}
@@ -706,11 +719,49 @@ if (murZone) {
         if (!res.success) { alert('Erreur : ' + (res.error||'réessayez')); return; }
         const item = document.createElement('div');
         item.className = 'mur-item';
-        item.innerHTML = res.type === 'video' ? '<video src="'+res.url+'" controls></video>' : '<img src="'+res.url+'" alt="">';
+        item.dataset.url = res.url;
+        item.dataset.type = res.type;
+        item.innerHTML = res.type === 'video' ? '<video src="'+res.url+'"></video><div class="mur-play-badge">▶</div>' : '<img src="'+res.url+'" alt="">';
         murGrille.prepend(item);
       })
       .catch(() => { murTexte.textContent = texteDepart; alert('Erreur réseau.'); });
   });
+
+  // Ouverture en grand (lightbox) + téléchargement sur l'appareil
+  const murLightbox = document.getElementById('murLightbox');
+  const murLightboxContent = document.getElementById('murLightboxContent');
+  const murLightboxDownload = document.getElementById('murLightboxDownload');
+  async function telechargerMurMedia(url){
+    try {
+      const r = await fetch(url);
+      const blob = await r.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = url.split('/').pop().split('?')[0] || 'souvenir';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch(e) { window.open(url, '_blank'); }
+  }
+  function ouvrirMurLightbox(url, type){
+    murLightboxContent.innerHTML = type === 'video'
+      ? '<video src="'+url+'" controls autoplay></video>'
+      : '<img src="'+url+'" alt="">';
+    murLightboxDownload.onclick = e => { e.preventDefault(); telechargerMurMedia(url); };
+    murLightbox.classList.add('show');
+  }
+  function fermerMurLightbox(){
+    murLightbox.classList.remove('show');
+    murLightboxContent.innerHTML = '';
+  }
+  murGrille.addEventListener('click', e => {
+    const item = e.target.closest('.mur-item');
+    if (item) ouvrirMurLightbox(item.dataset.url, item.dataset.type);
+  });
+  document.getElementById('murLightboxClose').addEventListener('click', fermerMurLightbox);
+  murLightbox.addEventListener('click', e => { if (e.target === murLightbox) fermerMurLightbox(); });
 }
 </script>
 </body>
