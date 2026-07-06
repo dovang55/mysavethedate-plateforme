@@ -1130,6 +1130,82 @@ app.post('/api/mon-compte/site/:id/rsvp/debloquer', requireClientAuth, chargerSi
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CHATBOT — assistant client (OpenAI), accessible depuis /espace une fois connecté
+// ─────────────────────────────────────────────────────────────────────────────
+// Optionnel au démarrage (comme Stripe) : si absent, la route répond une
+// erreur explicite plutôt que de faire planter tout le serveur.
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+
+// Contexte donné au modèle pour qu'il réponde comme un conseiller client
+// MySaveTheDate, sans halluciner de fonctionnalités qui n'existent pas.
+const CHATBOT_SYSTEM_PROMPT = `Tu es l'assistant virtuel de MySaveTheDate, un service qui crée des faire-part digitaux (site web personnalisé) pour mariages, bar/bat mitsva, anniversaires, brit mila...
+Réponds toujours en français, de façon chaleureuse, claire et concise (quelques phrases, pas de longs pavés).
+
+Comment fonctionne le service :
+- Le client répond à un questionnaire (type d'événement, date, lieu, style) et un faire-part est généré automatiquement sur un sous-domaine (ex: prenom-nom.mysavethedate.com).
+- Il peut ensuite tout personnaliser depuis son "espace" (éditeur) : textes, couleurs, photos, musique, ordre des pages (faire-part, hommage, shabbat, informations complémentaires, vidéo, RSVP).
+- Le faire-part reste privé/inactif tant que le client n'a pas choisi une formule payante pour le "partager" avec ses invités.
+- Un code QR et un lien du faire-part en ligne sont disponibles une fois le faire-part publié.
+- Connexion possible par email/mot de passe ou par "Continuer avec Google".
+
+Les 3 formules (paiement unique, via Stripe) :
+- Essentiel : 30€, jusqu'à 30 invités, sans vidéo, sans mur de photos.
+- Populaire : 120€, jusqu'à 200 invités, avec vidéo.
+- Premium : 220€, jusqu'à 400 invités, avec vidéo et mur de photos inclus.
+- Si le nombre de réponses RSVP dépasse le quota inclus dans la formule, un supplément est proposé (5€ de base + 1,50€ par réponse au-delà du quota) pour débloquer l'accès à toutes les réponses.
+- Le "mur de photos" (photos/vidéos envoyées par les invités) est disponible en option à 29,99€ pour les formules qui ne l'incluent pas déjà.
+
+Consignes :
+- Si tu ne connais pas la réponse à une question précise sur le compte du client (facture, bug technique précis, remboursement), invite-le poliment à contacter le support MySaveTheDate par email.
+- N'invente jamais de fonctionnalité, de prix ou de délai qui n'est pas mentionné ci-dessus.
+- Ne donne aucune information technique interne (base de données, clés API, code).`;
+
+// Limite dédiée (indépendante de limiterPublic) : cette route appelle une API
+// tierce facturée à l'usage, on protège donc le coût même pour un compte
+// authentifié.
+const limiterChatbot = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de messages envoyés à l\'assistant, merci de patienter quelques minutes.' },
+});
+
+app.post('/api/mon-compte/chatbot', requireClientAuth, limiterChatbot, async (req,res) => {
+  if (!OPENAI_API_KEY) return res.status(500).json({ error: "Assistant non configuré sur le serveur (OPENAI_API_KEY manquant)." });
+
+  // On ne fait confiance qu'à la forme des messages envoyés par le client
+  // (l'historique de conversation est géré côté navigateur, jamais stocké
+  // en base) : rôle limité à user/assistant, contenu texte tronqué, et on
+  // ne garde que les derniers échanges pour contenir le coût par requête.
+  const messages = Array.isArray(req.body?.messages) ? req.body.messages : [];
+  const historique = messages
+    .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+    .slice(-20)
+    .map(m => ({ role: m.role, content: m.content.slice(0, 4000) }));
+  if (!historique.length) return res.status(400).json({ error: 'Message manquant' });
+
+  try {
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'system', content: CHATBOT_SYSTEM_PROMPT }, ...historique],
+        temperature: 0.4,
+        max_tokens: 500,
+      }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error?.message || 'Erreur de l\'assistant OpenAI');
+    const reply = data.choices?.[0]?.message?.content?.trim() || "Désolé, je n'ai pas de réponse à vous proposer pour le moment.";
+    res.json({ reply });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/mon-compte/site/:id/videos', requireClientAuth, chargerSiteDuClient, async (req,res) => {
   const { data,error } = await supabase.from('msd_videos').select('*').eq('site_id',req.params.id).order('created_at',{ascending:false});
   if(error) return res.status(500).json({error:error.message});
