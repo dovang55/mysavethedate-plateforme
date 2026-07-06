@@ -787,9 +787,35 @@ if (supa) {
     }
   });
 
-  // Au chargement : si une session existe déjà (retour d'un visiteur), on
-  // saute directement à l'application. Sinon, écran de connexion.
+  // Au chargement : si on revient de notre callback Google fait maison
+  // (voir server/index.js /api/auth/google/*), on établit la session via le
+  // jeton "magiclink" transmis, avant même de regarder s'il existe déjà une
+  // session. Sinon, comportement habituel : session existante → application,
+  // sinon écran de connexion.
   (async () => {
+    const params = new URLSearchParams(window.location.search);
+    const googleToken = params.get('googleToken');
+    const googleEmail = params.get('googleEmail');
+    const googleError = params.get('googleError');
+
+    if (googleToken && googleEmail) {
+      // Nettoyage de l'URL avant l'appel : le jeton ne doit pas rester
+      // visible dans l'adresse ni dans l'historique du navigateur.
+      params.delete('googleToken'); params.delete('googleEmail');
+      window.history.replaceState({}, '', window.location.pathname + (params.toString()?('?'+params.toString()):''));
+      const { error } = await supa.auth.verifyOtp({ email: googleEmail, token: googleToken, type:'magiclink' });
+      if (error) { afficherEcran('screenLogin'); afficherMessage('loginMsg', 'Connexion Google impossible : ' + error.message); }
+      // Sinon, onAuthStateChange('SIGNED_IN') ci-dessus prend le relais.
+      return;
+    }
+    if (googleError) {
+      params.delete('googleError');
+      window.history.replaceState({}, '', window.location.pathname + (params.toString()?('?'+params.toString()):''));
+      afficherEcran('screenLogin');
+      afficherMessage('loginMsg', 'Connexion Google : ' + googleError);
+      return;
+    }
+
     const { data } = await supa.auth.getSession();
     if (data.session) demarrerApplication();
     else afficherEcran('screenLogin');
@@ -855,17 +881,14 @@ document.getElementById('btnTogglePwdVisible').addEventListener('click', functio
   this.textContent = masque ? 'Masquer les mots de passe' : 'Afficher les mots de passe';
 });
 
-document.getElementById('btnGoogleAuth').addEventListener('click', async () => {
-  if (!supa) { afficherMessage('loginMsg', 'Erreur technique, merci de réessayer plus tard.'); return; }
+document.getElementById('btnGoogleAuth').addEventListener('click', () => {
   document.getElementById('btnGoogleAuth').disabled = true;
-  // On conserve ?revendiquer=...&next=... : au retour de Google, onAuthStateChange
-  // ('SIGNED_IN') relance demarrerApplication() qui lit ces paramètres.
-  const { error } = await supa.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.origin + '/espace/' + window.location.search },
-  });
-  if (error) { document.getElementById('btnGoogleAuth').disabled = false; afficherMessage('loginMsg', 'Connexion Google indisponible : ' + error.message); }
-  // Sinon, redirection immédiate vers Google — pas besoin de réactiver le bouton.
+  // Callback fait maison (server/index.js) plutôt que supa.auth.signInWithOAuth :
+  // évite que Google affiche le domaine technique Supabase pendant la connexion.
+  // On transmet ?revendiquer=...&next=... via "qs" : /api/auth/google/callback
+  // nous les renverra tels quels après authentification.
+  const qs = encodeURIComponent(window.location.search || '');
+  window.location.href = '/api/auth/google/start?qs=' + qs;
 });
 
 document.getElementById('btnLogin').addEventListener('click', async () => {

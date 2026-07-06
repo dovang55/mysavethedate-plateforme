@@ -23,9 +23,22 @@ const TMP_DIR    = path.join(__dirname, 'tmp');
 const BUCKET_MEDIA = 'msd-media';
 const BUCKET_VIDEO = 'msd-videos';
 
+// Connexion Google — callback fait maison (voir plus bas) : le code échangé
+// avec Google reste entièrement sur notre propre domaine, contrairement au
+// flux OAuth intégré de Supabase qui fait transiter l'utilisateur par l'écran
+// "Accéder à l'application <projet>.supabase.co" (domaine que nous ne
+// possédons pas, donc impossible à personnaliser côté Google).
+const GOOGLE_CLIENT_ID     = process.env.GOOGLE_CLIENT_ID     || '';
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
+
 if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
 
 const app = express();
+// Le serveur tourne derrière le proxy Traefik de Dokploy (TLS terminé en
+// amont) : sans ceci, req.protocol renverrait toujours 'http', ce qui
+// casserait le redirect_uri envoyé à Google (doit être identique au https://
+// enregistré dans Google Cloud Console) et les liens générés avec req.protocol.
+app.set('trust proxy', 1);
 
 // Redirection .fr → .com (301 permanent)
 app.use((req, res, next) => {
@@ -68,6 +81,14 @@ function requireAdmin(req,res,next){
   const key = req.headers['x-admin-key']||req.query.adminKey;
   if(key!==ADMIN_KEY) return res.status(401).json({error:'Non autorisé'});
   next();
+}
+
+// Lecture d'un cookie précis depuis l'en-tête brut (évite d'ajouter la
+// dépendance cookie-parser pour un unique usage : le nonce anti-CSRF Google).
+function lireCookie(req, nom){
+  const entete = req.headers.cookie || '';
+  const trouve = entete.split(';').map(c=>c.trim()).find(c=>c.startsWith(nom+'='));
+  return trouve ? decodeURIComponent(trouve.slice(nom.length+1)) : null;
 }
 
 // Vérifie le jeton Supabase Auth envoyé par un client connecté depuis /espace
@@ -511,6 +532,86 @@ app.get('/espace/config.js', (req,res) => {
     `window.SUPABASE_URL=${JSON.stringify(process.env.SUPABASE_URL||'')};` +
     `window.SUPABASE_ANON_KEY=${JSON.stringify(SUPABASE_ANON_KEY)};`
   );
+});
+
+// ─── Connexion Google — callback OAuth fait maison ──────────────────────────
+// Étape 1 : on redirige nous-mêmes vers Google (au lieu d'utiliser le flux
+// OAuth intégré de Supabase), avec notre propre redirect_uri sur ce domaine.
+// Un nonce anti-CSRF est stocké dans un cookie httpOnly de courte durée, et
+// les paramètres à préserver (?revendiquer=...&next=...) voyagent dans
+// "state", que Google nous renverra tel quel à l'étape 2.
+app.get('/api/auth/google/start', (req,res) => {
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    return res.redirect('/espace/?googleError=' + encodeURIComponent('Connexion Google non configurée sur le serveur.'));
+  }
+  const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+  const csrf = crypto.randomBytes(16).toString('hex');
+  const state = Buffer.from(JSON.stringify({ csrf, qs: req.query.qs || '' })).toString('base64url');
+  res.cookie('msd_google_state', csrf, { httpOnly:true, secure:req.secure, sameSite:'lax', maxAge:5*60*1000 });
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    state,
+    prompt: 'select_account',
+  });
+  res.redirect('https://accounts.google.com/o/oauth2/v2/auth?' + params.toString());
+});
+
+// Étape 2 : Google renvoie ici avec un code d'autorisation. On l'échange
+// nous-mêmes contre un id_token (email vérifié par Google), on retrouve ou
+// crée le compte Supabase correspondant, puis on génère un lien "magiclink"
+// (via l'API admin, jamais envoyé par email) dont le jeton sert de pont pour
+// établir une vraie session côté navigateur via supabase-js.verifyOtp().
+app.get('/api/auth/google/callback', async (req,res) => {
+  try {
+    const { code, state } = req.query;
+    if (!code || !state) throw new Error('Réponse Google incomplète');
+    let decoded;
+    try { decoded = JSON.parse(Buffer.from(String(state), 'base64url').toString()); }
+    catch(_) { throw new Error('Paramètre state invalide'); }
+
+    const csrfCookie = lireCookie(req, 'msd_google_state');
+    if (!csrfCookie || csrfCookie !== decoded.csrf) throw new Error('Session expirée, merci de réessayer.');
+    res.clearCookie('msd_google_state');
+
+    const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code, client_id: GOOGLE_CLIENT_ID, client_secret: GOOGLE_CLIENT_SECRET,
+        redirect_uri: redirectUri, grant_type: 'authorization_code',
+      }),
+    });
+    const tokenData = await tokenRes.json();
+    if (!tokenRes.ok || !tokenData.id_token) throw new Error(tokenData.error_description || 'Échange du code Google échoué');
+
+    const payload = JSON.parse(Buffer.from(tokenData.id_token.split('.')[1], 'base64').toString());
+    if (!payload.email || !payload.email_verified) throw new Error('Email Google non vérifié');
+    const email = payload.email;
+
+    const comptes = await listerTousLesComptes();
+    let userId = comptes.find(u => u.email === email)?.id;
+    if (!userId) {
+      const { data:created, error:createErr } = await supabase.auth.admin.createUser({
+        email, email_confirm: true, password: crypto.randomBytes(24).toString('hex'),
+        user_metadata: { fullName: payload.name||'', provider: 'google' },
+      });
+      if (createErr) throw createErr;
+      userId = created.user.id;
+    }
+
+    const { data:lienData, error:lienErr } = await supabase.auth.admin.generateLink({ type:'magiclink', email });
+    if (lienErr) throw lienErr;
+    const jeton = lienData.properties.hashed_token;
+
+    const qs = decoded.qs ? decodeURIComponent(decoded.qs) : '';
+    res.redirect(`/espace/${qs}${qs ? '&' : '?'}googleToken=${encodeURIComponent(jeton)}&googleEmail=${encodeURIComponent(email)}`);
+  } catch(err) {
+    res.redirect('/espace/?googleError=' + encodeURIComponent(err.message));
+  }
 });
 
 // ─── Static assets (shared) ──────────────────────────────────────────────────
