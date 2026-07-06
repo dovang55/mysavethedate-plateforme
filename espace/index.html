@@ -990,6 +990,37 @@ async function demarrerApplication(){
     }
   }
 
+  // Retour de Stripe Checkout (?paiement=succes|annule&site=...&kind=partage|mur).
+  // Le webhook Stripe active le site / débloque le mur en arrière-plan : il a
+  // généralement déjà eu le temps de passer le temps qu'on revienne ici, mais
+  // on retente une fois après un court délai si ce n'est pas encore le cas.
+  const paiement = params.get('paiement');
+  if (paiement) {
+    const siteId = params.get('site');
+    const kind = params.get('kind');
+    window.history.replaceState({}, '', '/espace/');
+    if (paiement === 'annule') {
+      showToast('Paiement annulé.');
+    } else if (paiement === 'succes') {
+      const dejaActif = async () => {
+        const r = await apiFetch('/api/mon-compte/sites');
+        const sites = await r.json();
+        const site = Array.isArray(sites) ? sites.find(s => s.id === siteId) : null;
+        if (!site) return null;
+        return (kind === 'mur') ? (site.config?.sections?.mur?.achete === true) : site.active === true;
+      };
+      let ok = await dejaActif();
+      if (!ok) { await new Promise(r => setTimeout(r, 2000)); ok = await dejaActif(); }
+      showToast(ok ? '✓ Paiement confirmé !' : 'Paiement reçu, activation en cours — actualisez dans quelques instants si besoin.');
+      if (siteId && kind === 'mur') {
+        const r = await apiFetch('/api/mon-compte/sites');
+        const sites = await r.json();
+        currentSite = sites.find(s => s.id === siteId);
+        if (currentSite) { await ouvrirEditeur('mur'); return; }
+      }
+    }
+  }
+
   await ouvrirTableauDeBord();
 }
 
@@ -1123,15 +1154,17 @@ document.getElementById('subdomainConfirmBtn').addEventListener('click', async (
     if (dataSub.error) { errEl.textContent = dataSub.error; errEl.style.display = 'block'; btn.disabled = false; btn.textContent = 'Confirmer et publier'; return; }
   }
 
+  // Le paiement se fait sur la page hébergée par Stripe : le site n'est
+  // activé qu'après confirmation par le webhook (voir /api/stripe/webhook),
+  // jamais directement ici — d'où la redirection plutôt qu'une activation
+  // immédiate en local.
   const r = await apiFetch('/api/mon-compte/site/'+site.id+'/payer', { method:'POST' });
   const data = await r.json();
-  btn.disabled = false;
-  btn.textContent = 'Confirmer et publier';
-  if (data.error) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
-
-  fermerModalPublication();
-  showToast('✓ Faire-part publié !');
-  ouvrirTableauDeBord();
+  if (data.error) {
+    btn.disabled = false; btn.textContent = 'Confirmer et publier';
+    errEl.textContent = data.error; errEl.style.display = 'block'; return;
+  }
+  window.location.href = data.url;
 });
 
 document.getElementById('btnBackDash').addEventListener('click', ouvrirTableauDeBord);
@@ -1717,12 +1750,12 @@ function buildMurSection(){
     document.getElementById('btnAcheterMur').addEventListener('click', async () => {
       const btn = document.getElementById('btnAcheterMur');
       btn.disabled = true; btn.textContent = 'Traitement…';
+      // Même principe que le déblocage du partage : redirection vers Stripe,
+      // le mur n'est réellement débloqué qu'après confirmation par le webhook.
       const r = await apiFetch('/api/mon-compte/site/'+currentSite.id+'/acheter-mur', { method:'POST' });
       const data = await r.json();
-      if (data.error) { showToast('Erreur : '+data.error); btn.disabled = false; return; }
-      currentConfig.sections.mur = data.config.sections.mur;
-      showToast('✓ Mur de photos débloqué !');
-      buildMurSection();
+      if (data.error) { showToast('Erreur : '+data.error); btn.disabled = false; btn.textContent = 'Débloquer le mur de photos…'; return; }
+      window.location.href = data.url;
     });
   } else {
     achatWrap.innerHTML = '<div class="help-text">✓ Option débloquée</div>';

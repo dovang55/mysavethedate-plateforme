@@ -8,6 +8,7 @@ const fs      = require('fs');
 const crypto  = require('crypto');
 const ws      = require('ws');
 const { createClient } = require('@supabase/supabase-js');
+const Stripe = require('stripe');
 const renderBarMitsva = require('./templates/bar-mitsva/render');
 const defaultConfig   = require('./templates/bar-mitsva/default-config');
 
@@ -31,6 +32,14 @@ const BUCKET_VIDEO = 'msd-videos';
 const GOOGLE_CLIENT_ID     = process.env.GOOGLE_CLIENT_ID     || '';
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
 
+// Paiement réel via Stripe Checkout. Optionnel au démarrage (comme Dokploy) :
+// si absent, les routes de paiement répondent une erreur explicite plutôt que
+// de faire planter tout le serveur — utile pour développer le reste sans
+// avoir de compte Stripe sous la main.
+const STRIPE_SECRET_KEY     = process.env.STRIPE_SECRET_KEY     || '';
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
+const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
+
 if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
 
 const app = express();
@@ -51,7 +60,11 @@ app.use((req, res, next) => {
 });
 
 app.use(cors());
-app.use(express.json({ limit: '2mb' }));
+// "verify" conserve le corps brut de la requête (req.rawBody) : nécessaire
+// pour vérifier la signature des webhooks Stripe, qui doit porter sur les
+// octets exacts envoyés — express.json() a déjà consommé/reformaté req.body
+// à ce stade pour toutes les autres routes, ça n'affecte qu'elles en plus.
+app.use(express.json({ limit: '2mb', verify: (req,res,buf) => { req.rawBody = buf; } }));
 
 // Multer — seuls images/vidéos/audio sont acceptés (logos, photos, musique,
 // vidéos invités). Le mimetype vient du header envoyé par le client, donc pas
@@ -927,9 +940,10 @@ app.put('/api/mon-compte/site/:id', requireClientAuth, chargerSiteDuClient, asyn
   res.json(data);
 });
 
-// ⚠️ Paiement simulé pour l'instant : aucune vraie carte bancaire n'est
-// débitée. On débloque directement le partage, comme si le paiement avait
-// réussi. À remplacer par un vrai prestataire (ex. Stripe) plus tard.
+// Paiement réel via Stripe Checkout. Le site n'est activé (ou le mur débloqué)
+// que par le webhook /api/stripe/webhook une fois le paiement confirmé par
+// Stripe — jamais directement ici, pour ne pas se fier à un simple retour
+// navigateur (l'utilisateur pourrait fermer l'onglet, ou trafiquer l'URL).
 const PRIX_PARTAGE_EUROS = 49.99;
 
 app.get('/api/mon-compte/tarif', requireClientAuth, (req,res) => {
@@ -937,10 +951,29 @@ app.get('/api/mon-compte/tarif', requireClientAuth, (req,res) => {
 });
 
 app.post('/api/mon-compte/site/:id/payer', requireClientAuth, chargerSiteDuClient, async (req,res) => {
-  const { data, error } = await supabase.from('msd_sites').update({ active:true }).eq('id',req.params.id).select().single();
-  if(error) return res.status(500).json({error:error.message});
-  creerDomaineDokploy(data.subdomain).catch(err => console.error('Dokploy domain.create échoué:', err.message));
-  res.json(data);
+  if (!stripe) return res.status(500).json({error:'Paiement non configuré sur le serveur (STRIPE_SECRET_KEY manquant).'});
+  try {
+    const origine = `${req.protocol}://${req.get('host')}`;
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      customer_email: req.clientUser.email,
+      line_items: [{
+        price_data: {
+          currency: 'eur',
+          product_data: { name: 'MySaveTheDate — Déblocage du partage', description: `Faire-part : ${req.site.subdomain}.mysavethedate.com` },
+          unit_amount: Math.round(PRIX_PARTAGE_EUROS * 100),
+        },
+        quantity: 1,
+      }],
+      success_url: `${origine}/espace/?paiement=succes&site=${req.params.id}&kind=partage`,
+      cancel_url: `${origine}/espace/?paiement=annule&site=${req.params.id}`,
+      metadata: { siteId: req.params.id, kind: 'partage' },
+    });
+    res.json({ url: session.url });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ── Mur de photos (option payante, indépendante du forfait "partage") ──────
@@ -951,11 +984,66 @@ app.get('/api/mon-compte/tarif-mur', requireClientAuth, (req,res) => {
 });
 
 app.post('/api/mon-compte/site/:id/acheter-mur', requireClientAuth, chargerSiteDuClient, async (req,res) => {
-  const cfg = mergeConfig(req.site.config);
-  cfg.sections.mur.achete = true;
-  const { data, error } = await supabase.from('msd_sites').update({ config:cfg }).eq('id',req.params.id).select().single();
-  if(error) return res.status(500).json({error:error.message});
-  res.json(data);
+  if (!stripe) return res.status(500).json({error:'Paiement non configuré sur le serveur (STRIPE_SECRET_KEY manquant).'});
+  try {
+    const origine = `${req.protocol}://${req.get('host')}`;
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      customer_email: req.clientUser.email,
+      line_items: [{
+        price_data: {
+          currency: 'eur',
+          product_data: { name: 'MySaveTheDate — Mur de photos', description: `Faire-part : ${req.site.subdomain}.mysavethedate.com` },
+          unit_amount: Math.round(PRIX_MUR_EUROS * 100),
+        },
+        quantity: 1,
+      }],
+      success_url: `${origine}/espace/?paiement=succes&site=${req.params.id}&kind=mur`,
+      cancel_url: `${origine}/espace/?paiement=annule&site=${req.params.id}`,
+      metadata: { siteId: req.params.id, kind: 'mur' },
+    });
+    res.json({ url: session.url });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Confirmation asynchrone du paiement par Stripe (source de vérité — jamais
+// le simple retour navigateur sur success_url, qui peut être manqué ou
+// falsifié). La signature garantit que la requête vient bien de Stripe.
+app.post('/api/stripe/webhook', async (req,res) => {
+  if (!stripe || !STRIPE_WEBHOOK_SECRET) return res.status(500).send('Webhook non configuré');
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.rawBody, req.headers['stripe-signature'], STRIPE_WEBHOOK_SECRET);
+  } catch(err) {
+    return res.status(400).send(`Signature invalide : ${err.message}`);
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const siteId = session.metadata?.siteId;
+    const kind    = session.metadata?.kind;
+    try {
+      if (siteId && kind === 'partage') {
+        const { data } = await supabase.from('msd_sites').update({ active:true }).eq('id',siteId).select().single();
+        if (data) creerDomaineDokploy(data.subdomain).catch(err => console.error('Dokploy domain.create échoué:', err.message));
+      } else if (siteId && kind === 'mur') {
+        const { data:site } = await supabase.from('msd_sites').select('config').eq('id',siteId).single();
+        if (site) {
+          const cfg = mergeConfig(site.config);
+          cfg.sections.mur.achete = true;
+          await supabase.from('msd_sites').update({ config:cfg }).eq('id',siteId);
+        }
+      }
+    } catch(err) {
+      console.error('Webhook Stripe : échec de mise à jour du site', siteId, err.message);
+      return res.status(500).send('Erreur interne');
+    }
+  }
+
+  res.json({ received:true });
 });
 
 app.get('/api/mon-compte/site/:id/rsvp', requireClientAuth, chargerSiteDuClient, async (req,res) => {
