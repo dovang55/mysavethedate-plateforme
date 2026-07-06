@@ -562,6 +562,7 @@ a{color:inherit;text-decoration:none}
         <div class="ed-sub">RSVP et vidéos reçues</div>
         <div id="statsActions" style="display:none;gap:10px;margin-bottom:20px;flex-wrap:wrap">
           <button class="btn-sm primary" id="btnPartager">📤 Partager mon faire-part</button>
+          <button class="btn-sm" id="btnCodeQREditeur">▦ Code QR</button>
           <button class="btn-sm" id="btnDepublier" style="color:#b91c1c">Retirer la publication</button>
         </div>
         <div class="stats-row" id="statsRow"></div>
@@ -724,9 +725,25 @@ a{color:inherit;text-decoration:none}
   </div>
 </div>
 
+<!-- Code QR du faire-part -->
+<div class="crop-modal" id="qrModal">
+  <div class="crop-modal-inner" style="width:min(360px,92vw)">
+    <div class="crop-modal-header">
+      <span>Votre faire-part en ligne</span>
+      <button type="button" id="qrModalClose">✕</button>
+    </div>
+    <div class="crop-modal-body" style="display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;padding:24px 20px">
+      <canvas id="qrCanvas"></canvas>
+      <p id="qrUrl" style="font-size:13px;color:var(--ink-s);word-break:break-all"></p>
+      <a id="qrSiteLink" class="btn-sm primary" target="_blank" rel="noopener">Ouvrir mon faire-part ↗</a>
+    </div>
+  </div>
+</div>
+
 <script src="/espace/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 <script>
 // On protège la création du client Supabase : si la configuration serveur
 // est incomplète (variable d'environnement manquante en production, par
@@ -1047,6 +1064,16 @@ async function demarrerApplication(){
         currentSite = sites.find(s => s.id === siteId);
         if (currentSite) { await ouvrirEditeur(kind === 'mur' ? 'mur' : 'stats'); return; }
       }
+      // Faire-part publié (formule "partage") : on affiche le code QR tout
+      // de suite, prêt à être imprimé/partagé.
+      if (siteId && kind === 'partage' && ok) {
+        const r = await apiFetch('/api/mon-compte/sites');
+        const sites = await r.json();
+        const site = Array.isArray(sites) ? sites.find(s => s.id === siteId) : null;
+        await ouvrirTableauDeBord();
+        if (site) ouvrirModalQR(site);
+        return;
+      }
     }
   }
 
@@ -1105,7 +1132,8 @@ async function ouvrirTableauDeBord(){
           <div class="dash-status"><span class="dash-status-dot ${site.active?'':'inactive'}"></span>${site.active?'En ligne — partagé avec vos invités':'Pas encore partagé'}</div>
           <div class="dash-actions">
             <button class="btn-sm primary" data-action="editer" data-site="${site.id}">Personnaliser mon faire-part</button>
-            ${site.active ? `<a class="btn-sm" href="//${site.subdomain}.mysavethedate.com" target="_blank">Voir mon site ↗</a>` : ''}
+            ${site.active ? `<a class="btn-sm" href="//${site.subdomain}.mysavethedate.com" target="_blank">Voir mon site ↗</a>
+            <button class="btn-sm" data-action="qr" data-site="${site.id}">▦ Code QR</button>` : ''}
           </div>
           ${site.active ? `
           <div class="dash-mini-stats">
@@ -1148,6 +1176,9 @@ async function ouvrirTableauDeBord(){
       currentSite = sites.find(s => s.id === btn.dataset.site);
       ouvrirEditeur('stats');
     });
+  });
+  document.querySelectorAll('[data-action="qr"]').forEach(btn => {
+    btn.addEventListener('click', () => ouvrirModalQR(sites.find(s => s.id === btn.dataset.site)));
   });
 }
 
@@ -2059,6 +2090,20 @@ function ouvrirModalPartage(site){
   document.getElementById('shareModal').classList.add('show');
 }
 document.getElementById('shareModalClose').addEventListener('click', () => document.getElementById('shareModal').classList.remove('show'));
+
+// ── Code QR du faire-part ─────────────────────────────────────────────────
+function ouvrirModalQR(site){
+  if (!site) return;
+  const url = `https://${site.subdomain}.mysavethedate.com`;
+  document.getElementById('qrUrl').textContent = url;
+  document.getElementById('qrSiteLink').href = url;
+  document.getElementById('qrModal').classList.add('show');
+  if (window.QRCode) {
+    QRCode.toCanvas(document.getElementById('qrCanvas'), url, { width:220, margin:1 }, err => { if (err) console.error(err); });
+  }
+}
+document.getElementById('qrModalClose').addEventListener('click', () => document.getElementById('qrModal').classList.remove('show'));
+document.getElementById('btnCodeQREditeur').addEventListener('click', () => ouvrirModalQR(currentSite));
 document.getElementById('shareMessageText').addEventListener('input', e => mettreAJourLiensPartage(e.target.value));
 document.getElementById('sharePartageCopier').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(document.getElementById('shareMessageText').value); showToast('✓ Message copié'); }
