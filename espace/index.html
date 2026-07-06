@@ -240,11 +240,15 @@ a{color:inherit;text-decoration:none}
 }
 
 /* ── Chatbot assistant (espace client) ─────────────────────────────────── */
-.chatbot-bubble{position:fixed;bottom:90px;right:24px;width:56px;height:56px;border-radius:50%;background:var(--gold);color:#fff;display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 24px rgba(37,99,235,.35);z-index:998;border:none;transition:transform .15s}
+.chatbot-bubble{position:fixed;bottom:90px;right:24px;width:56px;height:56px;border-radius:50%;background:var(--gold);color:#fff;display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 24px rgba(37,99,235,.35);z-index:998;border:none;transition:transform .18s}
 .chatbot-bubble:hover{transform:scale(1.06)}
-.chatbot-bubble svg{width:26px;height:26px}
-.chatbot-panel{position:fixed;bottom:156px;right:24px;width:340px;max-width:calc(100vw - 32px);height:460px;max-height:calc(100vh - 190px);background:var(--paper);border:1px solid var(--border);border-radius:12px;box-shadow:0 20px 60px rgba(13,31,60,.2);display:none;flex-direction:column;overflow:hidden;z-index:998}
-.chatbot-panel.open{display:flex}
+.chatbot-bubble:active{transform:scale(.92)}
+.chatbot-bubble svg{position:absolute;top:50%;left:50%;width:24px;height:24px;transform:translate(-50%,-50%) rotate(0deg) scale(1);transition:transform .28s cubic-bezier(.34,1.56,.64,1),opacity .2s;opacity:1}
+.chatbot-bubble svg.icon-close{opacity:0;transform:translate(-50%,-50%) rotate(-90deg) scale(.4)}
+.chatbot-bubble.open svg.icon-chat{opacity:0;transform:translate(-50%,-50%) rotate(90deg) scale(.4)}
+.chatbot-bubble.open svg.icon-close{opacity:1;transform:translate(-50%,-50%) rotate(0deg) scale(1)}
+.chatbot-panel{position:fixed;bottom:156px;right:24px;width:340px;max-width:calc(100vw - 32px);height:460px;max-height:calc(100vh - 190px);background:var(--paper);border:1px solid var(--border);border-radius:12px;box-shadow:0 20px 60px rgba(13,31,60,.2);display:flex;flex-direction:column;overflow:hidden;z-index:998;opacity:0;pointer-events:none;transform:scale(.85) translateY(16px);transform-origin:bottom right;transition:opacity .22s ease,transform .28s cubic-bezier(.34,1.56,.64,1)}
+.chatbot-panel.open{opacity:1;pointer-events:auto;transform:scale(1) translateY(0)}
 .chatbot-head{background:var(--ink);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;flex-shrink:0}
 .chatbot-head button{background:none;border:none;color:#fff;cursor:pointer;font-size:18px;line-height:1;opacity:.8}
 .chatbot-head button:hover{opacity:1}
@@ -253,6 +257,9 @@ a{color:inherit;text-decoration:none}
 .chatbot-msg.user{align-self:flex-end;background:var(--gold);color:#fff;border-bottom-right-radius:2px}
 .chatbot-msg.bot{align-self:flex-start;background:var(--paper);color:var(--ink);border:1px solid var(--border);border-bottom-left-radius:2px}
 .chatbot-msg.bot.loading{color:var(--ink-s);font-style:italic}
+.chatbot-suggestions{display:flex;flex-direction:column;gap:6px;align-self:stretch}
+.chatbot-suggestion{background:var(--paper);border:1px solid var(--border);color:var(--gold);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;text-align:left;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background .15s,border-color .15s}
+.chatbot-suggestion:hover{background:rgba(37,99,235,.06);border-color:var(--gold)}
 .chatbot-input-row{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);flex-shrink:0;background:var(--paper)}
 .chatbot-input-row textarea{flex:1;resize:none;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-family:'Inter',sans-serif;font-size:13px;color:var(--ink);outline:none;height:38px;max-height:90px}
 .chatbot-input-row textarea:focus{border-color:var(--gold)}
@@ -766,7 +773,8 @@ a{color:inherit;text-decoration:none}
 
 <!-- Assistant / chatbot -->
 <button class="chatbot-bubble" id="chatbotBubble" type="button" title="Besoin d'aide ?">
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4h16v11H7l-3 3V4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+  <svg class="icon-chat" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4h16v11H7l-3 3V4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+  <svg class="icon-close" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
 </button>
 <div class="chatbot-panel" id="chatbotPanel">
   <div class="chatbot-head">
@@ -2248,8 +2256,18 @@ function exportCSV(rsvps, events){
 let chatbotHistorique = [];
 let chatbotEnCours = false;
 
+// Questions fréquentes proposées au premier ouverture, pour éviter à
+// l'utilisateur de devoir taper lui-même une question courante.
+const CHATBOT_SUGGESTIONS = [
+  'Quelles sont vos formules et tarifs ?',
+  'Comment partager mon faire-part avec mes invités ?',
+  'Comment fonctionne le RSVP ?',
+  'Comment ajouter des photos à mon faire-part ?',
+];
+
 function fermerChatbot(){
   document.getElementById('chatbotPanel').classList.remove('open');
+  document.getElementById('chatbotBubble').classList.remove('open');
 }
 
 function ajouterMessageChatbot(role, texte, options={}){
@@ -2262,11 +2280,39 @@ function ajouterMessageChatbot(role, texte, options={}){
   return div;
 }
 
+function afficherSuggestionsChatbot(){
+  const zone = document.getElementById('chatbotMessages');
+  const wrap = document.createElement('div');
+  wrap.className = 'chatbot-suggestions';
+  wrap.id = 'chatbotSuggestions';
+  wrap.innerHTML = CHATBOT_SUGGESTIONS.map((q,i) => `<button type="button" class="chatbot-suggestion" data-i="${i}"></button>`).join('');
+  // textContent (pas innerHTML) pour chaque question : évite tout risque
+  // d'injection si la liste venait un jour à être modifiable dynamiquement.
+  wrap.querySelectorAll('.chatbot-suggestion').forEach(btn => { btn.textContent = CHATBOT_SUGGESTIONS[+btn.dataset.i]; });
+  zone.appendChild(wrap);
+  zone.scrollTop = zone.scrollHeight;
+  wrap.querySelectorAll('.chatbot-suggestion').forEach(btn => {
+    btn.addEventListener('click', () => {
+      wrap.remove();
+      document.getElementById('chatbotInput').value = btn.textContent;
+      envoyerMessageChatbot();
+    });
+  });
+}
+
+// Le message d'accueil (et les suggestions) ne doivent apparaître qu'une
+// seule fois par session de navigation, pas à chaque ouverture/fermeture de
+// la bulle — sessionStorage survit à une actualisation de page mais pas à
+// la fermeture de l'onglet.
 document.getElementById('chatbotBubble').addEventListener('click', () => {
+  const bubble = document.getElementById('chatbotBubble');
   const panel = document.getElementById('chatbotPanel');
-  panel.classList.toggle('open');
-  if (panel.classList.contains('open') && !chatbotHistorique.length) {
+  const estOuvert = panel.classList.toggle('open');
+  bubble.classList.toggle('open', estOuvert);
+  if (estOuvert && !sessionStorage.getItem('msdChatbotAccueilEnvoye')) {
+    sessionStorage.setItem('msdChatbotAccueilEnvoye', '1');
     ajouterMessageChatbot('bot', "Bonjour ! Je suis l'assistant MySaveTheDate. Posez-moi vos questions sur votre faire-part, les formules, le paiement, le mur de photos ou l'utilisation de votre espace.");
+    afficherSuggestionsChatbot();
   }
 });
 document.getElementById('chatbotClose').addEventListener('click', fermerChatbot);
@@ -2277,6 +2323,7 @@ async function envoyerMessageChatbot(){
   const texte = input.value.trim();
   if (!texte) return;
   input.value = '';
+  document.getElementById('chatbotSuggestions')?.remove();
   ajouterMessageChatbot('user', texte);
   chatbotHistorique.push({ role:'user', content:texte });
 
