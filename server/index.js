@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const multer  = require('multer');
 const cors    = require('cors');
 const path    = require('path');
@@ -12,7 +13,11 @@ const defaultConfig   = require('./templates/bar-mitsva/default-config');
 
 const supabase   = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, { realtime: { transport: ws } });
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
-const ADMIN_KEY  = process.env.ADMIN_KEY || 'admin2026';
+const ADMIN_KEY  = process.env.ADMIN_KEY;
+if (!ADMIN_KEY) {
+  console.error('❌ ADMIN_KEY manquant dans les variables d\'environnement — arrêt du serveur (aucune valeur par défaut par sécurité).');
+  process.exit(1);
+}
 const PORT       = process.env.PORT || 3000;
 const TMP_DIR    = path.join(__dirname, 'tmp');
 const BUCKET_MEDIA = 'msd-media';
@@ -35,9 +40,29 @@ app.use((req, res, next) => {
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 
-// Multer
+// Multer — seuls images/vidéos/audio sont acceptés (logos, photos, musique,
+// vidéos invités). Le mimetype vient du header envoyé par le client, donc pas
+// infaillible contre un attaquant volontaire, mais bloque déjà les fichiers
+// hors sujet (exécutables, scripts…) envoyés par erreur ou en masse.
 const storage = multer.diskStorage({ destination: TMP_DIR, filename: (req,file,cb) => cb(null, Date.now()+'-'+file.originalname.replace(/\s+/g,'_')) });
-const upload = multer({ storage, limits: { fileSize: 500*1024*1024 } });
+const upload = multer({
+  storage,
+  limits: { fileSize: 500*1024*1024 },
+  fileFilter: (req, file, cb) => {
+    const ok = /^(image|video|audio)\//.test(file.mimetype);
+    cb(ok ? null : new Error('Type de fichier non autorisé'), ok);
+  },
+});
+
+// Rate-limiting sur les routes publiques (pas d'authentification) les plus
+// exposées au spam : création de compte/faire-part, RSVP, uploads invités.
+const limiterPublic = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de requêtes, merci de réessayer dans quelques minutes.' },
+});
 
 function requireAdmin(req,res,next){
   const key = req.headers['x-admin-key']||req.query.adminKey;
@@ -678,7 +703,7 @@ app.get('/api/mon-compte/sites', requireClientAuth, async (req,res) => {
 // génère tout de suite un vrai aperçu de son faire-part. Le compte n'est
 // demandé qu'ensuite, s'il veut le personnaliser ou le partager (voir
 // /api/mon-compte/site/:id/revendiquer plus bas).
-app.post('/api/apercu', async (req,res) => {
+app.post('/api/apercu', limiterPublic, async (req,res) => {
   const lead = req.body || {};
   try {
     let leadId = null;
@@ -713,7 +738,7 @@ app.post('/api/apercu', async (req,res) => {
 // encore de compte à ce stade) : upload public, mais limité au site qui
 // vient d'être créé (identifié par son UUID aléatoire, même principe que
 // l'upload public du mur de photos).
-app.post('/api/apercu/:id/musique', upload.single('file'), async (req,res) => {
+app.post('/api/apercu/:id/musique', limiterPublic, upload.single('file'), async (req,res) => {
   const tmpPath = req.file?.path;
   try {
     const { data:site } = await supabase.from('msd_sites').select('id,config').eq('id',req.params.id).single();
@@ -890,7 +915,7 @@ app.post('/api/admin/upload-media', requireAdmin, upload.single('file'), async (
 // ─────────────────────────────────────────────────────────────────────────────
 // PUBLIC API — RSVP
 // ─────────────────────────────────────────────────────────────────────────────
-app.post('/api/rsvp', async (req,res) => {
+app.post('/api/rsvp', limiterPublic, async (req,res) => {
   const sub = getSubdomain(req);
   try {
     const { data:site } = await supabase.from('msd_sites').select('id,config,active').eq('subdomain',sub).single();
@@ -957,7 +982,7 @@ function murEstActif(cfg) {
   return !isNaN(seuil) && Date.now() >= seuil;
 }
 
-app.post('/api/mur/:siteId/upload', upload.single('file'), async (req,res) => {
+app.post('/api/mur/:siteId/upload', limiterPublic, upload.single('file'), async (req,res) => {
   const tmpPath = req.file?.path;
   try {
     // Pas de vérification de site.active ici : le mur doit pouvoir être testé
@@ -993,7 +1018,7 @@ app.get('/api/mur/:siteId/medias', async (req,res) => {
   res.json(data);
 });
 
-app.post('/api/upload', upload.single('video'), async (req,res) => {
+app.post('/api/upload', limiterPublic, upload.single('video'), async (req,res) => {
   const tmpPath = req.file?.path;
   const sub = getSubdomain(req);
   try {
@@ -1033,7 +1058,7 @@ app.delete('/api/admin/videos/:id', requireAdmin, async (req,res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // PUBLIC API — Lead / prise de contact vitrine
 // ─────────────────────────────────────────────────────────────────────────────
-app.post('/api/lead', async (req,res) => {
+app.post('/api/lead', limiterPublic, async (req,res) => {
   const lead = req.body;
   const ts   = new Date().toLocaleString('fr-FR', { timeZone:'Europe/Paris' });
   console.log(`\n📋 NOUVEAU PROSPECT [${ts}]`);
