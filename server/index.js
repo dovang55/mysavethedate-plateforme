@@ -654,12 +654,17 @@ app.delete('/api/admin/dashboard/comptes/:userId', requireAdmin, async (req,res)
 // ESPACE CLIENT — API scopée au compte connecté (Supabase Auth)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Tous les faire-part du compte connecté (un client peut en avoir plusieurs).
+// Tous les faire-part du compte connecté (un client peut en avoir plusieurs),
+// avec le nombre de réponses RSVP par site pour l'affichage du tableau de bord.
 app.get('/api/mon-compte/sites', requireClientAuth, async (req,res) => {
-  const { data, error } = await supabase.from('msd_sites').select('*')
+  const { data: sites, error } = await supabase.from('msd_sites').select('*')
     .eq('user_id', req.clientUser.id).order('created_at',{ascending:false});
   if(error) return res.status(500).json({error:error.message});
-  res.json(data);
+  if(!sites.length) return res.json([]);
+  const { data: rsvp } = await supabase.from('msd_rsvp').select('site_id').in('site_id', sites.map(s=>s.id));
+  const compteur = {};
+  (rsvp||[]).forEach(r => { compteur[r.site_id] = (compteur[r.site_id]||0)+1; });
+  res.json(sites.map(s => ({ ...s, rsvpCount: compteur[s.id]||0 })));
 });
 
 // Création d'un nouveau faire-part pour le compte connecté, à partir des

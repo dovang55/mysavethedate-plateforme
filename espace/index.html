@@ -50,8 +50,13 @@ a{color:inherit;text-decoration:none}
 .app-body{display:flex;flex:1;overflow:hidden}
 
 /* DASHBOARD */
-#view-dashboard{padding:40px;max-width:640px;margin:0 auto;width:100%;overflow-y:auto;height:100%}
-.dash-card{background:var(--paper);border:1px solid var(--border);border-left:4px solid var(--gold);padding:32px;margin-top:24px}
+#view-dashboard{padding:40px;max-width:1400px;margin:0 auto;width:100%;overflow-y:auto;height:100%}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;margin-top:24px;align-items:start}
+.dash-card{background:var(--paper);border:1px solid var(--border);border-left:4px solid var(--gold);padding:28px}
+.dash-card.unpublished{grid-column:span 2}
+.dash-card-row{display:flex;gap:28px;flex-wrap:wrap}
+.dash-card-info{flex:1;min-width:220px}
+.dash-card-publish{flex:1;min-width:220px;border-left:1px solid var(--border);padding-left:28px;text-align:center}
 .dash-sub{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
 .dash-name{font-family:'Montserrat',sans-serif;font-weight:800;font-size:26px;color:var(--ink);margin-bottom:4px}
 .dash-status{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-s);margin-bottom:20px}
@@ -60,6 +65,12 @@ a{color:inherit;text-decoration:none}
 .dash-actions{display:flex;gap:10px;flex-wrap:wrap}
 .dash-empty{font-family:'Inter',sans-serif;font-style:italic;color:var(--ink-s);margin-top:20px}
 .badge-demo{display:inline-block;background:#FFF3E9;border:1px solid #E9C9A6;color:#7A4A1F;border-radius:999px;padding:6px 16px;font-size:11px;font-weight:600;margin-bottom:16px}
+.dash-card-new{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:2px dashed var(--border);border-left:2px dashed var(--border);color:var(--ink-s);text-decoration:none;font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;min-height:160px;transition:border-color .2s,color .2s}
+.dash-card-new:hover{border-color:var(--gold);color:var(--gold)}
+.dash-card-new-icon{font-size:34px;font-weight:400;line-height:1}
+.dash-mini-stats{margin-top:18px;padding-top:16px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.dash-mini-stat{font-size:13px;color:var(--ink-s)}
+@media (max-width:720px){ .dash-card.unpublished{grid-column:span 1} }
 
 /* EDITOR */
 #view-editor{flex-direction:row;overflow:hidden;flex:1}
@@ -843,6 +854,22 @@ async function demarrerApplication(){
   await ouvrirTableauDeBord();
 }
 
+// "2026-11-05" → "5 novembre 2026", pour l'affichage sur la carte du tableau de bord.
+function formaterDateEvenement(dateIso){
+  if (!dateIso) return '—';
+  try {
+    return new Date(dateIso+'T12:00:00').toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+  } catch(e) { return '—'; }
+}
+function calculerCompteARebours(dateIso){
+  if (!dateIso) return '';
+  const diffJours = Math.ceil((new Date(dateIso+'T00:00:00') - new Date()) / 86400000);
+  if (diffJours > 1) return `(dans ${diffJours} jours)`;
+  if (diffJours === 1) return `(demain)`;
+  if (diffJours === 0) return `(aujourd'hui !)`;
+  return `(passé)`;
+}
+
 // Un même compte peut avoir plusieurs faire-part (plusieurs événements, ou
 // plusieurs essais) : on affiche une carte par site plutôt qu'un seul.
 async function ouvrirTableauDeBord(){
@@ -860,30 +887,45 @@ async function ouvrirTableauDeBord(){
   }
   const sites = await r.json();
   if (sites.error) { document.getElementById('dashContent').innerHTML = '<p class="dash-empty">Erreur : '+sites.error+'</p>'; return; }
+
+  const carteNouveau = `<a class="dash-card dash-card-new" href="/vitrine/?start=1"><span class="dash-card-new-icon">+</span><span>Créer un nouveau faire-part</span></a>`;
+
   if (!sites.length) {
-    document.getElementById('dashContent').innerHTML = '<p class="dash-empty">Aucun faire-part associé à ce compte pour l\'instant. Contactez-nous si ce n\'est pas normal.</p>';
+    document.getElementById('dashContent').innerHTML = `
+      <p class="dash-empty">Aucun faire-part associé à ce compte pour l'instant.</p>
+      <div class="dash-grid">${carteNouveau}</div>`;
     return;
   }
 
-  document.getElementById('dashContent').innerHTML = sites.map(site => `
-    <div class="dash-card">
-      <div class="dash-sub">${site.subdomain}.mysavethedate.com</div>
-      <div class="dash-name">${site.config?.identity?.firstName||''} ${site.config?.identity?.lastName||''}</div>
-      <div class="dash-status"><span class="dash-status-dot ${site.active?'':'inactive'}"></span>${site.active?'En ligne — partagé avec vos invités':'Pas encore partagé'}</div>
-      <div class="dash-actions">
-        <button class="btn-sm primary" data-action="editer" data-site="${site.id}">Personnaliser mon faire-part</button>
-        ${site.active ? `<a class="btn-sm" href="//${site.subdomain}.mysavethedate.com" target="_blank">Voir mon site ↗</a>` : ''}
+  document.getElementById('dashContent').innerHTML = `<div class="dash-grid">${sites.map(site => `
+    <div class="dash-card ${site.active ? '' : 'unpublished'}">
+      <div class="dash-card-row">
+        <div class="dash-card-info">
+          <div class="dash-sub">${site.subdomain}.mysavethedate.com</div>
+          <div class="dash-name">${site.config?.identity?.firstName||''} ${site.config?.identity?.lastName||''}</div>
+          <div class="dash-status"><span class="dash-status-dot ${site.active?'':'inactive'}"></span>${site.active?'En ligne — partagé avec vos invités':'Pas encore partagé'}</div>
+          <div class="dash-actions">
+            <button class="btn-sm primary" data-action="editer" data-site="${site.id}">Personnaliser mon faire-part</button>
+            ${site.active ? `<a class="btn-sm" href="//${site.subdomain}.mysavethedate.com" target="_blank">Voir mon site ↗</a>` : ''}
+          </div>
+          ${site.active ? `
+          <div class="dash-mini-stats">
+            <div class="dash-mini-stat"><strong>Événement le :</strong> ${formaterDateEvenement(site.config?.target?.date)} ${calculerCompteARebours(site.config?.target?.date)}</div>
+            <div class="dash-mini-stat">${site.rsvpCount||0} réponse${site.rsvpCount===1?'':'s'} reçue${site.rsvpCount===1?'':'s'}</div>
+            <button class="btn-sm" data-action="stats" data-site="${site.id}">Voir toutes les réponses</button>
+          </div>` : ''}
+        </div>
+        ${!site.active ? `
+        <div class="dash-card-publish">
+          <p class="badge-demo">Démo — aucun paiement réel</p>
+          <h3 style="font-family:'Montserrat',sans-serif;font-weight:800;text-transform:uppercase;font-size:14px;margin-bottom:8px">Prêt à partager avec vos invités ?</h3>
+          <p style="color:var(--ink-s);font-size:13px;margin-bottom:14px">Débloquez le lien public, le RSVP, le livre d'or et le compte à rebours.</p>
+          <p class="prix-affiche" style="font-family:'Montserrat',sans-serif;font-size:28px;font-weight:800;color:var(--gold)">…</p>
+          <button class="btn-sm primary" data-action="payer" data-site="${site.id}" style="margin-top:8px">Débloquer le partage</button>
+        </div>` : ''}
       </div>
     </div>
-    ${!site.active ? `
-    <div class="dash-card" style="border-left-color:var(--gold);text-align:center">
-      <p class="badge-demo">Mode démonstration — aucun paiement réel n'est effectué</p>
-      <h3 style="font-family:'Montserrat',sans-serif;font-weight:800;text-transform:uppercase;margin-bottom:8px">Prêt à partager avec vos invités ?</h3>
-      <p style="color:var(--ink-s);margin-bottom:20px">Débloquez le lien public, le RSVP, le livre d'or et le compte à rebours.</p>
-      <p class="prix-affiche" style="font-family:'Montserrat',sans-serif;font-size:32px;font-weight:800;color:var(--gold)">…</p>
-      <button class="btn-sm primary" data-action="payer" data-site="${site.id}" style="margin-top:12px">Débloquer le partage (simulation)</button>
-    </div>` : ''}
-  `).join('');
+  `).join('')}${carteNouveau}</div>`;
 
   if (sites.some(s => !s.active)) {
     apiFetch('/api/mon-compte/tarif').then(r => r.json()).then(d => {
@@ -900,6 +942,12 @@ async function ouvrirTableauDeBord(){
   });
   document.querySelectorAll('[data-action="payer"]').forEach(btn => {
     btn.addEventListener('click', () => ouvrirModalPublication(sites.find(s => s.id === btn.dataset.site)));
+  });
+  document.querySelectorAll('[data-action="stats"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentSite = sites.find(s => s.id === btn.dataset.site);
+      ouvrirEditeur('stats');
+    });
   });
 }
 
@@ -949,7 +997,7 @@ document.getElementById('subdomainConfirmBtn').addEventListener('click', async (
 
 document.getElementById('btnBackDash').addEventListener('click', ouvrirTableauDeBord);
 
-async function ouvrirEditeur(){
+async function ouvrirEditeur(sectionInitiale){
   currentConfig = JSON.parse(JSON.stringify(currentSite.config));
 
   document.getElementById('view-dashboard').style.display='none';
@@ -983,7 +1031,7 @@ async function ouvrirEditeur(){
   document.getElementById('previewLink').href = '/apercu/' + currentSite.id;
   positionnerApercu();
   afficherStatutSauvegarde('✓ Enregistré', true);
-  setActiveEdNav('identite');
+  setActiveEdNav(sectionInitiale || 'identite');
 }
 
 // ── Navigation automatique de l'aperçu vers la page en cours d'édition ────

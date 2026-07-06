@@ -942,6 +942,10 @@ const S = {
 function openQ(){ document.getElementById('qOverlay').classList.add('open'); document.body.style.overflow='hidden'; setStep(0); }
 function closeQ(){ document.getElementById('qOverlay').classList.remove('open'); document.body.style.overflow=''; }
 
+// Arrivée depuis "+ Nouveau faire-part" dans l'espace client (?start=1) :
+// on ouvre directement le questionnaire, pas besoin de re-cliquer.
+if (new URLSearchParams(window.location.search).get('start')) openQ();
+
 /* ══ PROGRESS ══ */
 function setStep(n){
   step = n;
