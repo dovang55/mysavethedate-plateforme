@@ -519,6 +519,10 @@ a{color:inherit;text-decoration:none}
       <div class="ed-section" data-ed="stats">
         <div class="ed-title">Réponses</div>
         <div class="ed-sub">RSVP et vidéos reçues</div>
+        <div id="statsActions" style="display:none;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+          <button class="btn-sm primary" id="btnPartager">📤 Partager mon faire-part</button>
+          <button class="btn-sm" id="btnDepublier" style="color:#b91c1c">Retirer la publication</button>
+        </div>
         <div class="stats-row" id="statsRow"></div>
         <button class="btn-sm" id="exportRsvpBtn" style="margin-bottom:16px">⬇ Exporter en CSV</button>
         <div style="overflow-x:auto" id="rsvpTableWrap"></div>
@@ -640,6 +644,28 @@ a{color:inherit;text-decoration:none}
     <div class="crop-modal-footer">
       <button class="btn-sm" id="subdomainCancelBtn">Annuler</button>
       <button class="btn-sm primary" id="subdomainConfirmBtn">Confirmer et publier</button>
+    </div>
+  </div>
+</div>
+
+<!-- Partage du faire-part -->
+<div class="crop-modal" id="shareModal">
+  <div class="crop-modal-inner" style="width:min(520px,92vw)">
+    <div class="crop-modal-header">
+      <span>Partager mon faire-part</span>
+      <button type="button" id="shareModalClose">✕</button>
+    </div>
+    <div class="crop-modal-body">
+      <div class="field-group">
+        <label>Message (modifiable)</label>
+        <textarea id="shareMessageText" rows="6"></textarea>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+        <a class="btn-sm primary" id="sharePartageWhatsapp" target="_blank" rel="noopener">WhatsApp</a>
+        <a class="btn-sm" id="sharePartageEmail">Email</a>
+        <a class="btn-sm" id="sharePartageSms">SMS</a>
+        <button class="btn-sm" id="sharePartageCopier" type="button">Copier le message</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1797,6 +1823,51 @@ document.getElementById('btnDeviceMobile').addEventListener('click', () => { mod
 document.getElementById('btnDeviceDesktop').addEventListener('click', () => { modeApercu='desktop'; positionnerApercu();
 });
 
+// ── Partage du faire-part ─────────────────────────────────────────────────
+const LIBELLES_EVENEMENT = { 'bar-mitsva':'la Bar Mitsva', 'bat-mitsva':'la Bat Mitsva', 'mariage':'le mariage', 'anniversaire':"l'anniversaire" };
+function genererMessagePartage(site){
+  const cfg = site.config || {};
+  const libelle = LIBELLES_EVENEMENT[cfg.identity?.eventType] || "l'événement";
+  const nom = `${cfg.identity?.firstName||''} ${cfg.identity?.lastName||''}`.trim();
+  const lien = `https://${site.subdomain}.mysavethedate.com`;
+  const dateTxt = formaterDateEvenement(cfg.target?.date);
+  let msg = `Vous êtes invité(e) à ${libelle}${nom ? ' de '+nom : ''} ! 🎉\n\n`;
+  if (dateTxt && dateTxt !== '—') msg += `📅 ${dateTxt}\n\n`;
+  msg += `Découvrez tous les détails et confirmez votre présence :\n${lien}`;
+  return msg;
+}
+function mettreAJourLiensPartage(msg){
+  document.getElementById('sharePartageWhatsapp').href = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  document.getElementById('sharePartageEmail').href = 'mailto:?subject=' + encodeURIComponent('Vous êtes invité(e) !') + '&body=' + encodeURIComponent(msg);
+  document.getElementById('sharePartageSms').href = 'sms:?&body=' + encodeURIComponent(msg);
+}
+function ouvrirModalPartage(site){
+  if (!site) return;
+  const msg = genererMessagePartage(site);
+  document.getElementById('shareMessageText').value = msg;
+  mettreAJourLiensPartage(msg);
+  document.getElementById('shareModal').classList.add('show');
+}
+document.getElementById('shareModalClose').addEventListener('click', () => document.getElementById('shareModal').classList.remove('show'));
+document.getElementById('shareMessageText').addEventListener('input', e => mettreAJourLiensPartage(e.target.value));
+document.getElementById('sharePartageCopier').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(document.getElementById('shareMessageText').value); showToast('✓ Message copié'); }
+  catch(e) { showToast('Copie impossible — sélectionnez le texte manuellement.'); }
+});
+document.getElementById('btnPartager').addEventListener('click', () => ouvrirModalPartage(currentSite));
+
+// ── Retrait de la publication (le faire-part redevient invisible des invités,
+// sans supprimer ni le site ni les réponses déjà reçues) ─────────────────
+document.getElementById('btnDepublier').addEventListener('click', async () => {
+  if (!currentSite) return;
+  if (!confirm('Retirer ce faire-part de la publication ? Vos invités ne pourront plus y accéder tant que vous ne le republierez pas.')) return;
+  const r = await apiFetch('/api/mon-compte/site/'+currentSite.id, { method:'PUT', body: JSON.stringify({ active:false }) });
+  const data = await r.json();
+  if (data.error) { showToast('Erreur : '+data.error); return; }
+  showToast('Faire-part retiré de la publication');
+  await ouvrirTableauDeBord();
+});
+
 // ── Statistiques / réponses ───────────────────────────────────────────────
 async function loadStats(){
   if (!currentSite) return;
@@ -1810,6 +1881,7 @@ async function loadStats(){
 }
 
 function renderStats(rsvps, videos){
+  document.getElementById('statsActions').style.display = currentSite.active ? 'flex' : 'none';
   const events = currentConfig.sections?.rsvp?.events || [];
   let html = `<div class="stat-box"><div class="stat-num">${rsvps.length}</div><div class="stat-lbl">Réponses</div></div>`;
   events.forEach(ev => {
