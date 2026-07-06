@@ -449,6 +449,38 @@ function construireConfigParDefaut(lead){
   return config;
 }
 
+// ─── Page d'erreur brandée (404/500 vues par de vrais invités) ──────────────
+function pageErreur(titre, message){
+  return `<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>${titre} — MySaveTheDate</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f0f5ff;font-family:'Inter',sans-serif;color:#0d1f3c;padding:20px}
+.carte{background:#fff;border-top:4px solid #2563eb;box-shadow:0 20px 60px rgba(13,31,60,.12);padding:52px 44px;max-width:440px;width:100%;text-align:center}
+.logo{font-family:'Montserrat',sans-serif;font-weight:800;font-size:18px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:28px}
+.logo em{color:#2563eb;font-style:normal;font-weight:400}
+h1{font-family:'Montserrat',sans-serif;font-size:20px;font-weight:800;margin:0 0 14px}
+p{font-size:14px;line-height:1.6;color:#1e3a8a;margin:0 0 28px}
+a.btn{display:inline-block;background:#0d1f3c;color:#fff;text-decoration:none;padding:13px 28px;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;border-radius:4px}
+a.btn:hover{background:#2563eb}
+</style>
+</head>
+<body>
+  <div class="carte">
+    <div class="logo">MySaveThe<em>Date</em></div>
+    <h1>${titre}</h1>
+    <p>${message}</p>
+    <a class="btn" href="https://mysavethedate.com">Retour à l'accueil</a>
+  </div>
+</body>
+</html>`;
+}
+
 // ─── Subdomain detection ────────────────────────────────────────────────────
 function getSubdomain(req) {
   const host = req.hostname||'';
@@ -635,7 +667,7 @@ app.use('/legal', express.static(path.join(__dirname,'..','public','legal')));
 app.get('/upload', async (req,res) => {
   const sub = getSubdomain(req);
   const { data:site } = await supabase.from('msd_sites').select('id,config,active').eq('subdomain', sub).single();
-  if (!site || !site.active) return res.status(404).send('Site not found');
+  if (!site || !site.active) return res.status(404).send(pageErreur('Site introuvable', "Ce faire-part n'existe pas ou n'est pas encore accessible."));
   const cfg = mergeConfig(site.config);
   res.sendFile(path.join(__dirname,'..','public','upload.html'));
 });
@@ -1550,7 +1582,7 @@ app.post('/api/lead', limiterPublic, async (req,res) => {
 app.get('/apercu/:id', async (req,res) => {
   try {
     const { data:site, error } = await supabase.from('msd_sites').select('*').eq('id',req.params.id).single();
-    if (error || !site) return res.status(404).send('<h1>Aperçu introuvable</h1><p>Ce lien n\'est plus valide.</p>');
+    if (error || !site) return res.status(404).send(pageErreur('Aperçu introuvable', "Ce lien n'est plus valide."));
     const cfg = mergeConfig(site.config);
     const murMedias = murEstActif(cfg) ? (await supabase.from('msd_mur_medias').select('type,url').eq('site_id',site.id).order('created_at',{ascending:false})).data : [];
     const html = renderBarMitsva(cfg, site.id, murMedias);
@@ -1579,7 +1611,7 @@ app.get('/apercu/:id', async (req,res) => {
 
     res.send(html.replace('</body>', barreOutils + '</body>'));
   } catch(err) {
-    res.status(500).send('Erreur serveur');
+    res.status(500).send(pageErreur('Erreur serveur', "Une erreur inattendue s'est produite. Merci de réessayer dans quelques instants."));
   }
 });
 
@@ -1596,13 +1628,13 @@ app.get('*', async (req,res) => {
 
   try {
     const { data:site, error } = await supabase.from('msd_sites').select('*').eq('subdomain',sub).eq('active',true).single();
-    if(error||!site) return res.status(404).send('<h1>Site introuvable</h1><p>Ce faire-part n\'existe pas ou a été désactivé.</p>');
+    if(error||!site) return res.status(404).send(pageErreur('Site introuvable', "Ce faire-part n'existe pas ou a été désactivé."));
     const cfg = mergeConfig(site.config);
     const murMedias = murEstActif(cfg) ? (await supabase.from('msd_mur_medias').select('type,url').eq('site_id',site.id).order('created_at',{ascending:false})).data : [];
     const html = renderBarMitsva(cfg, site.id, murMedias);
     res.send(html);
   } catch(err) {
-    res.status(500).send('Erreur serveur');
+    res.status(500).send(pageErreur('Erreur serveur', "Une erreur inattendue s'est produite. Merci de réessayer dans quelques instants."));
   }
 });
 
