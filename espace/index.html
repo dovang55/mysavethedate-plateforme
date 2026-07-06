@@ -34,6 +34,17 @@ a{color:inherit;text-decoration:none}
 .auth-msg.err{background:#fee2e2;color:#dc2626}
 .auth-msg.ok{background:#dcfce7;color:#15803d}
 
+/* Connexion Google + indicateur de force du mot de passe */
+.btn-google{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:var(--ink);border:1px solid var(--border);padding:12px 16px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border-radius:4px;margin-bottom:18px;transition:background .15s}
+.btn-google:hover{background:var(--bg)}
+.btn-google:disabled{opacity:.5;cursor:not-allowed}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:0 0 18px;color:var(--ink-s);font-size:11px;text-transform:uppercase;letter-spacing:.1em}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.pwd-strength{margin:-8px 0 16px;text-align:left}
+.pwd-strength-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.pwd-strength-fill{height:100%;width:0;background:#dc2626;transition:width .2s,background .2s}
+.pwd-strength span{display:block;font-size:11px;color:var(--ink-s);margin-top:4px}
+
 /* TOPBAR */
 .topbar{height:var(--topbar);background:var(--ink);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
 .topbar-title{font-family:'Montserrat',sans-serif;font-size:15px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;flex:1;color:#fff}
@@ -222,12 +233,27 @@ a{color:inherit;text-decoration:none}
   <div class="auth-box">
     <div class="auth-logo">MySaveTheDate</div>
     <div class="auth-sub" id="loginSub">Mon espace personnel</div>
+    <button class="btn-google" id="btnGoogleAuth" type="button">
+      <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62Z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.9v2.33A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.16.28-1.7V4.97H.9A9 9 0 0 0 0 9c0 1.45.35 2.83.9 4.03l3.05-2.33Z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .9 4.97l3.05 2.33C4.66 5.17 6.65 3.58 9 3.58Z"/></svg>
+      Continuer avec Google
+    </button>
+    <div class="auth-divider"><span>ou</span></div>
     <input type="email" id="loginEmail" placeholder="Votre email" autocomplete="username">
     <input type="password" id="loginPassword" placeholder="Votre mot de passe" autocomplete="current-password">
+    <input type="password" id="loginPassword2" placeholder="Confirmez le mot de passe" autocomplete="new-password" style="display:none">
+    <div class="pwd-strength" id="pwdStrength" style="display:none">
+      <div class="pwd-strength-bar"><div class="pwd-strength-fill" id="pwdStrengthFill"></div></div>
+      <span id="pwdStrengthLabel"></span>
+    </div>
+    <span class="auth-link" id="btnTogglePwdVisible">Afficher les mots de passe</span>
     <button class="btn-dark" id="btnLogin">Se connecter</button>
     <span class="auth-link" id="btnToggleSignup">Pas encore de compte ? S'inscrire</span>
     <span class="auth-link" id="btnGoForgot">Mot de passe oublié ?</span>
     <div class="auth-msg" id="loginMsg"></div>
+    <div style="margin-top:24px;font-size:11px;color:var(--ink-s)">
+      En créant un compte, vous acceptez nos <a href="/legal/cgu.html" target="_blank" style="color:var(--ink-s)">CGU</a>
+      et notre <a href="/legal/confidentialite.html" target="_blank" style="color:var(--ink-s)">politique de confidentialité</a>.
+    </div>
   </div>
 </div>
 
@@ -787,6 +813,59 @@ document.getElementById('btnToggleSignup').addEventListener('click', () => {
   document.getElementById('loginSub').textContent = estInscription ? 'Créez votre compte' : 'Mon espace personnel';
   document.getElementById('btnLogin').textContent = estInscription ? 'Créer mon compte' : 'Se connecter';
   document.getElementById('btnToggleSignup').textContent = estInscription ? 'Déjà un compte ? Se connecter' : "Pas encore de compte ? S'inscrire";
+  document.getElementById('loginPassword2').style.display = estInscription ? 'block' : 'none';
+  document.getElementById('pwdStrength').style.display = estInscription ? 'block' : 'none';
+  document.getElementById('loginPassword2').value = '';
+  majForceMotDePasse();
+});
+
+// Indicateur de force (longueur + variété de caractères), affiché uniquement
+// à l'inscription — le but est surtout d'inciter à un mot de passe plus long
+// que le minimum de 6 caractères historique, pas de bloquer arbitrairement.
+function forceMotDePasse(pwd){
+  let score = 0;
+  if (pwd.length >= 8) score++;
+  if (pwd.length >= 12) score++;
+  if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score++;
+  if (/[0-9]/.test(pwd)) score++;
+  if (/[^a-zA-Z0-9]/.test(pwd)) score++;
+  return Math.min(score, 4);
+}
+function majForceMotDePasse(){
+  if (modeAuth !== 'signup') return;
+  const pwd = document.getElementById('loginPassword').value;
+  const score = forceMotDePasse(pwd);
+  const paliers = [
+    { pct:10,  color:'#dc2626', label:'Trop faible' },
+    { pct:35,  color:'#dc2626', label:'Faible' },
+    { pct:60,  color:'#f59e0b', label:'Correct' },
+    { pct:85,  color:'#16a34a', label:'Solide' },
+    { pct:100, color:'#15803d', label:'Excellent' },
+  ][score];
+  document.getElementById('pwdStrengthFill').style.width = pwd ? paliers.pct + '%' : '0%';
+  document.getElementById('pwdStrengthFill').style.background = paliers.color;
+  document.getElementById('pwdStrengthLabel').textContent = pwd ? paliers.label + ' — au moins 8 caractères recommandés, avec chiffres et majuscules' : '';
+}
+document.getElementById('loginPassword').addEventListener('input', majForceMotDePasse);
+
+document.getElementById('btnTogglePwdVisible').addEventListener('click', function(){
+  const masque = document.getElementById('loginPassword').type === 'password';
+  document.getElementById('loginPassword').type = masque ? 'text' : 'password';
+  document.getElementById('loginPassword2').type = masque ? 'text' : 'password';
+  this.textContent = masque ? 'Masquer les mots de passe' : 'Afficher les mots de passe';
+});
+
+document.getElementById('btnGoogleAuth').addEventListener('click', async () => {
+  if (!supa) { afficherMessage('loginMsg', 'Erreur technique, merci de réessayer plus tard.'); return; }
+  document.getElementById('btnGoogleAuth').disabled = true;
+  // On conserve ?revendiquer=...&next=... : au retour de Google, onAuthStateChange
+  // ('SIGNED_IN') relance demarrerApplication() qui lit ces paramètres.
+  const { error } = await supa.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + '/espace/' + window.location.search },
+  });
+  if (error) { document.getElementById('btnGoogleAuth').disabled = false; afficherMessage('loginMsg', 'Connexion Google indisponible : ' + error.message); }
+  // Sinon, redirection immédiate vers Google — pas besoin de réactiver le bouton.
 });
 
 document.getElementById('btnLogin').addEventListener('click', async () => {
@@ -794,6 +873,13 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
   if (!email || password.length < 6) { afficherMessage('loginMsg','Email invalide ou mot de passe trop court (6 caractères min.).'); return; }
+
+  if (modeAuth === 'signup') {
+    const password2 = document.getElementById('loginPassword2').value;
+    if (password.length < 8) { afficherMessage('loginMsg','Pour votre sécurité, le mot de passe doit contenir au moins 8 caractères.'); return; }
+    if (password !== password2) { afficherMessage('loginMsg','Les deux mots de passe ne correspondent pas.'); return; }
+  }
+
   document.getElementById('btnLogin').disabled = true;
 
   if (modeAuth === 'signup') {

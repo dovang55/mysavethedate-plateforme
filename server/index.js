@@ -515,6 +515,7 @@ app.get('/espace/config.js', (req,res) => {
 
 // ─── Static assets (shared) ──────────────────────────────────────────────────
 app.use('/assets', express.static(path.join(__dirname,'..','public','assets')));
+app.use('/legal', express.static(path.join(__dirname,'..','public','legal')));
 
 // ─── Upload pages (contextuelles au sous-domaine) ───────────────────────────
 app.get('/upload', async (req,res) => {
