@@ -69,6 +69,13 @@ a{color:inherit;text-decoration:none}
 
 .toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--ink);color:#fff;padding:14px 22px;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;opacity:0;transition:opacity .3s,transform .3s;transform:translateY(8px);pointer-events:none;border-radius:4px}
 .toast.show{opacity:1;transform:translateY(0)}
+
+/* FAQ */
+.faq-form{background:var(--paper);border:1px solid var(--border);border-radius:6px;padding:16px;margin-bottom:16px;display:none}
+.faq-form.open{display:block}
+.faq-form input[type=text],.faq-form textarea{width:100%;border:1px solid var(--border);padding:9px 12px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--ink);border-radius:4px;margin-bottom:10px;outline:none;resize:vertical}
+.faq-form input[type=text]:focus,.faq-form textarea:focus{border-color:var(--gold)}
+.faq-form-row{display:flex;gap:10px}
 </style>
 </head>
 <body>
@@ -142,6 +149,31 @@ a{color:inherit;text-decoration:none}
       </div>
     </div>
 
+    <div class="section-title">FAQ du chatbot</div>
+    <div class="tools-row">
+      <input type="text" class="search-input" id="searchFaq" placeholder="Rechercher une question…">
+      <span class="muted" id="faqCount"></span>
+      <button class="btn-sm" id="btnAddFaq" style="border-color:var(--gold);color:var(--gold)">+ Ajouter une question</button>
+    </div>
+    <div class="faq-form" id="faqForm">
+      <input type="hidden" id="faqEditId">
+      <input type="text" id="faqCategorie" placeholder="Catégorie (ex : Tarifs, RSVP, Mur de photos…)">
+      <textarea id="faqQuestion" rows="2" placeholder="Question"></textarea>
+      <textarea id="faqReponse" rows="4" placeholder="Réponse"></textarea>
+      <div class="faq-form-row">
+        <button class="btn-sm" style="border-color:var(--gold);color:var(--gold)" id="btnSaveFaq">Enregistrer</button>
+        <button class="btn-sm" id="btnCancelFaq">Annuler</button>
+      </div>
+    </div>
+    <div class="table-card">
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>Catégorie</th><th>Question</th><th>Réponse</th><th>Statut</th><th></th></tr></thead>
+          <tbody id="faqBody"><tr><td colspan="5" class="loading-cell">Chargement…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -175,6 +207,7 @@ async function tryLogin(){
     document.getElementById('appBody').style.display='block';
     dashboardData = await r.json();
     renderAll();
+    chargerFaq();
   } catch {
     document.getElementById('loginErr').textContent='Erreur réseau.';
     document.getElementById('loginErr').classList.add('show');
@@ -188,6 +221,7 @@ async function reload(){
   const r = await apiFetch('/api/admin/dashboard');
   dashboardData = await r.json();
   renderAll();
+  chargerFaq();
   showToast('Actualisé');
 }
 
@@ -321,6 +355,92 @@ document.getElementById('exportLeadsBtn').addEventListener('click', ()=>{
   a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent([headers.join(';'),...rows].join('\n'));
   a.download='prospects-mysavethedate.csv'; a.click();
 });
+
+// ── FAQ du chatbot ────────────────────────────────────────────────────────────
+let faqData = [];
+
+function echapperHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s||'';
+  return d.innerHTML;
+}
+
+async function chargerFaq(){
+  const r = await apiFetch('/api/admin/faq');
+  faqData = await r.json();
+  renderFaq();
+}
+
+function renderFaq(){
+  const q = (document.getElementById('searchFaq').value||'').toLowerCase();
+  const rows = faqData.filter(f => !q || (f.question+' '+f.reponse+' '+(f.categorie||'')).toLowerCase().includes(q));
+  document.getElementById('faqCount').textContent = `${rows.length} / ${faqData.length}`;
+  const body = document.getElementById('faqBody');
+  if(!rows.length){ body.innerHTML='<tr class="empty-row"><td colspan="5">Aucune question.</td></tr>'; return; }
+  body.innerHTML = rows.map(f => `<tr>
+    <td class="muted">${echapperHtml(f.categorie)||'—'}</td>
+    <td style="max-width:260px">${echapperHtml(f.question)}</td>
+    <td style="max-width:360px">${echapperHtml(f.reponse)}</td>
+    <td><span class="badge ${f.active?'on':'off'}" style="cursor:pointer" onclick="toggleFaqActive('${f.id}',${!f.active})">${f.active?'Actif':'Inactif'}</span></td>
+    <td class="actions">
+      <button class="btn-sm" style="color:var(--gold);border-color:var(--border)" onclick="editerFaq('${f.id}')">Modifier</button>
+      <button class="btn-sm" style="color:#b91c1c;border-color:var(--border)" onclick="supprimerFaq('${f.id}')">Supprimer</button>
+    </td>
+  </tr>`).join('');
+}
+document.getElementById('searchFaq').addEventListener('input', renderFaq);
+
+document.getElementById('btnAddFaq').addEventListener('click', () => {
+  document.getElementById('faqEditId').value='';
+  document.getElementById('faqCategorie').value='';
+  document.getElementById('faqQuestion').value='';
+  document.getElementById('faqReponse').value='';
+  document.getElementById('faqForm').classList.add('open');
+});
+document.getElementById('btnCancelFaq').addEventListener('click', () => {
+  document.getElementById('faqForm').classList.remove('open');
+});
+
+window.editerFaq = (id) => {
+  const f = faqData.find(x=>x.id===id);
+  if(!f) return;
+  document.getElementById('faqEditId').value = f.id;
+  document.getElementById('faqCategorie').value = f.categorie||'';
+  document.getElementById('faqQuestion').value = f.question;
+  document.getElementById('faqReponse').value = f.reponse;
+  document.getElementById('faqForm').classList.add('open');
+  document.getElementById('faqForm').scrollIntoView({behavior:'smooth',block:'center'});
+};
+
+document.getElementById('btnSaveFaq').addEventListener('click', async () => {
+  const id = document.getElementById('faqEditId').value;
+  const body = {
+    categorie: document.getElementById('faqCategorie').value.trim(),
+    question: document.getElementById('faqQuestion').value.trim(),
+    reponse: document.getElementById('faqReponse').value.trim(),
+  };
+  if(!body.question || !body.reponse){ showToast('Question et réponse obligatoires'); return; }
+  const r = id
+    ? await apiFetch('/api/admin/faq/'+id, { method:'PUT', body: JSON.stringify(body) })
+    : await apiFetch('/api/admin/faq', { method:'POST', body: JSON.stringify({ ...body, ordre: faqData.length+1 }) });
+  const data = await r.json();
+  if(data.error){ showToast('Erreur : '+data.error); return; }
+  document.getElementById('faqForm').classList.remove('open');
+  showToast(id?'Question modifiée':'Question ajoutée');
+  chargerFaq();
+});
+
+window.toggleFaqActive = async (id, nouvelEtat) => {
+  await apiFetch('/api/admin/faq/'+id, { method:'PUT', body: JSON.stringify({ active: nouvelEtat }) });
+  chargerFaq();
+};
+
+window.supprimerFaq = async (id) => {
+  if(!confirm('Supprimer définitivement cette question ?')) return;
+  await apiFetch('/api/admin/faq/'+id, { method:'DELETE' });
+  showToast('Question supprimée');
+  chargerFaq();
+};
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 function apiFetch(url,opts={}){

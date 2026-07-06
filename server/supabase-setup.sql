@@ -90,6 +90,21 @@ CREATE TABLE IF NOT EXISTS msd_leads (
 );
 ALTER TABLE msd_leads ENABLE ROW LEVEL SECURITY;
 
+-- ── FAQ (base de connaissances du chatbot, éditable depuis l'admin) ────
+CREATE TABLE IF NOT EXISTS msd_faq (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  categorie   TEXT DEFAULT '',
+  ordre       INTEGER DEFAULT 0,
+  question    TEXT NOT NULL,
+  reponse     TEXT NOT NULL,
+  active      BOOLEAN DEFAULT true,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE msd_faq ENABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_msd_faq_ordre ON msd_faq(ordre);
+-- Contenu initial (100 questions/réponses) : voir server/faq-seed.sql, à
+-- exécuter une fois cette table créée.
+
 -- ── BUCKETS (créer manuellement dans Storage UI) ──────────────
 -- Bucket 1 : "msd-media"  → Public  (logos, photos, musiques)
 -- Bucket 2 : "msd-videos" → Public  (vidéos invités)

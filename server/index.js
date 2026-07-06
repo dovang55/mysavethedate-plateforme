@@ -1131,11 +1131,62 @@ app.post('/api/mon-compte/site/:id/rsvp/debloquer', requireClientAuth, chargerSi
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FAQ — base de connaissances du chatbot, éditable depuis l'admin
+// ─────────────────────────────────────────────────────────────────────────────
+app.get('/api/admin/faq', requireAdmin, async (req,res) => {
+  const { data,error } = await supabase.from('msd_faq').select('*').order('ordre',{ascending:true});
+  if(error) return res.status(500).json({error:error.message});
+  res.json(data);
+});
+
+app.post('/api/admin/faq', requireAdmin, async (req,res) => {
+  const { question, reponse, categorie='', ordre=0, active=true } = req.body||{};
+  if(!question || !reponse) return res.status(400).json({error:'question et reponse requis'});
+  const { data,error } = await supabase.from('msd_faq').insert({ question, reponse, categorie, ordre, active }).select().single();
+  if(error) return res.status(500).json({error:error.message});
+  faqCache.at = 0; // force le rechargement au prochain message du chatbot
+  res.json(data);
+});
+
+app.put('/api/admin/faq/:id', requireAdmin, async (req,res) => {
+  const { question, reponse, categorie, ordre, active } = req.body||{};
+  const updates = {};
+  if(question!==undefined)  updates.question  = question;
+  if(reponse!==undefined)   updates.reponse   = reponse;
+  if(categorie!==undefined) updates.categorie = categorie;
+  if(ordre!==undefined)     updates.ordre     = ordre;
+  if(active!==undefined)    updates.active    = active;
+  const { data,error } = await supabase.from('msd_faq').update(updates).eq('id',req.params.id).select().single();
+  if(error) return res.status(500).json({error:error.message});
+  faqCache.at = 0;
+  res.json(data);
+});
+
+app.delete('/api/admin/faq/:id', requireAdmin, async (req,res) => {
+  const { error } = await supabase.from('msd_faq').delete().eq('id',req.params.id);
+  if(error) return res.status(500).json({error:error.message});
+  faqCache.at = 0;
+  res.json({success:true});
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CHATBOT — assistant client (OpenAI), accessible depuis /espace une fois connecté
 // ─────────────────────────────────────────────────────────────────────────────
 // Optionnel au démarrage (comme Stripe) : si absent, la route répond une
 // erreur explicite plutôt que de faire planter tout le serveur.
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+
+// Cache en mémoire (5 min) : évite une requête Supabase à chaque message du
+// chatbot, tout en restant à jour peu de temps après une modification faite
+// depuis l'admin (qui vide aussi le cache immédiatement, voir plus haut).
+let faqCache = { data: null, at: 0 };
+async function recupererFaqPourChatbot() {
+  const maintenant = Date.now();
+  if (faqCache.data && (maintenant - faqCache.at) < 5*60*1000) return faqCache.data;
+  const { data } = await supabase.from('msd_faq').select('question,reponse').eq('active', true).order('ordre',{ascending:true});
+  faqCache = { data: data||[], at: maintenant };
+  return faqCache.data;
+}
 
 // Contexte donné au modèle pour qu'il réponde comme un conseiller client
 // MySaveTheDate, sans halluciner de fonctionnalités qui n'existent pas.
@@ -1187,12 +1238,18 @@ app.post('/api/mon-compte/chatbot', requireClientAuth, limiterChatbot, async (re
   if (!historique.length) return res.status(400).json({ error: 'Message manquant' });
 
   try {
+    const faq = await recupererFaqPourChatbot();
+    const blocFaq = faq.length
+      ? '\n\nFAQ officielle MySaveTheDate (base-toi en priorité dessus pour répondre, reformule avec tes mots, ne la recopie pas telle quelle) :\n'
+        + faq.map(f => `Q: ${f.question}\nR: ${f.reponse}`).join('\n\n')
+      : '';
+
     const r = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        messages: [{ role: 'system', content: CHATBOT_SYSTEM_PROMPT }, ...historique],
+        messages: [{ role: 'system', content: CHATBOT_SYSTEM_PROMPT + blocFaq }, ...historique],
         temperature: 0.4,
         max_tokens: 500,
       }),
