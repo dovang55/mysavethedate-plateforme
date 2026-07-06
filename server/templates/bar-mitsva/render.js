@@ -341,6 +341,13 @@ module.exports = function renderSite(cfg, siteId, murMedias) {
 <meta charset="utf-8">
 <title>${c.meta?.title||id.firstName+' '+id.lastName}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Faire-part privé : jamais indexé par les moteurs de recherche (données
+     d'invités, RSVP...), mais les balises Open Graph restent utiles pour
+     un bel aperçu quand le lien est partagé sur WhatsApp/SMS. -->
+<meta name="robots" content="noindex, nofollow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="${c.meta?.title||id.firstName+' '+id.lastName}">
+<meta property="og:description" content="Vous êtes invité(e) ! Découvrez tous les détails et confirmez votre présence.">
 <link rel="icon" href="${c.meta?.favicon || '/assets/favicon.svg'}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

@@ -674,6 +674,37 @@ app.get('/api/auth/google/callback', async (req,res) => {
 app.use('/assets', express.static(path.join(__dirname,'..','public','assets')));
 app.use('/legal', express.static(path.join(__dirname,'..','public','legal')));
 
+// ─── SEO : robots.txt / sitemap.xml ─────────────────────────────────────────
+// Le domaine principal (vitrine) doit être indexé, mais surtout pas les
+// sous-domaines clients : ce sont des faire-part privés (données d'invités,
+// RSVP...), pas du contenu marketing, et les indexer créerait en plus une
+// masse de pages quasi-identiques (mauvais pour le référencement de tous).
+app.get('/robots.txt', (req,res) => {
+  const sub = getSubdomain(req);
+  res.type('text/plain');
+  if (!sub || sub === 'www') {
+    res.send('User-agent: *\nAllow: /\nDisallow: /espace/\nDisallow: /admin/\nSitemap: https://mysavethedate.com/sitemap.xml');
+  } else {
+    res.send('User-agent: *\nDisallow: /');
+  }
+});
+
+app.get('/sitemap.xml', (req,res) => {
+  const sub = getSubdomain(req);
+  if (sub && sub !== 'www') return res.status(404).end();
+  const urls = [
+    { loc:'https://mysavethedate.com/', priority:'1.0' },
+    { loc:'https://mysavethedate.com/legal/mentions-legales.html', priority:'0.3' },
+    { loc:'https://mysavethedate.com/legal/cgu.html', priority:'0.3' },
+    { loc:'https://mysavethedate.com/legal/confidentialite.html', priority:'0.3' },
+  ];
+  res.type('application/xml').send(
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    urls.map(u => `  <url><loc>${u.loc}</loc><priority>${u.priority}</priority></url>`).join('\n') +
+    `\n</urlset>`
+  );
+});
+
 // ─── Upload pages (contextuelles au sous-domaine) ───────────────────────────
 app.get('/upload', async (req,res) => {
   const sub = getSubdomain(req);
