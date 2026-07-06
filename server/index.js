@@ -1,4 +1,15 @@
 require('dotenv').config();
+
+// Suivi d'erreurs (Sentry) — initialisé tout en haut du fichier, avant les
+// autres require, comme recommandé par Sentry pour capturer un maximum
+// d'erreurs (y compris celles qui surviendraient pendant le chargement des
+// modules suivants). Entièrement optionnel : sans SENTRY_DSN, Sentry.init
+// ne fait rien et le serveur tourne exactement comme avant.
+const Sentry = require('@sentry/node');
+if (process.env.SENTRY_DSN) {
+  Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1 });
+}
+
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const multer  = require('multer');
@@ -1097,6 +1108,10 @@ app.post('/api/stripe/webhook', async (req,res) => {
         }
       }
     } catch(err) {
+      // Le plus critique à savoir en priorité : un client a payé mais son
+      // site/mur/quota RSVP n'a pas été débloqué — capturé explicitement
+      // plutôt que de compter sur le filet de sécurité générique.
+      if (process.env.SENTRY_DSN) Sentry.captureException(err, { extra:{ siteId, kind } });
       console.error('Webhook Stripe : échec de mise à jour du site', siteId, err.message);
       return res.status(500).send('Erreur interne');
     }
@@ -1611,6 +1626,7 @@ app.get('/apercu/:id', async (req,res) => {
 
     res.send(html.replace('</body>', barreOutils + '</body>'));
   } catch(err) {
+    if (process.env.SENTRY_DSN) Sentry.captureException(err, { extra:{ siteId: req.params.id } });
     res.status(500).send(pageErreur('Erreur serveur', "Une erreur inattendue s'est produite. Merci de réessayer dans quelques instants."));
   }
 });
@@ -1634,9 +1650,16 @@ app.get('*', async (req,res) => {
     const html = renderBarMitsva(cfg, site.id, murMedias);
     res.send(html);
   } catch(err) {
+    if (process.env.SENTRY_DSN) Sentry.captureException(err, { extra:{ subdomain: sub } });
     res.status(500).send(pageErreur('Erreur serveur', "Une erreur inattendue s'est produite. Merci de réessayer dans quelques instants."));
   }
 });
+
+// Filet de sécurité : capture toute erreur qui serait remontée à Express sans
+// avoir été interceptée par un try/catch local (la plupart des routes ci-
+// dessus gèrent déjà leurs erreurs elles-mêmes en renvoyant du JSON, mais
+// mieux vaut être notifié aussi de celles qui nous auraient échappé).
+if (process.env.SENTRY_DSN) Sentry.setupExpressErrorHandler(app);
 
 app.listen(PORT, () => {
   console.log(`✅  MySaveTheDate Platform — port ${PORT}`);

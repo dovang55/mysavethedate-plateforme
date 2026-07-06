@@ -2,8 +2,12 @@
   "name": "mysavethedate-platform",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": { "start": "node index.js", "dev": "nodemon index.js" },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
   "dependencies": {
+    "@sentry/node": "^10.63.0",
     "@supabase/supabase-js": "^2.45.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -13,5 +17,7 @@
     "stripe": "^17.3.0",
     "ws": "^8.18.0"
   },
-  "devDependencies": { "nodemon": "^3.1.4" }
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
 }
