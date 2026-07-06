@@ -76,6 +76,20 @@ a{color:inherit;text-decoration:none}
 .dash-actions{display:flex;gap:10px;flex-wrap:wrap}
 .dash-empty{font-family:'Inter',sans-serif;font-style:italic;color:var(--ink-s);margin-top:20px}
 .badge-demo{display:inline-block;background:#FFF3E9;border:1px solid #E9C9A6;color:#7A4A1F;border-radius:999px;padding:6px 16px;font-size:11px;font-weight:600;margin-bottom:16px}
+
+/* Comparaison des formules */
+.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.plan-card{border:1px solid var(--border);border-radius:8px;padding:24px 18px;text-align:center;display:flex;flex-direction:column;position:relative;background:var(--paper)}
+.plan-card.reco{border-color:var(--gold);border-width:2px;box-shadow:0 8px 24px rgba(37,99,235,.14)}
+.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#fff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:5px 14px;border-radius:999px;white-space:nowrap}
+.plan-name{font-family:'Montserrat',sans-serif;font-weight:800;font-size:14px;text-transform:uppercase;letter-spacing:.05em;margin:8px 0 4px}
+.plan-price{font-family:'Montserrat',sans-serif;font-weight:800;font-size:30px;color:var(--gold)}
+.plan-invites{font-size:12px;color:var(--ink-s);margin-bottom:16px}
+.plan-features{list-style:none;text-align:left;font-size:12.5px;flex:1;margin-bottom:18px}
+.plan-features li{padding:7px 0;border-top:1px solid rgba(30,64,175,.08);display:flex;gap:8px;align-items:flex-start}
+.plan-features li:first-child{border-top:none}
+.plan-features li.no{opacity:.4}
+@media (max-width:760px){ .plan-grid{grid-template-columns:1fr} }
 .dash-card-new{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:2px dashed var(--border);border-left:2px dashed var(--border);color:var(--ink-s);text-decoration:none;font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;min-height:160px;transition:border-color .2s,color .2s}
 .dash-card-new:hover{border-color:var(--gold);color:var(--gold)}
 .dash-card-new-icon{font-size:34px;font-weight:400;line-height:1}
@@ -652,6 +666,19 @@ a{color:inherit;text-decoration:none}
   </div>
 </div>
 
+<!-- Choix de la formule avant publication -->
+<div class="crop-modal" id="planModal">
+  <div class="crop-modal-inner" style="width:min(920px,95vw)">
+    <div class="crop-modal-header">
+      <span>Choisissez votre formule</span>
+      <button type="button" id="planModalClose">✕</button>
+    </div>
+    <div class="crop-modal-body">
+      <div class="plan-grid" id="planGrid"><p class="dash-empty">Chargement…</p></div>
+    </div>
+  </div>
+</div>
+
 <!-- Confirmation du sous-domaine avant publication -->
 <div class="crop-modal" id="subdomainModal">
   <div class="crop-modal-inner" style="width:min(480px,92vw)">
@@ -1007,16 +1034,18 @@ async function demarrerApplication(){
         const sites = await r.json();
         const site = Array.isArray(sites) ? sites.find(s => s.id === siteId) : null;
         if (!site) return null;
-        return (kind === 'mur') ? (site.config?.sections?.mur?.achete === true) : site.active === true;
+        if (kind === 'mur') return site.config?.sections?.mur?.achete === true;
+        if (kind === 'rsvp_overflow') return site.config?.plan?.rsvpOverflowUnlocked === true;
+        return site.active === true;
       };
       let ok = await dejaActif();
       if (!ok) { await new Promise(r => setTimeout(r, 2000)); ok = await dejaActif(); }
       showToast(ok ? '✓ Paiement confirmé !' : 'Paiement reçu, activation en cours — actualisez dans quelques instants si besoin.');
-      if (siteId && kind === 'mur') {
+      if (siteId && (kind === 'mur' || kind === 'rsvp_overflow')) {
         const r = await apiFetch('/api/mon-compte/sites');
         const sites = await r.json();
         currentSite = sites.find(s => s.id === siteId);
-        if (currentSite) { await ouvrirEditeur('mur'); return; }
+        if (currentSite) { await ouvrirEditeur(kind === 'mur' ? 'mur' : 'stats'); return; }
       }
     }
   }
@@ -1090,8 +1119,8 @@ async function ouvrirTableauDeBord(){
           <p class="badge-demo">Démo — aucun paiement réel</p>
           <h3 style="font-family:'Montserrat',sans-serif;font-weight:800;text-transform:uppercase;font-size:14px;margin-bottom:8px">Prêt à partager avec vos invités ?</h3>
           <p style="color:var(--ink-s);font-size:13px;margin-bottom:14px">Débloquez le lien public, le RSVP, le livre d'or et le compte à rebours.</p>
-          <p class="prix-affiche" style="font-family:'Montserrat',sans-serif;font-size:28px;font-weight:800;color:var(--gold)">…</p>
-          <button class="btn-sm primary" data-action="payer" data-site="${site.id}" style="margin-top:8px">Débloquer le partage</button>
+          <p class="prix-affiche" style="font-family:'Montserrat',sans-serif;font-size:20px;font-weight:800;color:var(--gold)">…</p>
+          <button class="btn-sm primary" data-action="payer" data-site="${site.id}" style="margin-top:8px">Voir les formules</button>
         </div>` : ''}
       </div>
     </div>
@@ -1099,7 +1128,8 @@ async function ouvrirTableauDeBord(){
 
   if (sites.some(s => !s.active)) {
     apiFetch('/api/mon-compte/tarif').then(r => r.json()).then(d => {
-      const txt = (d.prix||0).toFixed(2).replace('.',',') + ' €';
+      const prixMin = Math.min(...(d.plans||[]).map(p => p.prix));
+      const txt = 'À partir de ' + prixMin.toFixed(2).replace('.',',').replace(',00','') + ' €';
       document.querySelectorAll('.prix-affiche').forEach(el => el.textContent = txt);
     });
   }
@@ -1111,7 +1141,7 @@ async function ouvrirTableauDeBord(){
     });
   });
   document.querySelectorAll('[data-action="payer"]').forEach(btn => {
-    btn.addEventListener('click', () => ouvrirModalPublication(sites.find(s => s.id === btn.dataset.site)));
+    btn.addEventListener('click', () => ouvrirModalChoixFormule(sites.find(s => s.id === btn.dataset.site)));
   });
   document.querySelectorAll('[data-action="stats"]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1120,6 +1150,39 @@ async function ouvrirTableauDeBord(){
     });
   });
 }
+
+// ── Choix de la formule (Essentiel / Populaire / Premium) ───────────────────
+let planChoisiPourPublication = null;
+async function ouvrirModalChoixFormule(site){
+  document.getElementById('planGrid').innerHTML = '<p class="dash-empty">Chargement…</p>';
+  document.getElementById('planModal').classList.add('show');
+  const r = await apiFetch('/api/mon-compte/tarif');
+  const data = await r.json();
+  const plans = data.plans || [];
+  document.getElementById('planGrid').innerHTML = plans.map(p => `
+    <div class="plan-card ${p.id==='populaire'?'reco':''}">
+      ${p.id==='populaire' ? '<span class="plan-badge">Le plus choisi</span>' : ''}
+      <div class="plan-name">${p.label}</div>
+      <div class="plan-price">${p.prix}€</div>
+      <div class="plan-invites">jusqu'à ${p.includedInvites} invités</div>
+      <ul class="plan-features">
+        <li>✓ Faire-part personnalisé + partage public</li>
+        <li>✓ Gestion RSVP illimitée</li>
+        <li class="${p.videoEnabled?'':'no'}">${p.videoEnabled?'✓':'✗'} Livre d'or vidéo des invités</li>
+        <li>${p.murIncluded?'✓ Mur de photos inclus':'○ Mur de photos en option (+29,99€)'}</li>
+      </ul>
+      <button class="btn-sm primary" data-choisir-plan="${p.id}">Choisir cette formule</button>
+    </div>
+  `).join('');
+  document.querySelectorAll('[data-choisir-plan]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      planChoisiPourPublication = btn.dataset.choisirPlan;
+      document.getElementById('planModal').classList.remove('show');
+      ouvrirModalPublication(site);
+    });
+  });
+}
+document.getElementById('planModalClose').addEventListener('click', () => document.getElementById('planModal').classList.remove('show'));
 
 // ── Confirmation du sous-domaine avant publication ──────────────────────────
 let sitePourPublication = null;
@@ -1158,7 +1221,7 @@ document.getElementById('subdomainConfirmBtn').addEventListener('click', async (
   // activé qu'après confirmation par le webhook (voir /api/stripe/webhook),
   // jamais directement ici — d'où la redirection plutôt qu'une activation
   // immédiate en local.
-  const r = await apiFetch('/api/mon-compte/site/'+site.id+'/payer', { method:'POST' });
+  const r = await apiFetch('/api/mon-compte/site/'+site.id+'/payer', { method:'POST', body: JSON.stringify({ planId: planChoisiPourPublication }) });
   const data = await r.json();
   if (data.error) {
     btn.disabled = false; btn.textContent = 'Confirmer et publier';
@@ -2021,15 +2084,16 @@ async function loadStats(){
     apiFetch('/api/mon-compte/site/'+currentSite.id+'/rsvp'),
     apiFetch('/api/mon-compte/site/'+currentSite.id+'/videos'),
   ]);
-  const rsvps = await rR.json();
+  const rsvpData = await rR.json();
   const videos = await vR.json();
-  renderStats(rsvps, videos);
+  renderStats(rsvpData, videos);
 }
 
-function renderStats(rsvps, videos){
+function renderStats(rsvpData, videos){
   document.getElementById('statsActions').style.display = currentSite.active ? 'flex' : 'none';
+  const rsvps = rsvpData.rsvp || [];
   const events = currentConfig.sections?.rsvp?.events || [];
-  let html = `<div class="stat-box"><div class="stat-num">${rsvps.length}</div><div class="stat-lbl">Réponses</div></div>`;
+  let html = `<div class="stat-box"><div class="stat-num">${rsvpData.total ?? rsvps.length}</div><div class="stat-lbl">Réponses</div></div>`;
   events.forEach(ev => {
     const presents = rsvps.filter(r => r.data?.[ev.id]?.presence === 'oui');
     const adultes = presents.reduce((s,r)=>s+(r.data?.[ev.id]?.adults||0),0);
@@ -2040,14 +2104,35 @@ function renderStats(rsvps, videos){
   document.getElementById('statsRow').innerHTML = html;
 
   const rsvpWrap = document.getElementById('rsvpTableWrap');
-  if (!rsvps.length) { rsvpWrap.innerHTML = '<p class="help-text">Aucune réponse reçue pour l\'instant.</p>'; }
+  // Formule dépassée : les réponses au-delà du quota inclus restent
+  // collectées normalement (l'invité n'est jamais bloqué), mais le client ne
+  // les voit qu'après avoir payé le supplément — voir /rsvp/debloquer.
+  let banniere = '';
+  if (rsvpData.verrouille) {
+    const caches = rsvpData.total - rsvpData.quota;
+    banniere = `<div class="badge-demo" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span>🔒 ${caches} réponse${caches===1?'':'s'} au-delà de votre formule (${rsvpData.quota} incluses).</span>
+      <button class="btn-sm primary" id="btnDebloquerRsvp">Débloquer pour ${rsvpData.supplement.toFixed(2).replace('.',',')}€</button>
+    </div>`;
+  }
+  if (!rsvps.length) { rsvpWrap.innerHTML = banniere + '<p class="help-text">Aucune réponse reçue pour l\'instant.</p>'; }
   else {
     const evCols = events.map(ev => `<th>${ev.name.split('&')[0].trim()}</th><th>Ad.</th><th>Enf.</th>`).join('');
     const rows = rsvps.map(r => {
       const evTds = events.map(ev => `<td><span class="badge ${r.data?.[ev.id]?.presence||'non'}">${r.data?.[ev.id]?.presence==='oui'?'✓':'✗'}</span></td><td>${r.data?.[ev.id]?.adults||0}</td><td>${r.data?.[ev.id]?.children||0}</td>`).join('');
       return `<tr><td>${r.nom||''} ${r.prenom||''}</td>${evTds}<td style="max-width:150px">${r.message||'—'}</td><td style="white-space:nowrap">${new Date(r.created_at).toLocaleDateString('fr-FR')}</td></tr>`;
     }).join('');
-    rsvpWrap.innerHTML = `<table class="data-table"><thead><tr><th>Nom</th>${evCols}<th>Message</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table>`;
+    rsvpWrap.innerHTML = banniere + `<table class="data-table"><thead><tr><th>Nom</th>${evCols}<th>Message</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  if (rsvpData.verrouille) {
+    document.getElementById('btnDebloquerRsvp').addEventListener('click', async () => {
+      const btn = document.getElementById('btnDebloquerRsvp');
+      btn.disabled = true; btn.textContent = 'Redirection…';
+      const r = await apiFetch('/api/mon-compte/site/'+currentSite.id+'/rsvp/debloquer', { method:'POST' });
+      const data = await r.json();
+      if (data.error) { showToast('Erreur : '+data.error); btn.disabled = false; btn.textContent = 'Débloquer pour '+rsvpData.supplement.toFixed(2).replace('.',',')+'€'; return; }
+      window.location.href = data.url;
+    });
   }
   document.getElementById('exportRsvpBtn').onclick = () => exportCSV(rsvps, events);
 

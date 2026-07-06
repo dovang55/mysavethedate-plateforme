@@ -944,14 +944,23 @@ app.put('/api/mon-compte/site/:id', requireClientAuth, chargerSiteDuClient, asyn
 // que par le webhook /api/stripe/webhook une fois le paiement confirmé par
 // Stripe — jamais directement ici, pour ne pas se fier à un simple retour
 // navigateur (l'utilisateur pourrait fermer l'onglet, ou trafiquer l'URL).
-const PRIX_PARTAGE_EUROS = 49.99;
+//
+// 3 formules, dimensionnées sur le nombre d'invités attendus (plus l'événement
+// est grand, plus il y aura de réponses/vidéos/photos à gérer) :
+const PLANS = {
+  essentiel: { id:'essentiel', label:'Essentiel', prix:80,  includedInvites:50,  videoEnabled:false, murIncluded:false },
+  populaire: { id:'populaire', label:'Populaire', prix:130, includedInvites:150, videoEnabled:true,  murIncluded:false },
+  premium:   { id:'premium',   label:'Premium',   prix:190, includedInvites:400, videoEnabled:true,  murIncluded:true  },
+};
 
 app.get('/api/mon-compte/tarif', requireClientAuth, (req,res) => {
-  res.json({ prix: PRIX_PARTAGE_EUROS });
+  res.json({ plans: Object.values(PLANS) });
 });
 
 app.post('/api/mon-compte/site/:id/payer', requireClientAuth, chargerSiteDuClient, async (req,res) => {
   if (!stripe) return res.status(500).json({error:'Paiement non configuré sur le serveur (STRIPE_SECRET_KEY manquant).'});
+  const plan = PLANS[req.body?.planId];
+  if (!plan) return res.status(400).json({error:'Formule invalide.'});
   try {
     const origine = `${req.protocol}://${req.get('host')}`;
     const session = await stripe.checkout.sessions.create({
@@ -961,14 +970,14 @@ app.post('/api/mon-compte/site/:id/payer', requireClientAuth, chargerSiteDuClien
       line_items: [{
         price_data: {
           currency: 'eur',
-          product_data: { name: 'MySaveTheDate — Déblocage du partage', description: `Faire-part : ${req.site.subdomain}.mysavethedate.com` },
-          unit_amount: Math.round(PRIX_PARTAGE_EUROS * 100),
+          product_data: { name: `MySaveTheDate — Formule ${plan.label}`, description: `Faire-part : ${req.site.subdomain}.mysavethedate.com — jusqu'à ${plan.includedInvites} invités` },
+          unit_amount: Math.round(plan.prix * 100),
         },
         quantity: 1,
       }],
       success_url: `${origine}/espace/?paiement=succes&site=${req.params.id}&kind=partage`,
       cancel_url: `${origine}/espace/?paiement=annule&site=${req.params.id}`,
-      metadata: { siteId: req.params.id, kind: 'partage' },
+      metadata: { siteId: req.params.id, kind: 'partage', planId: plan.id },
     });
     res.json({ url: session.url });
   } catch(err) {
@@ -1027,13 +1036,31 @@ app.post('/api/stripe/webhook', async (req,res) => {
     const kind    = session.metadata?.kind;
     try {
       if (siteId && kind === 'partage') {
-        const { data } = await supabase.from('msd_sites').update({ active:true }).eq('id',siteId).select().single();
-        if (data) creerDomaineDokploy(data.subdomain).catch(err => console.error('Dokploy domain.create échoué:', err.message));
+        const plan = PLANS[session.metadata?.planId];
+        const { data:site } = await supabase.from('msd_sites').select('config').eq('id',siteId).single();
+        if (site) {
+          const cfg = mergeConfig(site.config);
+          if (plan) {
+            cfg.plan = { id:plan.id, includedInvites:plan.includedInvites, videoEnabled:plan.videoEnabled, murIncluded:plan.murIncluded, rsvpOverflowUnlocked:false };
+            cfg.sections.video.enabled = plan.videoEnabled;
+            if (plan.murIncluded) cfg.sections.mur.achete = true;
+          }
+          const { data } = await supabase.from('msd_sites').update({ active:true, config:cfg }).eq('id',siteId).select().single();
+          if (data) creerDomaineDokploy(data.subdomain).catch(err => console.error('Dokploy domain.create échoué:', err.message));
+        }
       } else if (siteId && kind === 'mur') {
         const { data:site } = await supabase.from('msd_sites').select('config').eq('id',siteId).single();
         if (site) {
           const cfg = mergeConfig(site.config);
           cfg.sections.mur.achete = true;
+          await supabase.from('msd_sites').update({ config:cfg }).eq('id',siteId);
+        }
+      } else if (siteId && kind === 'rsvp_overflow') {
+        const { data:site } = await supabase.from('msd_sites').select('config').eq('id',siteId).single();
+        if (site) {
+          const cfg = mergeConfig(site.config);
+          if (!cfg.plan) cfg.plan = {};
+          cfg.plan.rsvpOverflowUnlocked = true;
           await supabase.from('msd_sites').update({ config:cfg }).eq('id',siteId);
         }
       }
@@ -1046,10 +1073,58 @@ app.post('/api/stripe/webhook', async (req,res) => {
   res.json({ received:true });
 });
 
+// Prix du déblocage des réponses au-delà du quota inclus dans la formule :
+// un forfait de base + un montant par réponse excédentaire (plus l'écart est
+// grand, plus il y a de réponses à gérer, donc plus le supplément est élevé).
+const RSVP_SUPPLEMENT_BASE = 3;
+const RSVP_SUPPLEMENT_PAR_REPONSE = 0.30;
+
 app.get('/api/mon-compte/site/:id/rsvp', requireClientAuth, chargerSiteDuClient, async (req,res) => {
   const { data,error } = await supabase.from('msd_rsvp').select('*').eq('site_id',req.params.id).order('created_at',{ascending:false});
   if(error) return res.status(500).json({error:error.message});
-  res.json(data);
+  const cfg = mergeConfig(req.site.config);
+  const quota = cfg.plan?.includedInvites || null;
+  const verrouille = !!quota && !cfg.plan?.rsvpOverflowUnlocked && data.length > quota;
+  res.json({
+    rsvp: verrouille ? data.slice(0, quota) : data,
+    total: data.length,
+    quota,
+    verrouille,
+    supplement: verrouille ? Math.round((RSVP_SUPPLEMENT_BASE + (data.length - quota) * RSVP_SUPPLEMENT_PAR_REPONSE) * 100) / 100 : 0,
+  });
+});
+
+// Débloque l'accès à toutes les réponses au-delà du quota (une fois payé,
+// débloqué définitivement — y compris pour les réponses reçues après coup).
+app.post('/api/mon-compte/site/:id/rsvp/debloquer', requireClientAuth, chargerSiteDuClient, async (req,res) => {
+  if (!stripe) return res.status(500).json({error:'Paiement non configuré sur le serveur (STRIPE_SECRET_KEY manquant).'});
+  try {
+    const { count, error } = await supabase.from('msd_rsvp').select('id',{count:'exact',head:true}).eq('site_id',req.params.id);
+    if (error) throw error;
+    const cfg = mergeConfig(req.site.config);
+    const quota = cfg.plan?.includedInvites || 0;
+    const supplement = Math.round((RSVP_SUPPLEMENT_BASE + Math.max(0, (count||0) - quota) * RSVP_SUPPLEMENT_PAR_REPONSE) * 100) / 100;
+    const origine = `${req.protocol}://${req.get('host')}`;
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      customer_email: req.clientUser.email,
+      line_items: [{
+        price_data: {
+          currency: 'eur',
+          product_data: { name: 'MySaveTheDate — Déblocage des réponses RSVP', description: `Faire-part : ${req.site.subdomain}.mysavethedate.com` },
+          unit_amount: Math.round(supplement * 100),
+        },
+        quantity: 1,
+      }],
+      success_url: `${origine}/espace/?paiement=succes&site=${req.params.id}&kind=rsvp_overflow`,
+      cancel_url: `${origine}/espace/?paiement=annule&site=${req.params.id}`,
+      metadata: { siteId: req.params.id, kind: 'rsvp_overflow' },
+    });
+    res.json({ url: session.url });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/mon-compte/site/:id/videos', requireClientAuth, chargerSiteDuClient, async (req,res) => {
@@ -1212,8 +1287,13 @@ app.post('/api/upload', limiterPublic, upload.single('video'), async (req,res) =
   const tmpPath = req.file?.path;
   const sub = getSubdomain(req);
   try {
-    const { data:site } = await supabase.from('msd_sites').select('id,active').eq('subdomain',sub).single();
+    const { data:site } = await supabase.from('msd_sites').select('id,active,config').eq('subdomain',sub).single();
     if(!site || !site.active) return res.status(404).json({error:'Site introuvable'});
+    // Le livre d'or vidéo dépend de la formule choisie (absent = site créé
+    // hors du système de formules, ex. admin : pas de restriction dans ce cas).
+    if (mergeConfig(site.config).sections?.video?.enabled === false) {
+      return res.status(403).json({error:'Le livre d\'or vidéo n\'est pas inclus dans la formule de ce faire-part.'});
+    }
     if(!req.file) return res.status(400).json({error:'Aucun fichier'});
     const { name='Anonyme', message='' } = req.body;
     const ext = path.extname(req.file.originalname).toLowerCase()||'.mp4';
