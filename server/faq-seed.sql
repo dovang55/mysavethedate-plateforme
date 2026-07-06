@@ -1,7 +1,23 @@
 -- MySaveTheDate — Contenu initial de la FAQ du chatbot (100 questions/réponses)
--- Exécuter APRÈS avoir créé la table msd_faq (voir supabase-setup.sql)
+-- Ce script est autonome : il crée la table si elle n'existe pas encore
+-- (identique à la définition de supabase-setup.sql), puis insère les 100
+-- questions/réponses UNIQUEMENT si la table est vide (ré-exécutable sans
+-- risque de duplication, y compris après en avoir édité le contenu).
 
-INSERT INTO msd_faq (categorie, ordre, question, reponse, active) VALUES
+CREATE TABLE IF NOT EXISTS msd_faq (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  categorie   TEXT DEFAULT '',
+  ordre       INTEGER DEFAULT 0,
+  question    TEXT NOT NULL,
+  reponse     TEXT NOT NULL,
+  active      BOOLEAN DEFAULT true,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE msd_faq ENABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_msd_faq_ordre ON msd_faq(ordre);
+
+INSERT INTO msd_faq (categorie, ordre, question, reponse, active)
+SELECT * FROM (VALUES
 ('Découverte du service', 1, 'Qu''est-ce que MySaveTheDate ?', 'MySaveTheDate est un service qui crée pour vous un faire-part numérique personnalisé (site web) pour votre mariage, Bar/Bat Mitsva, anniversaire ou autre événement, avec gestion des réponses des invités, mur de photos et vidéos.', true),
 ('Découverte du service', 2, 'Pour quels types d''événements MySaveTheDate est-il adapté ?', 'Mariages, Bar Mitsva, Bat Mitsva, anniversaires, Brit Mila et autres célébrations peuvent tous être créés sur MySaveTheDate, avec un contenu adapté à chaque type d''événement.', true),
 ('Découverte du service', 3, 'Ai-je besoin de savoir coder pour utiliser MySaveTheDate ?', 'Non, aucune compétence technique n''est nécessaire. Vous répondez à un questionnaire puis personnalisez votre faire-part depuis un éditeur visuel simple, sans une ligne de code.', true),
@@ -101,4 +117,6 @@ INSERT INTO msd_faq (categorie, ordre, question, reponse, active) VALUES
 ('Compte, sécurité et support', 97, 'Puis-je utiliser MySaveTheDate depuis n''importe quel pays ?', 'Oui, le service est accessible en ligne depuis n''importe où, tant que vous disposez d''une connexion internet.', true),
 ('Compte, sécurité et support', 98, 'MySaveTheDate revend-il mes données à des tiers ?', 'Non, aucune donnée n''est vendue à des tiers à des fins commerciales, conformément à notre politique de confidentialité.', true),
 ('Compte, sécurité et support', 99, 'Quels sont mes droits sur mes données personnelles (RGPD) ?', 'Vous disposez d''un droit d''accès, de rectification, d''effacement, de limitation, d''opposition et de portabilité de vos données, en nous contactant à contact@mysavethedate.fr.', true),
-('Compte, sécurité et support', 100, 'Où puis-je lire les conditions générales et la politique de confidentialité ?', 'Ces documents sont accessibles en bas de page du site, dans les rubriques "Mentions légales", "Conditions générales" et "Confidentialité & RGPD".', true);
+('Compte, sécurité et support', 100, 'Où puis-je lire les conditions générales et la politique de confidentialité ?', 'Ces documents sont accessibles en bas de page du site, dans les rubriques "Mentions légales", "Conditions générales" et "Confidentialité & RGPD".', true)
+) AS v(categorie, ordre, question, reponse, active)
+WHERE NOT EXISTS (SELECT 1 FROM msd_faq);
