@@ -948,9 +948,9 @@ app.put('/api/mon-compte/site/:id', requireClientAuth, chargerSiteDuClient, asyn
 // 3 formules, dimensionnées sur le nombre d'invités attendus (plus l'événement
 // est grand, plus il y aura de réponses/vidéos/photos à gérer) :
 const PLANS = {
-  essentiel: { id:'essentiel', label:'Essentiel', prix:80,  includedInvites:50,  videoEnabled:false, murIncluded:false },
-  populaire: { id:'populaire', label:'Populaire', prix:130, includedInvites:150, videoEnabled:true,  murIncluded:false },
-  premium:   { id:'premium',   label:'Premium',   prix:190, includedInvites:400, videoEnabled:true,  murIncluded:true  },
+  essentiel: { id:'essentiel', label:'Essentiel', subtitle:'Petit événement',  prix:30,  includedInvites:30,  videoEnabled:false, murIncluded:false },
+  populaire: { id:'populaire', label:'Populaire', subtitle:'Bar / Bat Mitsva', prix:120, includedInvites:200, videoEnabled:true,  murIncluded:false },
+  premium:   { id:'premium',   label:'Premium',   subtitle:'Mariage',         prix:220, includedInvites:400, videoEnabled:true,  murIncluded:true  },
 };
 
 app.get('/api/mon-compte/tarif', requireClientAuth, (req,res) => {
@@ -1074,10 +1074,13 @@ app.post('/api/stripe/webhook', async (req,res) => {
 });
 
 // Prix du déblocage des réponses au-delà du quota inclus dans la formule :
-// un forfait de base + un montant par réponse excédentaire (plus l'écart est
-// grand, plus il y a de réponses à gérer, donc plus le supplément est élevé).
-const RSVP_SUPPLEMENT_BASE = 3;
-const RSVP_SUPPLEMENT_PAR_REPONSE = 0.30;
+// un forfait de base + un montant par réponse excédentaire. Volontairement
+// élevé (≥ au tarif/invité de la formule Essentiel, la plus chère au prorata) :
+// dépasser son quota ne doit jamais revenir moins cher que d'avoir pris la
+// formule du dessus dès le départ — sinon tout le monde prendrait Essentiel
+// et paierait le supplément plutôt que d'upgrader.
+const RSVP_SUPPLEMENT_BASE = 5;
+const RSVP_SUPPLEMENT_PAR_REPONSE = 1.50;
 
 app.get('/api/mon-compte/site/:id/rsvp', requireClientAuth, chargerSiteDuClient, async (req,res) => {
   const { data,error } = await supabase.from('msd_rsvp').select('*').eq('site_id',req.params.id).order('created_at',{ascending:false});

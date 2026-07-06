@@ -1163,6 +1163,7 @@ async function ouvrirModalChoixFormule(site){
     <div class="plan-card ${p.id==='populaire'?'reco':''}">
       ${p.id==='populaire' ? '<span class="plan-badge">Le plus choisi</span>' : ''}
       <div class="plan-name">${p.label}</div>
+      ${p.subtitle ? `<div style="font-size:12px;color:var(--ink-s);font-style:italic;margin-bottom:2px">${p.subtitle}</div>` : ''}
       <div class="plan-price">${p.prix}€</div>
       <div class="plan-invites">jusqu'à ${p.includedInvites} invités</div>
       <ul class="plan-features">
