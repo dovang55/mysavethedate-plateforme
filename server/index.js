@@ -179,6 +179,17 @@ function slugifier(texte){
     .toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
 }
 
+// Le sous-domaine doit porter le nom du "concerné" (l'enfant, les mariés, la
+// personne fêtée…), pas celui de la personne qui remplit le questionnaire —
+// ils sont souvent différents (parents pour une Bar Mitsva, témoin pour un
+// mariage…). Même repli que construireConfigParDefaut plus bas.
+function nomsSujetPourSousDomaine(lead){
+  const prenom  = lead.subjectFirstName || lead.firstName || '';
+  const prenom2 = lead.subjectSecondFirstName || '';
+  const nom     = lead.subjectLastName || lead.lastName || '';
+  return { prenom: prenom2 ? `${prenom}-${prenom2}` : prenom, nom };
+}
+
 // Génère un sous-domaine unique à partir du prénom/nom, en ajoutant un
 // suffixe numérique si celui-ci est déjà pris.
 async function genererSousDomaineUnique(prenom, nom){
@@ -643,13 +654,11 @@ app.delete('/api/admin/dashboard/comptes/:userId', requireAdmin, async (req,res)
 // ESPACE CLIENT — API scopée au compte connecté (Supabase Auth)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Le site du client connecté (on part du principe d'un site par compte pour
-// l'instant — le plus récent si jamais il y en avait plusieurs).
-app.get('/api/mon-compte/site', requireClientAuth, async (req,res) => {
+// Tous les faire-part du compte connecté (un client peut en avoir plusieurs).
+app.get('/api/mon-compte/sites', requireClientAuth, async (req,res) => {
   const { data, error } = await supabase.from('msd_sites').select('*')
-    .eq('user_id', req.clientUser.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+    .eq('user_id', req.clientUser.id).order('created_at',{ascending:false});
   if(error) return res.status(500).json({error:error.message});
-  if(!data) return res.status(404).json({error:"Aucun faire-part associé à ce compte pour l'instant"});
   res.json(data);
 });
 
@@ -678,7 +687,8 @@ app.post('/api/apercu', async (req,res) => {
       leadId = leadRow?.id || null;
     } catch(_) { /* table optionnelle */ }
 
-    const subdomain = await genererSousDomaineUnique(lead.firstName, lead.lastName);
+    const sujetPourDomaine = nomsSujetPourSousDomaine(lead);
+    const subdomain = await genererSousDomaineUnique(sujetPourDomaine.prenom, sujetPourDomaine.nom);
     const config = construireConfigParDefaut(lead);
 
     const { data:site, error:siteErr } = await supabase.from('msd_sites')
@@ -751,7 +761,8 @@ app.post('/api/mon-compte/sites', requireClientAuth, async (req,res) => {
       leadId = leadRow?.id || null;
     } catch(_) { /* table optionnelle */ }
 
-    const subdomain = await genererSousDomaineUnique(lead.firstName, lead.lastName);
+    const sujetPourDomaine = nomsSujetPourSousDomaine(lead);
+    const subdomain = await genererSousDomaineUnique(sujetPourDomaine.prenom, sujetPourDomaine.nom);
     const config = construireConfigParDefaut(lead);
 
     const { data:site, error:siteErr } = await supabase.from('msd_sites')
@@ -1046,7 +1057,8 @@ app.post('/api/lead', async (req,res) => {
   try {
     if (!lead.email) throw new Error('Email manquant, impossible de créer le compte');
 
-    const subdomain = await genererSousDomaineUnique(lead.firstName, lead.lastName);
+    const sujetPourDomaine = nomsSujetPourSousDomaine(lead);
+    const subdomain = await genererSousDomaineUnique(sujetPourDomaine.prenom, sujetPourDomaine.nom);
     const config = construireConfigParDefaut(lead);
 
     const { data:site, error:siteErr } = await supabase.from('msd_sites')

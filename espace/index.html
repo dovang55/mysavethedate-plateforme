@@ -257,7 +257,7 @@ a{color:inherit;text-decoration:none}
 
   <!-- DASHBOARD -->
   <div id="view-dashboard" style="display:none">
-    <h2 style="font-family:'Montserrat',sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--ink)">Mon faire-part</h2>
+    <h2 style="font-family:'Montserrat',sans-serif;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--ink)">Mes faire-part</h2>
     <div id="dashContent"><p class="dash-empty">Chargement…</p></div>
   </div>
 
@@ -610,6 +610,29 @@ a{color:inherit;text-decoration:none}
   </div>
 </div>
 
+<!-- Confirmation du sous-domaine avant publication -->
+<div class="crop-modal" id="subdomainModal">
+  <div class="crop-modal-inner" style="width:min(480px,92vw)">
+    <div class="crop-modal-header">
+      <span>Confirmez l'adresse de votre faire-part</span>
+      <button type="button" id="subdomainModalClose">✕</button>
+    </div>
+    <div class="crop-modal-body">
+      <p style="margin-bottom:14px;color:var(--ink-s)">Vos invités utiliseront cette adresse pour voir votre faire-part. Vérifiez-la avant de publier — elle ne pourra plus être changée facilement une fois partagée.</p>
+      <div class="field-group">
+        <label>Sous-domaine</label>
+        <input type="text" id="subdomainConfirmInput">
+        <div class="help-text">.mysavethedate.com</div>
+      </div>
+      <p id="subdomainConfirmErr" style="color:#dc2626;font-size:13px;display:none;margin-top:8px"></p>
+    </div>
+    <div class="crop-modal-footer">
+      <button class="btn-sm" id="subdomainCancelBtn">Annuler</button>
+      <button class="btn-sm primary" id="subdomainConfirmBtn">Confirmer et publier</button>
+    </div>
+  </div>
+</div>
+
 <script src="/espace/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
@@ -813,69 +836,116 @@ async function demarrerApplication(){
     if (!data.error) {
       currentSite = data;
       if (etapeSuivante === 'editeur') { await ouvrirEditeur(); return; }
+      if (etapeSuivante === 'payer') { await ouvrirTableauDeBord(); ouvrirModalPublication(data); return; }
     }
   }
 
   await ouvrirTableauDeBord();
 }
 
+// Un même compte peut avoir plusieurs faire-part (plusieurs événements, ou
+// plusieurs essais) : on affiche une carte par site plutôt qu'un seul.
 async function ouvrirTableauDeBord(){
   document.getElementById('view-dashboard').style.display='block';
   document.getElementById('view-editor').style.display='none';
   document.getElementById('btnBackDash').style.display='none';
   document.getElementById('editorActions').style.display='none';
 
-  const r = await apiFetch('/api/mon-compte/site');
+  const r = await apiFetch('/api/mon-compte/sites');
   if (r.status === 401) {
     // Session locale invalide (ex : compte supprimé depuis, jeton expiré) —
     // on se déconnecte proprement plutôt que d'afficher une erreur bloquante.
     await supa.auth.signOut();
     return;
   }
-  if (r.status === 404) {
+  const sites = await r.json();
+  if (sites.error) { document.getElementById('dashContent').innerHTML = '<p class="dash-empty">Erreur : '+sites.error+'</p>'; return; }
+  if (!sites.length) {
     document.getElementById('dashContent').innerHTML = '<p class="dash-empty">Aucun faire-part associé à ce compte pour l\'instant. Contactez-nous si ce n\'est pas normal.</p>';
     return;
   }
-  const site = await r.json();
-  if (site.error) { document.getElementById('dashContent').innerHTML = '<p class="dash-empty">Erreur : '+site.error+'</p>'; return; }
-  currentSite = site;
 
-  document.getElementById('dashContent').innerHTML = `
+  document.getElementById('dashContent').innerHTML = sites.map(site => `
     <div class="dash-card">
       <div class="dash-sub">${site.subdomain}.mysavethedate.com</div>
       <div class="dash-name">${site.config?.identity?.firstName||''} ${site.config?.identity?.lastName||''}</div>
       <div class="dash-status"><span class="dash-status-dot ${site.active?'':'inactive'}"></span>${site.active?'En ligne — partagé avec vos invités':'Pas encore partagé'}</div>
       <div class="dash-actions">
-        <button class="btn-sm primary" id="btnOuvrirEditeur">Personnaliser mon faire-part</button>
+        <button class="btn-sm primary" data-action="editer" data-site="${site.id}">Personnaliser mon faire-part</button>
         ${site.active ? `<a class="btn-sm" href="//${site.subdomain}.mysavethedate.com" target="_blank">Voir mon site ↗</a>` : ''}
       </div>
     </div>
     ${!site.active ? `
-    <div class="dash-card" id="cartePaywall" style="border-left-color:var(--gold);text-align:center">
+    <div class="dash-card" style="border-left-color:var(--gold);text-align:center">
       <p class="badge-demo">Mode démonstration — aucun paiement réel n'est effectué</p>
       <h3 style="font-family:'Montserrat',sans-serif;font-weight:800;text-transform:uppercase;margin-bottom:8px">Prêt à partager avec vos invités ?</h3>
       <p style="color:var(--ink-s);margin-bottom:20px">Débloquez le lien public, le RSVP, le livre d'or et le compte à rebours.</p>
-      <p style="font-family:'Montserrat',sans-serif;font-size:32px;font-weight:800;color:var(--gold)" id="prixAffiche">…</p>
-      <button class="btn-sm primary" id="btnPayer" style="margin-top:12px">Débloquer le partage (simulation)</button>
-    </div>` : ''}`;
-  document.getElementById('btnOuvrirEditeur').addEventListener('click', ouvrirEditeur);
+      <p class="prix-affiche" style="font-family:'Montserrat',sans-serif;font-size:32px;font-weight:800;color:var(--gold)">…</p>
+      <button class="btn-sm primary" data-action="payer" data-site="${site.id}" style="margin-top:12px">Débloquer le partage (simulation)</button>
+    </div>` : ''}
+  `).join('');
 
-  if (!site.active) {
-    const btnPayer = document.getElementById('btnPayer');
+  if (sites.some(s => !s.active)) {
     apiFetch('/api/mon-compte/tarif').then(r => r.json()).then(d => {
-      document.getElementById('prixAffiche').textContent = (d.prix||0).toFixed(2).replace('.',',') + ' €';
-    });
-    btnPayer.addEventListener('click', async () => {
-      btnPayer.disabled = true;
-      btnPayer.textContent = 'Traitement…';
-      const r = await apiFetch('/api/mon-compte/site/'+site.id+'/payer', { method:'POST' });
-      const data = await r.json();
-      if (data.error) { showToast('Erreur : '+data.error); btnPayer.disabled = false; return; }
-      showToast('✓ Partage débloqué !');
-      ouvrirTableauDeBord();
+      const txt = (d.prix||0).toFixed(2).replace('.',',') + ' €';
+      document.querySelectorAll('.prix-affiche').forEach(el => el.textContent = txt);
     });
   }
+
+  document.querySelectorAll('[data-action="editer"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentSite = sites.find(s => s.id === btn.dataset.site);
+      ouvrirEditeur();
+    });
+  });
+  document.querySelectorAll('[data-action="payer"]').forEach(btn => {
+    btn.addEventListener('click', () => ouvrirModalPublication(sites.find(s => s.id === btn.dataset.site)));
+  });
 }
+
+// ── Confirmation du sous-domaine avant publication ──────────────────────────
+let sitePourPublication = null;
+function ouvrirModalPublication(site){
+  sitePourPublication = site;
+  document.getElementById('subdomainConfirmInput').value = site.subdomain;
+  document.getElementById('subdomainConfirmErr').style.display = 'none';
+  document.getElementById('subdomainModal').classList.add('show');
+}
+function fermerModalPublication(){
+  document.getElementById('subdomainModal').classList.remove('show');
+  sitePourPublication = null;
+}
+document.getElementById('subdomainModalClose').addEventListener('click', fermerModalPublication);
+document.getElementById('subdomainCancelBtn').addEventListener('click', fermerModalPublication);
+
+document.getElementById('subdomainConfirmBtn').addEventListener('click', async () => {
+  const site = sitePourPublication;
+  if (!site) return;
+  const errEl = document.getElementById('subdomainConfirmErr');
+  errEl.style.display = 'none';
+  const nouveauSousDomaine = document.getElementById('subdomainConfirmInput').value.trim().toLowerCase().replace(/\s+/g,'-');
+  if (!nouveauSousDomaine) { errEl.textContent = 'Le sous-domaine ne peut pas être vide.'; errEl.style.display = 'block'; return; }
+
+  const btn = document.getElementById('subdomainConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Publication…';
+
+  if (nouveauSousDomaine !== site.subdomain) {
+    const rSub = await apiFetch('/api/mon-compte/site/'+site.id, { method:'PUT', body: JSON.stringify({ subdomain: nouveauSousDomaine }) });
+    const dataSub = await rSub.json();
+    if (dataSub.error) { errEl.textContent = dataSub.error; errEl.style.display = 'block'; btn.disabled = false; btn.textContent = 'Confirmer et publier'; return; }
+  }
+
+  const r = await apiFetch('/api/mon-compte/site/'+site.id+'/payer', { method:'POST' });
+  const data = await r.json();
+  btn.disabled = false;
+  btn.textContent = 'Confirmer et publier';
+  if (data.error) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
+
+  fermerModalPublication();
+  showToast('✓ Faire-part publié !');
+  ouvrirTableauDeBord();
+});
 
 document.getElementById('btnBackDash').addEventListener('click', ouvrirTableauDeBord);
 
