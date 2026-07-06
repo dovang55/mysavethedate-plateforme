@@ -803,7 +803,10 @@ if (supa) {
       // visible dans l'adresse ni dans l'historique du navigateur.
       params.delete('googleToken'); params.delete('googleEmail');
       window.history.replaceState({}, '', window.location.pathname + (params.toString()?('?'+params.toString()):''));
-      const { error } = await supa.auth.verifyOtp({ email: googleEmail, token: googleToken, type:'magiclink' });
+      // token_hash (et non "token") : c'est le format renvoyé par l'API admin
+      // generateLink côté serveur, différent du code à 6 chiffres qu'utilise
+      // le paramètre "token" pour les flux OTP par email classiques.
+      const { error } = await supa.auth.verifyOtp({ token_hash: googleToken, type:'magiclink' });
       if (error) { afficherEcran('screenLogin'); afficherMessage('loginMsg', 'Connexion Google impossible : ' + error.message); }
       // Sinon, onAuthStateChange('SIGNED_IN') ci-dessus prend le relais.
       return;
