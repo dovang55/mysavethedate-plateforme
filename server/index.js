@@ -22,6 +22,8 @@ const { createClient } = require('@supabase/supabase-js');
 const Stripe = require('stripe');
 const renderBarMitsva = require('./templates/bar-mitsva/render');
 const defaultConfig   = require('./templates/bar-mitsva/default-config');
+const { POSTS } = require('./blog/posts');
+const { renderPostPage, renderIndexPage } = require('./blog/render');
 
 const supabase   = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, { realtime: { transport: ws } });
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
@@ -689,14 +691,37 @@ app.get('/robots.txt', (req,res) => {
   }
 });
 
+// N'affiche que les articles dont la date de publication est passée : on
+// peut ainsi écrire des articles à l'avance sans tout publier d'un coup
+// (une croissance de contenu trop soudaine est un mauvais signal pour Google).
+function articlesPublies(){
+  const maintenant = Date.now();
+  return POSTS
+    .filter(p => new Date(p.publishDate + 'T00:00:00').getTime() <= maintenant)
+    .sort((a,b) => new Date(b.publishDate) - new Date(a.publishDate));
+}
+
+app.get('/blog', (req,res) => {
+  res.send(renderIndexPage(articlesPublies()));
+});
+
+app.get('/blog/:slug', (req,res) => {
+  const post = articlesPublies().find(p => p.slug === req.params.slug);
+  if (!post) return res.status(404).send(pageErreur('Article introuvable', "Cet article n'existe pas ou n'est plus disponible."));
+  const articlesLies = articlesPublies().filter(p => p.category === post.category && p.slug !== post.slug).slice(0,3);
+  res.send(renderPostPage(post, articlesLies));
+});
+
 app.get('/sitemap.xml', (req,res) => {
   const sub = getSubdomain(req);
   if (sub && sub !== 'www') return res.status(404).end();
   const urls = [
     { loc:'https://mysavethedate.com/', priority:'1.0' },
+    { loc:'https://mysavethedate.com/blog', priority:'0.7' },
     { loc:'https://mysavethedate.com/legal/mentions-legales.html', priority:'0.3' },
     { loc:'https://mysavethedate.com/legal/cgu.html', priority:'0.3' },
     { loc:'https://mysavethedate.com/legal/confidentialite.html', priority:'0.3' },
+    ...articlesPublies().map(p => ({ loc:`https://mysavethedate.com/blog/${p.slug}`, priority:'0.6' })),
   ];
   res.type('application/xml').send(
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
