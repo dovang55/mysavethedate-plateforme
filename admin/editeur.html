@@ -57,6 +57,8 @@ a{color:inherit;text-decoration:none}
 #view-sites{overflow-y:auto;padding:28px}
 .sites-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
 .sites-header h2{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink)}
+.search-input{width:100%;max-width:480px;border:1px solid var(--border);padding:12px 16px;font-family:'Inter',sans-serif;font-size:14px;font-weight:500;background:var(--paper);outline:none;color:var(--ink);border-radius:4px}
+.search-input:focus{border-color:var(--gold)}
 .sites-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
 .site-card{background:var(--paper);border:1px solid var(--border);border-left:4px solid var(--gold);padding:22px 20px;cursor:pointer;transition:all .2s;position:relative}
 .site-card:hover{box-shadow:0 8px 28px rgba(13,31,60,.1);transform:translateY(-2px)}
@@ -204,10 +206,12 @@ a{color:inherit;text-decoration:none}
   <!-- SITES VIEW -->
   <div class="view active" id="view-sites" style="display:block;overflow-y:auto;padding:28px">
     <div class="sites-header">
-      <h2>Tous les sites</h2>
+      <h2>Rechercher un client</h2>
       <button class="btn-sm primary" id="btnNewSite">+ Nouveau faire-part</button>
     </div>
-    <div class="sites-grid" id="sitesGrid"><p style="font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--ink-s)">Chargement…</p></div>
+    <input type="text" class="search-input" id="searchSite" list="clientsList" placeholder="Nom du client ou sous-domaine…" autocomplete="off">
+    <datalist id="clientsList"></datalist>
+    <div class="sites-grid" id="sitesGrid" style="margin-top:20px"><p style="font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--ink-s)">Recherchez un client par nom ou sous-domaine pour afficher son faire-part.</p></div>
   </div>
 
   <!-- EDITOR VIEW -->
@@ -541,8 +545,9 @@ async function tryLogin(){
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('topbar').style.display='flex';
     document.getElementById('appBody').style.display='flex';
-    const sites = await r.json();
-    renderSitesList(sites);
+    tousLesSites = await r.json();
+    peuplerDatalist(tousLesSites);
+    filtrerSites();
     // Ouverture directe d'un site via lien externe (ex: depuis le dashboard) : /admin/#open=ID
     const hashMatch = location.hash.match(/open=([\w-]+)/);
     if(hashMatch) openEditor(hashMatch[1]);
@@ -552,9 +557,37 @@ async function tryLogin(){
 document.getElementById('logoutBtn').addEventListener('click', ()=>{ sessionStorage.removeItem('msdAdminKey'); location.reload(); });
 
 // ── Sites list ────────────────────────────────────────────────────────────────
-function renderSitesList(sites) {
+// La liste complète n'est jamais affichée d'un coup : on ne montre que les
+// faire-part du client recherché, pour retrouver un client précis rapidement
+// même quand il y en a beaucoup.
+let tousLesSites = [];
+
+function peuplerDatalist(sites){
+  const noms = [...new Set(sites.map(s => `${s.config?.identity?.firstName||''} ${s.config?.identity?.lastName||''}`.trim()).filter(Boolean))];
+  document.getElementById('clientsList').innerHTML = noms.map(n => `<option value="${n}">`).join('');
+}
+
+function filtrerSites(){
+  const q = (document.getElementById('searchSite').value||'').trim().toLowerCase();
+  if(!q){
+    document.getElementById('sitesGrid').innerHTML = '<p style="font-family:\'Cormorant Garamond\',serif;font-style:italic;color:var(--ink-s)">Recherchez un client par nom ou sous-domaine pour afficher son faire-part.</p>';
+    return;
+  }
+  const resultats = tousLesSites.filter(s => {
+    const nom = `${s.config?.identity?.firstName||''} ${s.config?.identity?.lastName||''}`.toLowerCase();
+    return nom.includes(q) || (s.subdomain||'').toLowerCase().includes(q);
+  });
+  renderSitesList(resultats, true);
+}
+document.getElementById('searchSite').addEventListener('input', filtrerSites);
+
+function renderSitesList(sites, depuisRecherche) {
   const grid = document.getElementById('sitesGrid');
-  if(!sites.length){ grid.innerHTML='<p style="font-family:\'Cormorant Garamond\',serif;font-style:italic;color:var(--ink-s)">Aucun faire-part pour l\'instant. Créez-en un !</p>'; return; }
+  if(!sites.length){
+    const msg = depuisRecherche ? 'Aucun client ne correspond à cette recherche.' : 'Aucun faire-part pour l\'instant. Créez-en un !';
+    grid.innerHTML = `<p style="font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--ink-s)">${msg}</p>`;
+    return;
+  }
   grid.innerHTML = sites.map(s => `
     <div class="site-card" data-id="${s.id}">
       <div class="site-card-status ${s.active?'':'inactive'}"></div>
@@ -617,7 +650,9 @@ document.getElementById('btnBackList').addEventListener('click', async ()=>{
   document.getElementById('btnBackList').style.display='none';
   document.getElementById('editorActions').style.display='none';
   const r = await apiFetch('/api/admin/sites');
-  renderSitesList(await r.json());
+  tousLesSites = await r.json();
+  peuplerDatalist(tousLesSites);
+  filtrerSites();
 });
 
 // Nav — le menu latéral est généré ici (et non écrit en dur dans le HTML)
