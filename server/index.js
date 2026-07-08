@@ -911,6 +911,85 @@ app.delete('/api/admin/dashboard/comptes/:userId', requireAdmin, async (req,res)
   res.json({success:true});
 });
 
+// ── Nettoyage : ne garder que les données d'un seul compte ─────────────────
+// Action destructive à usage ponctuel (vider les données de test). Toujours
+// utilisée en deux temps depuis l'admin : un aperçu (comptage, rien n'est
+// supprimé) puis une exécution explicite avec le même email tapé deux fois.
+async function calculerPorteeNettoyage(garderEmail){
+  const comptes = await listerTousLesComptes();
+  const garder = comptes.find(c => c.email === garderEmail);
+  if (!garder) throw new Error(`Aucun compte trouvé avec l'email ${garderEmail} — abandon par sécurité.`);
+
+  const { data:sites, error:sitesErr } = await supabase.from('msd_sites').select('id,user_id');
+  if (sitesErr) throw sitesErr;
+  const sitesASupprimer = sites.filter(s => s.user_id !== garder.id);
+
+  const { data:leads } = await supabase.from('msd_leads').select('id,email');
+  const leadsASupprimer = (leads||[]).filter(l => l.email !== garderEmail);
+
+  return {
+    garder,
+    comptesASupprimer: comptes.filter(c => c.id !== garder.id),
+    siteIdsASupprimer: sitesASupprimer.map(s => s.id),
+    leadIdsASupprimer: leadsASupprimer.map(l => l.id),
+  };
+}
+
+app.get('/api/admin/nettoyage/apercu', requireAdmin, async (req,res) => {
+  try {
+    const { garderEmail } = req.query;
+    if (!garderEmail) return res.status(400).json({error:'garderEmail requis'});
+    const p = await calculerPorteeNettoyage(garderEmail);
+    res.json({
+      garderEmail: p.garder.email,
+      comptesASupprimer: p.comptesASupprimer.length,
+      sitesASupprimer: p.siteIdsASupprimer.length,
+      leadsASupprimer: p.leadIdsASupprimer.length,
+    });
+  } catch(err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/nettoyage', requireAdmin, async (req,res) => {
+  try {
+    const { garderEmail } = req.body || {};
+    if (!garderEmail) return res.status(400).json({error:'garderEmail requis'});
+    const { siteIdsASupprimer, comptesASupprimer, leadIdsASupprimer } = await calculerPorteeNettoyage(garderEmail);
+
+    if (siteIdsASupprimer.length) {
+      await supabase.from('msd_rsvp').delete().in('site_id', siteIdsASupprimer);
+      await supabase.from('msd_videos').delete().in('site_id', siteIdsASupprimer);
+      await supabase.from('msd_mur_medias').delete().in('site_id', siteIdsASupprimer);
+      // Best-effort : fichiers stockés (photos/vidéos) de chaque site supprimé.
+      for (const siteId of siteIdsASupprimer) {
+        try {
+          const { data:mediaFiles } = await supabase.storage.from(BUCKET_MEDIA).list(siteId);
+          if (mediaFiles?.length) await supabase.storage.from(BUCKET_MEDIA).remove(mediaFiles.map(f => `${siteId}/${f.name}`));
+          const { data:videoFiles } = await supabase.storage.from(BUCKET_VIDEO).list(siteId);
+          if (videoFiles?.length) await supabase.storage.from(BUCKET_VIDEO).remove(videoFiles.map(f => `${siteId}/${f.name}`));
+        } catch(err) { console.error('Nettoyage stockage échoué pour', siteId, err.message); }
+      }
+      await supabase.from('msd_sites').delete().in('id', siteIdsASupprimer);
+    }
+    if (leadIdsASupprimer.length) {
+      await supabase.from('msd_leads').delete().in('id', leadIdsASupprimer);
+    }
+    for (const c of comptesASupprimer) {
+      await supabase.auth.admin.deleteUser(c.id);
+    }
+
+    res.json({
+      success:true,
+      comptesSupprimes: comptesASupprimer.length,
+      sitesSupprimes: siteIdsASupprimer.length,
+      leadsSupprimes: leadIdsASupprimer.length,
+    });
+  } catch(err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ESPACE CLIENT — API scopée au compte connecté (Supabase Auth)
 // ─────────────────────────────────────────────────────────────────────────────
