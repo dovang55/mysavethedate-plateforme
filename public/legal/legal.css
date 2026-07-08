@@ -11,5 +11,5 @@ h1{font-family:'Montserrat',sans-serif;font-weight:800;font-size:28px;margin:0 0
 h2{font-family:'Montserrat',sans-serif;font-weight:700;font-size:16px;margin:32px 0 10px;color:#1e3a8a}
 p,li{font-size:14px;color:#1e293b}
 .legal-updated{font-size:12px;color:rgba(13,31,60,.45);margin-bottom:24px}
-.legal-placeholder{background:#fff3e9;border:1px solid #e9c9a6;color:#7a4a1f;padding:12px 16px;border-radius:4px;font-size:13px}
+.legal-placeholder{display:block;background:#fff3e9;border:1px solid #e9c9a6;color:#7a4a1f;padding:12px 16px;border-radius:4px;font-size:13px}
 a{color:#2563eb}
