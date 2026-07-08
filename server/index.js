@@ -889,7 +889,11 @@ app.get('/api/admin/dashboard', requireAdmin, async (req,res) => {
       totalRsvp: rsvp.length,
       totalVideos: videos.length,
       totalMur: mur.length,
-      revenuEstime: sites.filter(s=>s.active && s.user_id).length * PRIX_PARTAGE_EUROS,
+      // Basé sur la formule réellement achetée par chaque site (voir PLANS) ;
+      // les sites activés hors du système de formules (admin, ancien flux)
+      // n'ont pas de config.plan et ne comptent pour rien ici, faute de savoir
+      // ce qui a été réellement payé.
+      revenuEstime: sites.filter(s=>s.active && s.user_id).reduce((somme,s) => somme + (PLANS[s.config?.plan?.id]?.prix || 0), 0),
     };
 
     res.json({ stats, clients, sitesOrphelins, leads });
