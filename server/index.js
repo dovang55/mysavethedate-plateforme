@@ -24,6 +24,7 @@ const renderBarMitsva = require('./templates/bar-mitsva/render');
 const defaultConfig   = require('./templates/bar-mitsva/default-config');
 const { POSTS } = require('./blog/posts');
 const { renderPostPage, renderIndexPage } = require('./blog/render');
+const { ARTICLES_A_REDIGER } = require('./blog/calendrier');
 
 const supabase   = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, { realtime: { transport: ws } });
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
@@ -710,6 +711,20 @@ app.get('/blog/:slug', (req,res) => {
   if (!post) return res.status(404).send(pageErreur('Article introuvable', "Cet article n'existe pas ou n'est plus disponible."));
   const articlesLies = articlesPublies().filter(p => p.category === post.category && p.slug !== post.slug).slice(0,3);
   res.send(renderPostPage(post, articlesLies));
+});
+
+// Vue d'ensemble du calendrier éditorial pour l'admin : publiés, écrits mais
+// pas encore publiés (date future), et sujets pas encore rédigés.
+app.get('/api/admin/blog', requireAdmin, (req,res) => {
+  const maintenant = Date.now();
+  const estPublie = p => new Date(p.publishDate + 'T00:00:00').getTime() <= maintenant;
+  const tri = (a,b) => new Date(a.publishDate) - new Date(b.publishDate);
+  res.json({
+    publies:    POSTS.filter(estPublie).sort(tri).reverse().map(p => ({ slug:p.slug, title:p.title, category:p.category, keyword:p.keyword, publishDate:p.publishDate, url:`/blog/${p.slug}` })),
+    programmes: POSTS.filter(p => !estPublie(p)).sort(tri).map(p => ({ title:p.title, category:p.category, keyword:p.keyword, publishDate:p.publishDate })),
+    aRediger:   ARTICLES_A_REDIGER,
+    total: POSTS.length + ARTICLES_A_REDIGER.length,
+  });
 });
 
 app.get('/sitemap.xml', (req,res) => {
