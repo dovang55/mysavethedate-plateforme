@@ -95,6 +95,7 @@ a{color:inherit;text-decoration:none}
 <!-- TOPBAR -->
 <div class="topbar" id="topbar" style="display:none">
   <div class="topbar-title">MySaveThe<span>Date</span> — Dashboard</div>
+  <a class="btn-sm" href="/admin/blog/">Blog SEO</a>
   <a class="btn-sm" href="/admin/editeur/">Éditeur de sites</a>
   <button class="btn-sm" id="refreshBtn">⟳ Actualiser</button>
   <button class="btn-sm danger" id="logoutBtn">Déconnexion</button>
@@ -146,43 +147,6 @@ a{color:inherit;text-decoration:none}
             <th>Lieu</th><th>Invités</th><th>Budget</th><th>Soumis le</th><th></th>
           </tr></thead>
           <tbody id="leadsBody"><tr><td colspan="10" class="loading-cell">Chargement…</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="section-title">Blog SEO</div>
-    <div class="stats-row" id="blogStatsRow"></div>
-
-    <div class="section-title" style="font-size:13px;margin-top:20px">Articles publiés</div>
-    <div class="table-card">
-      <div style="overflow-x:auto">
-        <table class="data-table">
-          <thead><tr><th>Titre</th><th>Catégorie</th><th>Mot-clé ciblé</th><th>Publié le</th><th></th></tr></thead>
-          <tbody id="blogPubliesBody"><tr><td colspan="5" class="loading-cell">Chargement…</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="section-title" style="font-size:13px;margin-top:20px">Articles rédigés, publication programmée</div>
-    <div class="table-card">
-      <div style="overflow-x:auto">
-        <table class="data-table">
-          <thead><tr><th>Titre</th><th>Catégorie</th><th>Mot-clé ciblé</th><th>Publication le</th></tr></thead>
-          <tbody id="blogProgrammesBody"><tr><td colspan="4" class="loading-cell">Chargement…</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="section-title" style="font-size:13px;margin-top:20px">Sujets planifiés, pas encore rédigés</div>
-    <div class="tools-row">
-      <input type="text" class="search-input" id="searchBlogARediger" placeholder="Rechercher par titre ou mot-clé…">
-      <span class="muted" id="blogARedigerCount"></span>
-    </div>
-    <div class="table-card">
-      <div style="overflow-x:auto">
-        <table class="data-table">
-          <thead><tr><th>Titre</th><th>Catégorie</th><th>Mot-clé ciblé</th></tr></thead>
-          <tbody id="blogARedigerBody"><tr><td colspan="3" class="loading-cell">Chargement…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -246,7 +210,6 @@ async function tryLogin(){
     dashboardData = await r.json();
     renderAll();
     chargerFaq();
-    chargerBlog();
   } catch {
     document.getElementById('loginErr').textContent='Erreur réseau.';
     document.getElementById('loginErr').classList.add('show');
@@ -261,7 +224,6 @@ async function reload(){
   dashboardData = await r.json();
   renderAll();
   chargerFaq();
-  chargerBlog();
   showToast('Actualisé');
 }
 
@@ -404,58 +366,6 @@ function echapperHtml(s){
   d.textContent = s||'';
   return d.innerHTML;
 }
-
-// ── Blog SEO ──────────────────────────────────────────────────────────────
-const LABELS_CATEGORIE_BLOG = { mariage:'Mariage', 'bar-bat-mitsva':'Bar / Bat Mitsva', anniversaire:'Anniversaire', organisation:'Organisation & RSVP' };
-let blogData = null;
-
-async function chargerBlog(){
-  const r = await apiFetch('/api/admin/blog');
-  blogData = await r.json();
-  renderBlog();
-}
-
-function formaterDateBlog(iso){
-  try { return new Date(iso+'T12:00:00').toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' }); }
-  catch(e){ return iso; }
-}
-
-function renderBlog(){
-  if (!blogData) return;
-  const { publies, programmes, aRediger, total } = blogData;
-
-  document.getElementById('blogStatsRow').innerHTML = [
-    ['Publiés', publies.length],
-    ['Programmés', programmes.length],
-    ['À rédiger', aRediger.length],
-    ['Total prévu', total],
-  ].map(([lbl,val]) => `<div class="stat-box"><div class="stat-num">${val}</div><div class="stat-lbl">${lbl}</div></div>`).join('');
-
-  document.getElementById('blogPubliesBody').innerHTML = publies.length ? publies.map(p => `<tr>
-    <td>${echapperHtml(p.title)}</td>
-    <td class="muted">${LABELS_CATEGORIE_BLOG[p.category]||p.category}</td>
-    <td class="muted">${echapperHtml(p.keyword)}</td>
-    <td class="muted">${formaterDateBlog(p.publishDate)}</td>
-    <td class="actions"><a class="btn-sm" href="${p.url}" target="_blank">Voir ↗</a></td>
-  </tr>`).join('') : '<tr class="empty-row"><td colspan="5">Aucun article publié pour l\'instant.</td></tr>';
-
-  document.getElementById('blogProgrammesBody').innerHTML = programmes.length ? programmes.map(p => `<tr>
-    <td>${echapperHtml(p.title)}</td>
-    <td class="muted">${LABELS_CATEGORIE_BLOG[p.category]||p.category}</td>
-    <td class="muted">${echapperHtml(p.keyword)}</td>
-    <td class="muted">${formaterDateBlog(p.publishDate)}</td>
-  </tr>`).join('') : '<tr class="empty-row"><td colspan="4">Aucun article en attente de publication.</td></tr>';
-
-  const q = (document.getElementById('searchBlogARediger').value||'').toLowerCase();
-  const filtres = aRediger.filter(a => !q || (a.title+' '+a.keyword).toLowerCase().includes(q));
-  document.getElementById('blogARedigerCount').textContent = `${filtres.length} / ${aRediger.length}`;
-  document.getElementById('blogARedigerBody').innerHTML = filtres.length ? filtres.map(a => `<tr>
-    <td>${echapperHtml(a.title)}</td>
-    <td class="muted">${LABELS_CATEGORIE_BLOG[a.category]||a.category}</td>
-    <td class="muted">${echapperHtml(a.keyword)}</td>
-  </tr>`).join('') : '<tr class="empty-row"><td colspan="3">Aucun résultat.</td></tr>';
-}
-document.getElementById('searchBlogARediger').addEventListener('input', renderBlog);
 
 async function chargerFaq(){
   const r = await apiFetch('/api/admin/faq');

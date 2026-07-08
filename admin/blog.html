@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>MySaveTheDate — Blog SEO</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f0f5ff;--paper:#ffffff;--border:rgba(30,64,175,.15);
+  --gold:#2563eb;--ink:#0d1f3c;--ink-s:#1e3a8a;--cream:#e8f0fe;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--ink);background:var(--bg);min-height:100vh}
+a{color:inherit;text-decoration:none}
+
+/* LOGIN */
+.login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999}
+.login-box{background:var(--paper);padding:52px 44px;width:400px;max-width:92vw;text-align:center;box-shadow:0 20px 60px rgba(13,31,60,.12);border-top:4px solid var(--gold)}
+.login-logo{font-family:'Montserrat',sans-serif;font-size:22px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.login-sub{font-size:13px;color:var(--ink-s);margin-bottom:32px}
+.login-box input{width:100%;border:none;border-bottom:2px solid var(--border);padding:10px 0;font-size:16px;font-weight:600;text-align:center;letter-spacing:.15em;background:transparent;outline:none;color:var(--ink);margin-bottom:24px}
+.login-box input:focus{border-bottom-color:var(--gold)}
+.btn-dark{background:var(--ink);color:#fff;border:none;padding:14px 28px;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.35em;text-transform:uppercase;cursor:pointer;width:100%}
+.btn-dark:hover{background:var(--gold)}
+.login-err{font-size:13px;color:#dc2626;margin-top:12px;display:none}
+.login-err.show{display:block}
+
+/* TOPBAR */
+.topbar{height:56px;background:var(--ink);display:flex;align-items:center;padding:0 24px;gap:12px}
+.topbar-title{font-family:'Montserrat',sans-serif;font-size:15px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;flex:1;color:#fff;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar-title span{color:#93c5fd;font-weight:400}
+.btn-sm{padding:7px 16px;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;border:2px solid rgba(255,255,255,.25);background:transparent;cursor:pointer;color:rgba(255,255,255,.8);border-radius:3px;white-space:nowrap;flex-shrink:0}
+.btn-sm:hover{border-color:#fff;color:#fff}
+.btn-sm.danger:hover{border-color:#f87171;color:#f87171}
+
+/* LAYOUT */
+.wrap{max-width:1400px;margin:0 auto;padding:28px}
+.section-title{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:800;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin:36px 0 16px}
+.section-title:first-child{margin-top:0}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.stat-box{background:var(--paper);border:1px solid var(--border);border-left:4px solid var(--gold);padding:18px;text-align:center;border-radius:6px}
+.stat-num{font-family:'Montserrat',sans-serif;font-size:30px;font-weight:800;color:var(--gold);line-height:1}
+.stat-lbl{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--ink-s);margin-top:6px}
+
+/* TOOLS */
+.tools-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.search-input{border:1px solid var(--border);padding:9px 14px;font-size:13px;font-family:'Inter',sans-serif;background:var(--paper);outline:none;border-radius:4px;min-width:260px}
+.search-input:focus{border-color:var(--gold)}
+
+/* TABLE */
+.table-card{background:var(--paper);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--ink-s);padding:12px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;background:var(--cream)}
+.data-table td{font-size:13px;font-weight:500;padding:10px 14px;border-bottom:1px solid rgba(30,64,175,.08);vertical-align:top}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(37,99,235,.03)}
+.empty-row td{text-align:center;color:var(--ink-s);font-style:italic;padding:24px}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.muted{color:var(--ink-s);font-size:12px}
+.loading-cell{padding:30px;text-align:center;font-style:italic;color:var(--ink-s)}
+
+.toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--ink);color:#fff;padding:14px 22px;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;opacity:0;transition:opacity .3s,transform .3s;transform:translateY(8px);pointer-events:none;border-radius:4px}
+.toast.show{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">MySaveTheDate</div>
+    <div class="login-sub">Blog SEO — accès BOSS</div>
+    <input type="password" id="pwInput" placeholder="Mot de passe admin" autocomplete="current-password">
+    <button class="btn-dark" id="loginBtn">Entrer</button>
+    <div class="login-err" id="loginErr">Mot de passe incorrect.</div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar" id="topbar" style="display:none">
+  <div class="topbar-title">MySaveThe<span>Date</span> — Blog SEO</div>
+  <a class="btn-sm" href="/admin/">← Dashboard</a>
+  <a class="btn-sm" href="/admin/editeur/">Éditeur de sites</a>
+  <button class="btn-sm" id="refreshBtn">⟳ Actualiser</button>
+  <button class="btn-sm danger" id="logoutBtn">Déconnexion</button>
+</div>
+
+<div id="appBody" style="display:none">
+  <div class="wrap">
+
+    <div class="section-title">Vue d'ensemble</div>
+    <div class="stats-row" id="blogStatsRow"></div>
+
+    <div class="section-title">Articles publiés</div>
+    <div class="table-card">
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>Titre</th><th>Catégorie</th><th>Mot-clé ciblé</th><th>Publié le</th><th></th></tr></thead>
+          <tbody id="blogPubliesBody"><tr><td colspan="5" class="loading-cell">Chargement…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-title">Articles rédigés, publication programmée</div>
+    <div class="table-card">
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>Titre</th><th>Catégorie</th><th>Mot-clé ciblé</th><th>Publication le</th></tr></thead>
+          <tbody id="blogProgrammesBody"><tr><td colspan="4" class="loading-cell">Chargement…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-title">Sujets planifiés, pas encore rédigés</div>
+    <div class="tools-row">
+      <input type="text" class="search-input" id="searchBlogARediger" placeholder="Rechercher par titre ou mot-clé…">
+      <span class="muted" id="blogARedigerCount"></span>
+    </div>
+    <div class="table-card">
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>Titre</th><th>Catégorie</th><th>Mot-clé ciblé</th></tr></thead>
+          <tbody id="blogARedigerBody"><tr><td colspan="3" class="loading-cell">Chargement…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let adminKey = '';
+let blogData = null;
+
+document.getElementById('loginBtn').addEventListener('click', tryLogin);
+document.getElementById('pwInput').addEventListener('keydown', e => e.key==='Enter' && tryLogin());
+const saved = sessionStorage.getItem('msdAdminKey');
+if(saved){ document.getElementById('pwInput').value=saved; tryLogin(); }
+
+async function tryLogin(){
+  const pw = document.getElementById('pwInput').value.trim();
+  if(!pw) return;
+  document.getElementById('loginBtn').disabled=true;
+  try {
+    const r = await fetch('/api/admin/blog', { headers:{'x-admin-key':pw} });
+    if(r.status===401){
+      document.getElementById('loginErr').classList.add('show');
+      document.getElementById('loginBtn').disabled=false;
+      document.getElementById('pwInput').value='';
+      return;
+    }
+    adminKey=pw; sessionStorage.setItem('msdAdminKey',pw);
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('topbar').style.display='flex';
+    document.getElementById('appBody').style.display='block';
+    blogData = await r.json();
+    renderBlog();
+  } catch {
+    document.getElementById('loginErr').textContent='Erreur réseau.';
+    document.getElementById('loginErr').classList.add('show');
+    document.getElementById('loginBtn').disabled=false;
+  }
+}
+document.getElementById('logoutBtn').addEventListener('click', ()=>{ sessionStorage.removeItem('msdAdminKey'); location.reload(); });
+document.getElementById('refreshBtn').addEventListener('click', reload);
+
+async function reload(){
+  const r = await apiFetch('/api/admin/blog');
+  blogData = await r.json();
+  renderBlog();
+  showToast('Actualisé');
+}
+
+function apiFetch(url, opts={}){
+  opts.headers = Object.assign({}, opts.headers, { 'x-admin-key': adminKey, 'Content-Type':'application/json' });
+  return fetch(url, opts);
+}
+
+function echapperHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s||'';
+  return d.innerHTML;
+}
+
+const LABELS_CATEGORIE_BLOG = { mariage:'Mariage', 'bar-bat-mitsva':'Bar / Bat Mitsva', anniversaire:'Anniversaire', organisation:'Organisation & RSVP' };
+
+function formaterDateBlog(iso){
+  try { return new Date(iso+'T12:00:00').toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' }); }
+  catch(e){ return iso; }
+}
+
+function renderBlog(){
+  if (!blogData) return;
+  const { publies, programmes, aRediger, total } = blogData;
+
+  document.getElementById('blogStatsRow').innerHTML = [
+    ['Publiés', publies.length],
+    ['Programmés', programmes.length],
+    ['À rédiger', aRediger.length],
+    ['Total prévu', total],
+  ].map(([lbl,val]) => `<div class="stat-box"><div class="stat-num">${val}</div><div class="stat-lbl">${lbl}</div></div>`).join('');
+
+  document.getElementById('blogPubliesBody').innerHTML = publies.length ? publies.map(p => `<tr>
+    <td>${echapperHtml(p.title)}</td>
+    <td class="muted">${LABELS_CATEGORIE_BLOG[p.category]||p.category}</td>
+    <td class="muted">${echapperHtml(p.keyword)}</td>
+    <td class="muted">${formaterDateBlog(p.publishDate)}</td>
+    <td class="actions"><a class="btn-sm" style="color:var(--gold);border-color:var(--border)" href="${p.url}" target="_blank">Voir ↗</a></td>
+  </tr>`).join('') : '<tr class="empty-row"><td colspan="5">Aucun article publié pour l\'instant.</td></tr>';
+
+  document.getElementById('blogProgrammesBody').innerHTML = programmes.length ? programmes.map(p => `<tr>
+    <td>${echapperHtml(p.title)}</td>
+    <td class="muted">${LABELS_CATEGORIE_BLOG[p.category]||p.category}</td>
+    <td class="muted">${echapperHtml(p.keyword)}</td>
+    <td class="muted">${formaterDateBlog(p.publishDate)}</td>
+  </tr>`).join('') : '<tr class="empty-row"><td colspan="4">Aucun article en attente de publication.</td></tr>';
+
+  const q = (document.getElementById('searchBlogARediger').value||'').toLowerCase();
+  const filtres = aRediger.filter(a => !q || (a.title+' '+a.keyword).toLowerCase().includes(q));
+  document.getElementById('blogARedigerCount').textContent = `${filtres.length} / ${aRediger.length}`;
+  document.getElementById('blogARedigerBody').innerHTML = filtres.length ? filtres.map(a => `<tr>
+    <td>${echapperHtml(a.title)}</td>
+    <td class="muted">${LABELS_CATEGORIE_BLOG[a.category]||a.category}</td>
+    <td class="muted">${echapperHtml(a.keyword)}</td>
+  </tr>`).join('') : '<tr class="empty-row"><td colspan="3">Aucun résultat.</td></tr>';
+}
+document.getElementById('searchBlogARediger').addEventListener('input', renderBlog);
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>

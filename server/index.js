@@ -575,6 +575,9 @@ app.get(['/admin','/admin/'], (req,res) => {
 app.get(['/admin/editeur','/admin/editeur/'], (req,res) => {
   res.sendFile(path.join(__dirname,'..','admin','editeur.html'));
 });
+app.get(['/admin/blog','/admin/blog/'], (req,res) => {
+  res.sendFile(path.join(__dirname,'..','admin','blog.html'));
+});
 // Ancienne URL du tableau de bord, conservée pour ne pas casser un lien existant.
 app.get(['/admin/dashboard','/admin/dashboard/'], (req,res) => res.redirect('/admin/'));
 
